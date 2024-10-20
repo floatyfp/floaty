@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:floaty/frontend/login_screen.dart'; // Import your LoginScreen
+import 'package:Floaty/frontend/login_screen.dart';
 
 void main() {
   runApp(MyApp());
@@ -9,17 +9,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Floatplane Client',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      initialRoute: '/', // Set the initial route
+      title: 'Floaty',
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.dark,
+      initialRoute: '/',
       routes: {
-        '/': (context) => SplashScreen(), // Redirect from splash screen
-        '/login': (context) => LoginScreen(), // Route to the login page
-        // Add other routes as needed
+        '/': (context) => SplashScreen(),
+        '/login': (context) => LoginScreen(),
+        '/2fa': (context) => twofaScreen(),
+        //'/home': (context) => HomeScreen(),
       },
-      // Use a builder to handle any necessary platform-specific logic or settings
       builder: (context, child) {
         return child!;
       },
@@ -27,19 +27,29 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Optional: You can create a splash screen to manage redirection
 class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Simulate some loading time
     Future.delayed(Duration(seconds: 2), () {
       Navigator.pushReplacementNamed(context, '/login');
     });
 
     return Scaffold(
-      body: Center(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0d47a1),
+              Color(0xFF1976d2),
+            ],
+          ),
+        ),
+      child: const Center(
         child: CircularProgressIndicator(),
       ),
+    ),
     );
   }
 }
