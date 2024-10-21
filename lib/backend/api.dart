@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:Floaty/settings.dart';
+import 'package:floaty/settings.dart';
 
-class fpApi {
+class FPApi {
   late final Settings settings = Settings();
   static const String baseUrl = 'https://www.floatplane.com/api';
   static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
   String? token;
 
-  fpApi() {
+  FPApi() {
     _initTokens();
   }
 
@@ -16,6 +16,7 @@ class fpApi {
     token = await settings.getKey('token');
   }
 
+// do not messsage me about this absolute garbage code please - bw86
 Future<Map<String, dynamic>> login(String username, String password) async {
   final url = Uri.parse('$baseUrl/auth/login');
   final response = await http.post(
@@ -47,7 +48,7 @@ Future<Map<String, dynamic>> login(String username, String password) async {
     }
     return jsonDecode(response.body);
   } else {
-    throw Exception('Failed to login: ${response.body}');
+    return jsonDecode(response.body);
   }
 }
 
@@ -73,7 +74,7 @@ Future<Map<String, dynamic>> login(String username, String password) async {
       _initTokens();
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to send 2fa: ${response.body}');
+      return jsonDecode(response.body);
     }
   }
 }

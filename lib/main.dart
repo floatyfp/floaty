@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:Floaty/frontend/login_screen.dart';
+import 'package:floaty/frontend/login_screen.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -15,9 +16,9 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.dark,
       initialRoute: '/',
       routes: {
-        '/': (context) => SplashScreen(),
+        '/': (context) => const SplashScreen(),
         '/login': (context) => LoginScreen(),
-        '/2fa': (context) => twofaScreen(),
+        '/2fa': (context) => TwoFaScreen(),
         //'/home': (context) => HomeScreen(),
       },
       builder: (context, child) {
@@ -28,10 +29,13 @@ class MyApp extends StatelessWidget {
 }
 
 class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    Future.delayed(Duration(seconds: 2), () {
-      Navigator.pushReplacementNamed(context, '/login');
+    Future.delayed(const Duration(seconds: 2), () {
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     });
 
     return Scaffold(
