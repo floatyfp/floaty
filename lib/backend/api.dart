@@ -7,7 +7,6 @@ class fpApi {
   static const String baseUrl = 'https://www.floatplane.com/api';
   static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
   String? token;
-  String? twofaHeader;
 
   fpApi() {
     _initTokens();
@@ -15,7 +14,6 @@ class fpApi {
 
   Future<void> _initTokens() async {
     token = await settings.getKey('token');
-    twofaHeader = await settings.getKey('2faHeader');
   }
 
 Future<Map<String, dynamic>> login(String username, String password) async {
@@ -55,13 +53,12 @@ Future<Map<String, dynamic>> login(String username, String password) async {
 
   Future<Map<String, dynamic>> twofa(String code) async {
     final url = Uri.parse('$baseUrl/auth/checkFor2faLogin'); 
-    print('twofaToken: $twofaHeader');
     final response = await http.post(
       url,
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': userAgent,
-         'Cookie': '$twofaHeader',
+         'Cookie': await settings.getKey('2faHeader'),
       },
       body: jsonEncode({
         'token': code,
@@ -71,8 +68,9 @@ Future<Map<String, dynamic>> login(String username, String password) async {
     if (response.statusCode == 200) {
       var res = jsonDecode(response.body);
       if (res['needs2FA'] == true) {
-        await settings.setKey('cookies', '$twofaHeader');
+        await settings.setKey('cookies', await settings.getKey('2faHeader'));
       }
+      _initTokens();
       return jsonDecode(response.body);
     } else {
       throw Exception('Failed to send 2fa: ${response.body}');
