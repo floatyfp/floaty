@@ -70,6 +70,7 @@ Future<Map<String, dynamic>> login(String username, String password) async {
       var res = jsonDecode(response.body);
       if (res['needs2FA'] == true) {
         await settings.setKey('cookies', await settings.getKey('2faHeader'));
+        await settings.removeKey('2faHeader');
       }
       _initTokens();
       return jsonDecode(response.body);

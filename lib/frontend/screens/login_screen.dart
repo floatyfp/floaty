@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:floaty/backend/api.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
@@ -24,7 +25,7 @@ class LoginScreen extends StatelessWidget {
     }
     if (response['needs2FA'] == true) {
       if (context.mounted) {
-        Navigator.pushNamed(context, '/2fa');
+        context.pushReplacement('/2fa');
       }
     }
     if (response.containsKey('message')) {
@@ -147,7 +148,7 @@ class LoginScreen extends StatelessWidget {
 class TwoFaScreen extends StatelessWidget {
   TwoFaScreen({super.key});
   late final api = FPApi();
-  final TextEditingController twofaCodeController = TextEditingController(text: '1234');
+  final TextEditingController twofaCodeController = TextEditingController();
 
   Future twofa(String code, BuildContext context) async {
     Map<String, dynamic> response;
