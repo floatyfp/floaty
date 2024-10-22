@@ -3,9 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:floaty/frontend/screens/login_screen.dart';
 import 'package:floaty/backend/checkers.dart';
 import 'package:floaty/frontend/screens/home_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -42,23 +43,25 @@ class MyApp extends StatelessWidget {
           },
         ),
       ],
-      redirect: (BuildContext context, GoRouterState state) {
-        final isAuthenticated = checkers.isAuthenticated();
-        final hasAccessTo2FA = checkers.twoFAAuthenticated();
+      redirect: (BuildContext context, GoRouterState state) async {
+        final isAuthenticated = await checkers.isAuthenticated();
+        final hasAccessTo2FA = await checkers.twoFAAuthenticated();
         final currentPath = state.uri.path;
+
+        print('Current path: ${state.uri.path}');
+        print('Is Authenticated: $isAuthenticated, Has 2FA: $hasAccessTo2FA');
 
         // Handle authentication flow
         switch (currentPath) {
           case '/':
-            // From splash screen, direct to appropriate screen based on auth state
             if (!isAuthenticated) return '/login';
-            if (isAuthenticated && !hasAccessTo2FA) return '/2fa';
-            if (isAuthenticated && hasAccessTo2FA) return '/home';
+            if (isAuthenticated && !hasAccessTo2FA) return '/home';
+            if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
             break;
 
           case '/login':
-            // If already authenticated, prevent accessing login
-            if (isAuthenticated) return '/';
+            if (isAuthenticated) return '/home';
+            if (hasAccessTo2FA) return '/2fa';
             return null; // Allow access to login
             
           case '/2fa':

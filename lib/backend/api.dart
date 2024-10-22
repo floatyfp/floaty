@@ -42,7 +42,7 @@ Future<Map<String, dynamic>> login(String username, String password) async {
       if (res['needs2FA'] == true) {
         await settings.setKey('2faHeader', allCookies);
       } else {
-        await settings.setKey('cookies', allCookies);
+        await settings.setKey('token', allCookies);
       }
       _initTokens();
     }
@@ -68,8 +68,9 @@ Future<Map<String, dynamic>> login(String username, String password) async {
 
     if (response.statusCode == 200) {
       var res = jsonDecode(response.body);
-      if (res['needs2FA'] == true) {
-        await settings.setKey('cookies', await settings.getKey('2faHeader'));
+      if (res['needs2FA'] == false) {
+        print('hello');
+        await settings.setKey('token', await settings.getKey('2faHeader'));
         await settings.removeKey('2faHeader');
       }
       _initTokens();

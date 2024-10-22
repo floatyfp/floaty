@@ -1,3 +1,4 @@
+import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:floaty/backend/api.dart';
 import 'package:go_router/go_router.dart';
@@ -39,7 +40,7 @@ class LoginScreen extends StatelessWidget {
       }
     }
     if (context.mounted) {
-      //Navigator.pushNamed(context, '/home');
+      context.pushReplacement('/home');
     }  
     return;
   }
@@ -148,6 +149,7 @@ class LoginScreen extends StatelessWidget {
 class TwoFaScreen extends StatelessWidget {
   TwoFaScreen({super.key});
   late final api = FPApi();
+  late final settings = Settings();
   final TextEditingController twofaCodeController = TextEditingController();
 
   Future twofa(String code, BuildContext context) async {
@@ -185,8 +187,9 @@ class TwoFaScreen extends StatelessWidget {
         );
       }
     }
+    settings.setKey('token', await settings.getKey('2faHeader'));
     if (context.mounted) {
-      //Navigator.pushNamed(context, '/home');
+      context.pushReplacement('/home');
     }
     return;
   }
