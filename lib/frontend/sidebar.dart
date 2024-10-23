@@ -1,77 +1,122 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:floaty/backend/state_mgmt.dart';
+import 'package:go_router/go_router.dart';
 
-final sidebarStateProvider = StateProvider<bool>((ref) => true); // true = expanded, false = collapsed
-
-class ResponsiveSidebar extends ConsumerWidget {
-  const ResponsiveSidebar({super.key});
+class ResponsiveSidebar extends StatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isSidebarExpanded = ref.watch(sidebarStateProvider).state;
-    final screenWidth = MediaQuery.of(context).size.width;
+  _ResponsiveSidebarState createState() => _ResponsiveSidebarState();
+}
 
-    // Determine if it's a small, medium, or large screen
-    bool isSmallScreen = screenWidth < 600;
-    bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
-    bool isLargeScreen = screenWidth >= 1024;
+class _ResponsiveSidebarState extends State<ResponsiveSidebar> {
+  bool _isCollapsed = false;
+  bool _isDropdownOpen = false;
 
-    return GestureDetector(
-      onHorizontalDragEnd: (DragEndDetails details) {
-        // Small screens: full open/close
-        if (isSmallScreen) {
-          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-            ref.read(sidebarStateProvider).state = true; // Open
-          } else if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
-            ref.read(sidebarStateProvider).state = false; // Close
-          }
-        } 
-        // Medium and large screens: collapse/expand
-        else {
-          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-            ref.read(sidebarStateProvider).state = true; // Expand
-          } else if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
-            ref.read(sidebarStateProvider).state = false; // Collapse
-          }
-        }
-      },
-      child: Row(
-        children: [
-          // Sidebar with conditional width
-          AnimatedContainer(
-            width: isSmallScreen
-                ? (isSidebarExpanded ? 250 : 0) // Small screens fully hide/show
-                : (isSidebarExpanded ? 250 : 70), // Medium/large screens collapse
-            duration: const Duration(milliseconds: 200),
-            child: const Drawer(
-              child: Column(
-                children: [
-                  ListTile(title: Text('Item 1')),
-                  ListTile(title: Text('Item 2')),
-                  ListTile(title: Text('Item 3')),
-                ],
-              ),
-            ),
+  bool isLargeScreen(BuildContext context) => MediaQuery.of(context).size.width >= 1200;
+  bool isMediumScreen(BuildContext context) => MediaQuery.of(context).size.width >= 600 && MediaQuery.of(context).size.width < 1200;
+  bool isSmallScreen(BuildContext context) => MediaQuery.of(context).size.width < 600;
+
+  void _toggleCollapseExpand() {
+    setState(() {
+      _isCollapsed = !_isCollapsed;
+    });
+  }
+
+  void _toggleDropdown() {
+    setState(() {
+      _isDropdownOpen = !_isDropdownOpen;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSmallScreen(context)) {
+      // Sidebar as Drawer for small screens
+      return Drawer(
+        child: _buildSidebarContent(context),
+      );
+    } else {
+      // Sidebar for medium and large screens
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: _isCollapsed ? 70 : 250,
+        child: Material(
+          elevation: 8,
+          color: Colors.blueGrey,
+          child: _buildSidebarContent(context),
+        ),
+      );
+    }
+  }
+
+  Widget _buildSidebarContent(BuildContext context) {
+    return Column(
+      children: [
+        // Logo at the top
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: _isCollapsed
+              ? Image.asset('assets/logo-mini.png', width: 50)
+              : Image.asset('assets/logo-large.png', width: 200),
+        ),
+        if (!isSmallScreen(context))
+          IconButton(
+            icon: Icon(_isCollapsed ? Icons.arrow_right : Icons.arrow_left),
+            onPressed: _toggleCollapseExpand,
           ),
-          // Main content
-          Expanded(
-            child: Scaffold(
-              appBar: AppBar(
-                title: const Text('Responsive Sidebar'),
-                leading: isSmallScreen
-                    ? IconButton(
-                        icon: const Icon(Icons.menu),
-                        onPressed: () {
-                          ref.read(sidebarStateProvider).state = !isSidebarExpanded;
-                        },
-                      )
-                    : null,
+        Expanded(
+          child: ListView(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.home),
+                title: _isCollapsed ? null : const Text("Home"),
+                onTap: () {
+                  context.go('/home');
+                },
               ),
-              body: const Center(child: Text('Main content goes here')),
-            ),
+              ListTile(
+                leading: const Icon(Icons.settings),
+                title: _isCollapsed ? null : const Text("Settings"),
+                onTap: () {
+                  context.go('/settings');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.expand_more),
+                title: _isCollapsed ? null : const Text("Channels"),
+                onTap: _toggleDropdown,
+                trailing: _isDropdownOpen
+                    ? const Icon(Icons.arrow_drop_up)
+                    : const Icon(Icons.arrow_drop_down),
+              ),
+              if (_isDropdownOpen)
+                Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.subdirectory_arrow_right),
+                      title: _isCollapsed ? null : const Text("Subchannel 1"),
+                      onTap: () {
+                        context.go('/channel/1');
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.subdirectory_arrow_right),
+                      title: _isCollapsed ? null : const Text("Subchannel 2"),
+                      onTap: () {
+                        context.go('/channel/2');
+                      },
+                    ),
+                  ],
+                ),
+              ListTile(
+                leading: const Icon(Icons.info),
+                title: _isCollapsed ? null : const Text("About"),
+                onTap: () {
+                  context.go('/about');
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

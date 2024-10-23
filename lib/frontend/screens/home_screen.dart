@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import '../sidebar.dart';
 
 class HomeScreen extends StatelessWidget {
-  @override
+  HomeScreen({super.key});
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Floatplane Home'),
       ),
-      drawer: AppDrawer(), // Include the sidebar here
+      drawer: ResponsiveSidebar(), // Include the sidebar here
       body: Center(
         child: Text('Welcome to Floatplane!'),
       ),

@@ -1,3 +1,4 @@
+import 'package:floaty/frontend/root.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:floaty/frontend/screens/login_screen.dart';
@@ -36,11 +37,22 @@ class MyApp extends StatelessWidget {
             return TwoFaScreen();
           },
         ),
+        //i hate this but its stupid go_router bullshit so it will stay until the day i decide i will fix it.
+        //TODO: make this less stupid
         GoRoute(
-          path: '/home',
+          path: '/l',
           builder: (BuildContext context, GoRouterState state) {
-            return HomeScreen();
+            return RootLayout();
           },
+          redirect: (context, state) => '/l/home',
+          routes: [
+            GoRoute(
+              path: 'home',
+              builder: (BuildContext context, GoRouterState state) {
+                return HomeScreen();
+              },
+            ),
+          ]
         ),
       ],
       redirect: (BuildContext context, GoRouterState state) async {
@@ -55,22 +67,22 @@ class MyApp extends StatelessWidget {
         switch (currentPath) {
           case '/':
             if (!isAuthenticated) return '/login';
-            if (isAuthenticated && !hasAccessTo2FA) return '/home';
+            if (isAuthenticated && !hasAccessTo2FA) return '/l/home';
             if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
             break;
 
           case '/login':
-            if (isAuthenticated) return '/home';
+            if (isAuthenticated) return '/l/home';
             if (hasAccessTo2FA) return '/2fa';
             return null; // Allow access to login
             
           case '/2fa':
             if (hasAccessTo2FA) return null;
-            if (isAuthenticated) return '/home';
+            if (isAuthenticated) return '/l/home';
             if (!isAuthenticated) return '/login';
             return null;
             
-          case '/home':
+          case '/l/home':
             // Protect home route
             if (!isAuthenticated && !hasAccessTo2FA) return '/login';
             if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
