@@ -1,8 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:floaty/settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-
-// Sidebar state for managing collapsed/expanded and open/closed
 final sidebarStateProvider = StateNotifierProvider<SidebarStateNotifier, SidebarState>((ref) {
   return SidebarStateNotifier();
 });
@@ -30,5 +27,30 @@ class SidebarStateNotifier extends StateNotifier<SidebarState> {
 
   void toggleOpenClose() {
     state = state.copyWith(isOpen: !state.isOpen);
+  }
+
+  void toggleCollapse() {
+    Settings().setBool('sidebarCollapsed', !state.isCollapsed);
+    state = state.copyWith(isCollapsed: !state.isCollapsed);
+  }
+
+  void setCollapsed() async {
+    if (!await Settings().containsKey('sidebarCollapsed')) {
+      state = state.copyWith(isCollapsed: true);
+    }
+  }
+
+  void setExpanded() async {
+    if (!await Settings().containsKey('sidebarCollapsed')) {
+      state = state.copyWith(isCollapsed: false);
+    }
+  }
+
+  void setOpen() {
+    state = state.copyWith(isOpen: true);
+  }
+
+  void setClosed() {
+    state = state.copyWith(isOpen: false);
   }
 }

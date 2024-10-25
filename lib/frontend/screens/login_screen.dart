@@ -125,7 +125,7 @@ class LoginScreen extends StatelessWidget {
                       login(_usernameController.text, _passwordController.text, context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1e88e5), // Blue button color
+                      backgroundColor: const Color(0xFF1e88e5),
                       padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -257,7 +257,7 @@ class TwoFaScreen extends StatelessWidget {
                       twofa(twofaCodeController.text, context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1e88e5), // Blue button color
+                      backgroundColor: const Color(0xFF1e88e5),
                       padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),

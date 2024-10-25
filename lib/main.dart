@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:floaty/frontend/screens/login_screen.dart';
 import 'package:floaty/backend/checkers.dart';
 import 'package:floaty/frontend/screens/home_screen.dart';
+import 'package:floaty/frontend/screens/settings_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
@@ -37,22 +38,20 @@ class MyApp extends StatelessWidget {
             return TwoFaScreen();
           },
         ),
-        //i hate this but its stupid go_router bullshit so it will stay until the day i decide i will fix it.
-        //TODO: make this less stupid
-        GoRoute(
-          path: '/l',
-          builder: (BuildContext context, GoRouterState state) {
-            return RootLayout();
+        ShellRoute(
+          builder: (context, state, child) {
+            return RootLayout(child: child);
           },
-          redirect: (context, state) => '/l/home',
           routes: [
             GoRoute(
-              path: 'home',
-              builder: (BuildContext context, GoRouterState state) {
-                return HomeScreen();
-              },
+              path: '/home',
+              builder: (context, state) => HomeScreen(),
             ),
-          ]
+            GoRoute(
+              path: '/settings',
+              builder: (context, state) => SettingsScreen(),
+            ),
+          ],
         ),
       ],
       redirect: (BuildContext context, GoRouterState state) async {
@@ -60,30 +59,25 @@ class MyApp extends StatelessWidget {
         final hasAccessTo2FA = await checkers.twoFAAuthenticated();
         final currentPath = state.uri.path;
 
-        print('Current path: ${state.uri.path}');
-        print('Is Authenticated: $isAuthenticated, Has 2FA: $hasAccessTo2FA');
-
-        // Handle authentication flow
         switch (currentPath) {
           case '/':
             if (!isAuthenticated) return '/login';
-            if (isAuthenticated && !hasAccessTo2FA) return '/l/home';
+            if (isAuthenticated && !hasAccessTo2FA) return '/home';
             if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
             break;
 
           case '/login':
-            if (isAuthenticated) return '/l/home';
+            if (isAuthenticated) return '/home';
             if (hasAccessTo2FA) return '/2fa';
-            return null; // Allow access to login
+            return null;
             
           case '/2fa':
             if (hasAccessTo2FA) return null;
-            if (isAuthenticated) return '/l/home';
+            if (isAuthenticated) return '/home';
             if (!isAuthenticated) return '/login';
             return null;
             
-          case '/l/home':
-            // Protect home route
+          case '/home':
             if (!isAuthenticated && !hasAccessTo2FA) return '/login';
             if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
             if (isAuthenticated) return null;
@@ -93,8 +87,6 @@ class MyApp extends StatelessWidget {
             if (isAuthenticated) return null;
             return '/';
         }
-        
-        // If no specific redirect needed
         return null;
       },
     );

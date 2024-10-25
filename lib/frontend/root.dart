@@ -1,98 +1,101 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:floaty/backend/state_mgmt.dart'; // Import your state management file
+import 'package:floaty/backend/state_mgmt.dart';
 
 class RootLayout extends ConsumerWidget {
-  const RootLayout({super.key});
+  const RootLayout({super.key, required this.child});
+  final Widget child;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Access the sidebar state using the notifier
-    final sidebarState = ref.watch(sidebarStateProvider); // Sidebar state
-    final isSidebarExpanded = !sidebarState.isCollapsed; // Determine if sidebar is expanded
+    final sidebarState = ref.watch(sidebarStateProvider);
+    final sidebarNotifier = ref.read(sidebarStateProvider.notifier);
+    final isSidebarCollapsed = sidebarState.isCollapsed;
+
     final screenWidth = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = screenWidth < 600;
+    final bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
+    final bool isLargeScreen = screenWidth >= 1024;
 
-    // Determine screen size
-    bool isSmallScreen = screenWidth < 600;
-    bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
-    bool isLargeScreen = screenWidth >= 1024;
+    // Move the default collapse state logic to a microtask
+    Future.microtask(() {
+      if (isLargeScreen && isSidebarCollapsed) {
+        sidebarNotifier.setExpanded();
+      } else if (isMediumScreen && !isSidebarCollapsed) {
+        sidebarNotifier.setCollapsed();
+      }
+    });
 
-    return GestureDetector(
-      onHorizontalDragEnd: (DragEndDetails details) {
-        // Small screens: full open/close
-        if (isSmallScreen) {
-          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-            ref.read(sidebarStateProvider).state = true; // Open
-          } else if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
-            ref.read(sidebarStateProvider).state = false; // Close
-          }
-        } 
-        // Medium and large screens: collapse/expand
-        else {
-          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-            ref.read(sidebarStateProvider).state = true; // Expand
-          } else if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
-            ref.read(sidebarStateProvider).state = false; // Collapse
-          }
-        }
-      },
-      child: Row(
+    // Sidebar content using ListTile with icons and optional text
+    Widget buildSidebarContent() {
+      return Column(
         children: [
-          // Sidebar with conditional width
-          AnimatedContainer(
-            width: isSmallScreen
-                ? (isSidebarExpanded ? 250 : 0) // Show or hide on small screens
-                : (isSidebarExpanded ? 250 : 70), // Collapse on medium/large screens
-            duration: const Duration(milliseconds: 200),
-            child: Drawer(
-              child: Column(
-                children: [
-                  ListTile(
-                    title: const Text('Home'),
-                    onTap: () {
-                      context.go('/l/home'); // Navigate to the home route
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('Settings'),
-                    onTap: () {
-                      context.go('/l/settings'); // Navigate to settings
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('About'),
-                    onTap: () {
-                      context.go('/l/about'); // Navigate to about
-                    },
-                  ),
-                ],
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: !isSmallScreen ? isSidebarCollapsed ? null : const Text('Home') : const Text('Home'),
+            selected: GoRouterState.of(context).uri.path == '/home',
+            onTap: () => _navigate('/home', context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: !isSmallScreen ? isSidebarCollapsed ? null : const Text('Settings') : const Text('Settings'),
+            selected: GoRouterState.of(context).uri.path == '/settings',
+            onTap: () => _navigate('/settings', context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.info),
+            title: !isSmallScreen ? isSidebarCollapsed ? null : const Text('About') : const Text('About'),
+            selected: GoRouterState.of(context).uri.path == '/about',
+            onTap: () => _navigate('/about', context),
+          ),
+        ],
+      );
+    }
+
+    // Sidebar as Drawer for small screens, and AnimatedContainer for medium/large
+    Widget sidebar = isSmallScreen
+        ? Drawer(child: buildSidebarContent())
+        : AnimatedContainer(
+            width: isSidebarCollapsed ? 70 : 250,
+            duration: const Duration(milliseconds: 50),
+            child: Material(
+              elevation: 2,
+              child: buildSidebarContent(),
+            ),
+          );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Responsive Sidebar'),
+        leading: isSmallScreen
+            ? Builder(
+                builder: (BuildContext context) {
+                  return IconButton(
+                    icon: const Icon(Icons.menu),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  );
+                },
+              )
+            : IconButton(
+                icon: Icon(
+                  isSidebarCollapsed ? Icons.arrow_forward : Icons.arrow_back,
+                ),
+                onPressed: () => sidebarNotifier.toggleCollapse(),
               ),
-            ),
-          ),
-          // Main content area
-          Expanded(
-            child: Navigator(
-              onGenerateRoute: (RouteSettings settings) {
-                return MaterialPageRoute(
-                  builder: (context) {
-                    switch (settings.name) {
-                      case '/l/home':
-                        return const Center(child: Text('Home Screen'));
-                      case '/l/settings':
-                        return const Center(child: Text('Settings Screen'));
-                      case '/l/about':
-                        return const Center(child: Text('About Screen'));
-                      default:
-                        return const Center(child: Text('Main content goes here'));
-                    }
-                  },
-                );
-              },
-            ),
-          ),
+      ),
+      drawer: isSmallScreen ? sidebar : null,
+      body: Row(
+        children: [
+          if (!isSmallScreen) sidebar,
+          Expanded(child: child),
         ],
       ),
     );
+  }
+
+  // Navigate without collapsing sidebar on larger screens
+  void _navigate(String route, BuildContext context) {
+    context.go(route);
   }
 }
