@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:floaty/settings.dart';
 
-class FPApi {
+class LoginApi {
   late final Settings settings = Settings();
   static const String baseUrl = 'https://www.floatplane.com/api';
   static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
   String? token;
 
-  FPApi() {
+  LoginApi() {
     _initTokens();
   }
 

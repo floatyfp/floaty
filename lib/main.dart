@@ -6,6 +6,7 @@ import 'package:floaty/backend/checkers.dart';
 import 'package:floaty/frontend/screens/home_screen.dart';
 import 'package:floaty/frontend/screens/settings_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:floaty/backend/fpapi.dart';
 
 void main() {
   runApp(ProviderScope(child: MyApp()));
@@ -15,6 +16,37 @@ class MyApp extends StatelessWidget {
   MyApp({super.key});
  
   final Checkers checkers = Checkers();
+
+  final ThemeData customDarkTheme = ThemeData(
+    useMaterial3: true, // Ensure Material 3 is used
+    brightness: Brightness.dark,
+    colorScheme: ColorScheme.dark(
+      primary: Colors.blue.shade600,       // Accent color
+      onPrimary: Colors.blueAccent.shade400, // Contrasting color on primary
+      secondary: Colors.grey.shade800,     // Medium gray for secondary elements
+      onSecondary: Colors.black,           // Contrasting color on secondary
+      surface: Colors.grey.shade800,       // Dark gray for cards and surfaces
+      onSurface: Colors.grey.shade200,     // Light gray on surfaces
+      error: Colors.red.shade400,          // Red for error states
+      onError: Colors.black,               // Contrasting color on error
+    ),
+    scaffoldBackgroundColor: Colors.grey.shade900, // Background color for the main screen
+    appBarTheme: AppBarTheme(
+      backgroundColor: const Color.fromARGB(255, 40, 40, 40),          // Custom dark gray color for AppBar
+      foregroundColor: Colors.grey.shade200,       // Text/icon color in AppBar
+    ),
+    drawerTheme: const DrawerThemeData(
+      backgroundColor: Color.fromARGB(255, 40, 40, 40),          // Custom dark gray color for Drawer (sidebar)
+    ),
+    cardColor: Colors.grey.shade800,               // Color for card widgets
+    dividerColor: Colors.grey.shade800,            // Color for dividers
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.grey.shade700,     // Background color for elevated buttons
+        foregroundColor: Colors.white,             // Text color on buttons
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +81,7 @@ class MyApp extends StatelessWidget {
             ),
             GoRoute(
               path: '/settings',
-              builder: (context, state) => SettingsScreen(),
+              builder: (context, state) => const SettingsScreen(),
             ),
           ],
         ),
@@ -94,7 +126,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Floaty',
       theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
+      darkTheme: customDarkTheme,
       themeMode: ThemeMode.dark,
       routerConfig: router,
     );

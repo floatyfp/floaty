@@ -1,11 +1,11 @@
 import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
-import 'package:floaty/backend/api.dart';
+import 'package:floaty/backend/login_api.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
-  late final api = FPApi();
+  late final api = LoginApi();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -148,7 +148,7 @@ class LoginScreen extends StatelessWidget {
 
 class TwoFaScreen extends StatelessWidget {
   TwoFaScreen({super.key});
-  late final api = FPApi();
+  late final api = LoginApi();
   late final settings = Settings();
   final TextEditingController twofaCodeController = TextEditingController();
 
