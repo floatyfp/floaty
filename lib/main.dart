@@ -18,32 +18,32 @@ class MyApp extends StatelessWidget {
   final Checkers checkers = Checkers();
 
   final ThemeData customDarkTheme = ThemeData(
-    useMaterial3: true, // Ensure Material 3 is used
+    useMaterial3: true, 
     brightness: Brightness.dark,
     colorScheme: ColorScheme.dark(
-      primary: Colors.blue.shade600,       // Accent color
-      onPrimary: Colors.blueAccent.shade400, // Contrasting color on primary
-      secondary: Colors.grey.shade800,     // Medium gray for secondary elements
-      onSecondary: Colors.black,           // Contrasting color on secondary
-      surface: Colors.grey.shade800,       // Dark gray for cards and surfaces
-      onSurface: Colors.grey.shade200,     // Light gray on surfaces
-      error: Colors.red.shade400,          // Red for error states
-      onError: Colors.black,               // Contrasting color on error
+      primary: Colors.blue.shade600,
+      onPrimary: Colors.blueAccent.shade400,
+      secondary: Colors.grey.shade800,
+      onSecondary: Colors.black,
+      surface: Colors.grey.shade800,
+      onSurface: Colors.grey.shade200,
+      error: Colors.red.shade400,
+      onError: Colors.black,
     ),
-    scaffoldBackgroundColor: Colors.grey.shade900, // Background color for the main screen
+    scaffoldBackgroundColor: Colors.grey.shade900,
     appBarTheme: AppBarTheme(
-      backgroundColor: const Color.fromARGB(255, 40, 40, 40),          // Custom dark gray color for AppBar
-      foregroundColor: Colors.grey.shade200,       // Text/icon color in AppBar
+      backgroundColor: const Color.fromARGB(255, 40, 40, 40),
+      foregroundColor: Colors.grey.shade200,
     ),
     drawerTheme: const DrawerThemeData(
-      backgroundColor: Color.fromARGB(255, 40, 40, 40),          // Custom dark gray color for Drawer (sidebar)
+      backgroundColor: Color.fromARGB(255, 40, 40, 40),
     ),
-    cardColor: Colors.grey.shade800,               // Color for card widgets
-    dividerColor: Colors.grey.shade800,            // Color for dividers
+    cardColor: Colors.grey.shade800,
+    dividerColor: Colors.grey.shade800,
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.grey.shade700,     // Background color for elevated buttons
-        foregroundColor: Colors.white,             // Text color on buttons
+        backgroundColor: Colors.grey.shade700,
+        foregroundColor: Colors.white,
       ),
     ),
   );
@@ -123,6 +123,8 @@ class MyApp extends StatelessWidget {
       },
     );
 
+    FPApiRequests().purgeOldEtags();
+    
     return MaterialApp.router(
       title: 'Floaty',
       theme: ThemeData.light(),

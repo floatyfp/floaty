@@ -62,9 +62,8 @@ class CreatorResponse {
       incomeDisplay: json['incomeDisplay'],
       defaultChannel: json['defaultChannel'],
       socialLinks: SocialLinks.fromJson(json['socialLinks']),
-      channels: (json['channels'] as List)
-          .map((i) => Channel.fromJson(i))
-          .toList(),
+      channels:
+          (json['channels'] as List).map((i) => Channel.fromJson(i)).toList(),
     );
   }
 }
@@ -106,10 +105,15 @@ class Image {
   final String path;
   final List<Image>? childImages;
 
-  Image({required this.width, required this.height, required this.path, this.childImages});
+  Image(
+      {required this.width,
+      required this.height,
+      required this.path,
+      this.childImages});
 
   factory Image.fromJson(Map<String, dynamic> json) {
-    var childImagesList = (json['childImages'] as List?)?.map((i) => Image.fromJson(i)).toList();
+    var childImagesList =
+        (json['childImages'] as List?)?.map((i) => Image.fromJson(i)).toList();
     return Image(
       width: json['width'],
       height: json['height'],
@@ -126,10 +130,15 @@ class Thumbnail {
   final String path;
   final List<Image>? childImages;
 
-  Thumbnail({required this.width, required this.height, required this.path, this.childImages});
+  Thumbnail(
+      {required this.width,
+      required this.height,
+      required this.path,
+      this.childImages});
 
   factory Thumbnail.fromJson(Map<String, dynamic> json) {
-    var childImagesList = (json['childImages'] as List?)?.map((i) => Image.fromJson(i)).toList();
+    var childImagesList =
+        (json['childImages'] as List?)?.map((i) => Image.fromJson(i)).toList();
     return Thumbnail(
       width: json['width'],
       height: json['height'],
@@ -225,7 +234,12 @@ class SocialLinks {
   final String? facebook;
   final String? youtube;
 
-  SocialLinks({this.instagram, this.twitter, this.website, this.facebook, this.youtube});
+  SocialLinks(
+      {this.instagram,
+      this.twitter,
+      this.website,
+      this.facebook,
+      this.youtube});
 
   factory SocialLinks.fromJson(Map<String, dynamic> json) {
     return SocialLinks(
@@ -322,9 +336,8 @@ class Creator {
         .map((i) => SubscriptionPlan.fromJson(i))
         .toList();
 
-    var channelsList = (json['channels'] as List)
-        .map((i) => Channel.fromJson(i))
-        .toList();
+    var channelsList =
+        (json['channels'] as List).map((i) => Channel.fromJson(i)).toList();
 
     return Creator(
       id: json['id'],
@@ -348,3 +361,28 @@ class Creator {
   }
 }
 
+@JsonSerializable()
+class User {
+  final String id;
+  final String username;
+  final Image profileImage;
+  final String? email;
+  final String? displayname;
+
+  User(
+      {required this.id,
+      required this.username,
+      required this.profileImage,
+      this.email,
+      this.displayname});
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'],
+      username: json['username'],
+      profileImage: Image.fromJson(json['profileImage']),
+      email: json['email'],
+      displayname: json['displayname'],
+    );
+  }
+}

@@ -1,3 +1,6 @@
+// ignore_for_file: use_super_parameters, library_private_types_in_public_api
+
+import 'package:floaty/backend/state_mgmt.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:floaty/backend/definitions.dart';
@@ -25,7 +28,8 @@ class SidebarSizeControl extends StatefulWidget {
   _SidebarSizeControlState createState() => _SidebarSizeControlState();
 }
 
-class _SidebarSizeControlState extends State<SidebarSizeControl> with SingleTickerProviderStateMixin {
+class _SidebarSizeControlState extends State<SidebarSizeControl>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -50,9 +54,11 @@ class _SidebarSizeControlState extends State<SidebarSizeControl> with SingleTick
   void didUpdateWidget(SidebarSizeControl oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if ((widget.showText || widget.isSmallScreen) && !_animationController.isCompleted) {
+    if ((widget.showText || widget.isSmallScreen) &&
+        !_animationController.isCompleted) {
       _animationController.forward();
-    } else if (!(widget.showText || widget.isSmallScreen) && _animationController.isCompleted) {
+    } else if (!(widget.showText || widget.isSmallScreen) &&
+        _animationController.isCompleted) {
       _animationController.reverse();
     }
   }
@@ -65,7 +71,6 @@ class _SidebarSizeControlState extends State<SidebarSizeControl> with SingleTick
 
   @override
   Widget build(BuildContext context) {
-
     return ListTile(
       selected: GoRouterState.of(context).uri.path == widget.route,
       leading: AnimatedSwitcher(
@@ -84,7 +89,11 @@ class _SidebarSizeControlState extends State<SidebarSizeControl> with SingleTick
                     )
                   : const SizedBox.shrink(),
             ),
-      onTap: widget.onTap ?? () => context.go(widget.route),
+      onTap: widget.onTap ??
+          () {
+            context.go(widget.route);
+            scaffoldKey.currentState?.closeDrawer();
+          },
       contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
     );
   }
@@ -114,7 +123,8 @@ class SidebarItem extends StatefulWidget {
   _SidebarItemState createState() => _SidebarItemState();
 }
 
-class _SidebarItemState extends State<SidebarItem> with SingleTickerProviderStateMixin {
+class _SidebarItemState extends State<SidebarItem>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -139,9 +149,11 @@ class _SidebarItemState extends State<SidebarItem> with SingleTickerProviderStat
   void didUpdateWidget(SidebarItem oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if ((widget.showText || widget.isSmallScreen) && !_animationController.isCompleted) {
+    if ((widget.showText || widget.isSmallScreen) &&
+        !_animationController.isCompleted) {
       _animationController.forward();
-    } else if (!(widget.showText || widget.isSmallScreen) && _animationController.isCompleted) {
+    } else if (!(widget.showText || widget.isSmallScreen) &&
+        _animationController.isCompleted) {
       _animationController.reverse();
     }
   }
@@ -154,7 +166,6 @@ class _SidebarItemState extends State<SidebarItem> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-
     return ListTile(
       selected: GoRouterState.of(context).uri.path == widget.route,
       leading: Icon(
@@ -170,7 +181,11 @@ class _SidebarItemState extends State<SidebarItem> with SingleTickerProviderStat
                     )
                   : const SizedBox.shrink(),
             ),
-      onTap: widget.onTap ?? () => context.go(widget.route),
+      onTap: widget.onTap ??
+          () {
+            context.go(widget.route);
+            scaffoldKey.currentState?.closeDrawer();
+          },
       contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
     );
   }
@@ -200,7 +215,8 @@ class PictureSidebarItem extends StatefulWidget {
   _PictureSidebarItemState createState() => _PictureSidebarItemState();
 }
 
-class _PictureSidebarItemState extends State<PictureSidebarItem> with SingleTickerProviderStateMixin {
+class _PictureSidebarItemState extends State<PictureSidebarItem>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -225,9 +241,11 @@ class _PictureSidebarItemState extends State<PictureSidebarItem> with SingleTick
   void didUpdateWidget(PictureSidebarItem oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if ((widget.showText || widget.isSmallScreen) && !_animationController.isCompleted) {
+    if ((widget.showText || widget.isSmallScreen) &&
+        !_animationController.isCompleted) {
       _animationController.forward();
-    } else if (!(widget.showText || widget.isSmallScreen) && _animationController.isCompleted) {
+    } else if (!(widget.showText || widget.isSmallScreen) &&
+        _animationController.isCompleted) {
       _animationController.reverse();
     }
   }
@@ -242,23 +260,26 @@ class _PictureSidebarItemState extends State<PictureSidebarItem> with SingleTick
   Widget build(BuildContext context) {
     return ListTile(
       selected: GoRouterState.of(context).uri.path == widget.route,
-        leading: AnimatedContainer(
-          width: 24,
-          height: 24,
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            border: GoRouterState.of(context).uri.path == widget.route ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : null, // Border color and width
-            borderRadius: BorderRadius.circular(100), // Slightly larger radius than the image
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              width: 24,
-              height: 24,
-              imageUrl: widget.picture,
-            ),
+      leading: AnimatedContainer(
+        width: 24,
+        height: 24,
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          border: GoRouterState.of(context).uri.path == widget.route
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary, width: 2)
+              : null,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: CachedNetworkImage(
+            width: 24,
+            height: 24,
+            imageUrl: widget.picture,
           ),
         ),
+      ),
       title: widget.isSidebarCollapsed
           ? null
           : FadeTransition(
@@ -269,7 +290,11 @@ class _PictureSidebarItemState extends State<PictureSidebarItem> with SingleTick
                     )
                   : const SizedBox.shrink(),
             ),
-      onTap: widget.onTap ?? () => context.go(widget.route),
+      onTap: widget.onTap ??
+          () {
+            context.go(widget.route);
+            scaffoldKey.currentState?.closeDrawer();
+          },
       contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
     );
   }
@@ -293,7 +318,8 @@ class SidebarChannelItem extends StatefulWidget {
   _SidebarChannelItemState createState() => _SidebarChannelItemState();
 }
 
-class _SidebarChannelItemState extends State<SidebarChannelItem> with SingleTickerProviderStateMixin {
+class _SidebarChannelItemState extends State<SidebarChannelItem>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   bool _isExpanded = false;
@@ -319,9 +345,11 @@ class _SidebarChannelItemState extends State<SidebarChannelItem> with SingleTick
   void didUpdateWidget(SidebarChannelItem oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if ((widget.showText || widget.isSmallScreen) && !_animationController.isCompleted) {
+    if ((widget.showText || widget.isSmallScreen) &&
+        !_animationController.isCompleted) {
       _animationController.forward();
-    } else if (!(widget.showText || widget.isSmallScreen) && _animationController.isCompleted) {
+    } else if (!(widget.showText || widget.isSmallScreen) &&
+        _animationController.isCompleted) {
       _animationController.reverse();
     }
   }
@@ -339,7 +367,8 @@ class _SidebarChannelItemState extends State<SidebarChannelItem> with SingleTick
   }
 
   List<Channel> _sortedChannels(List<Channel> channels) {
-    return List<Channel>.from(channels)..sort((a, b) => a.order.compareTo(b.order));
+    return List<Channel>.from(channels)
+      ..sort((a, b) => a.order.compareTo(b.order));
   }
 
   @override
@@ -350,23 +379,27 @@ class _SidebarChannelItemState extends State<SidebarChannelItem> with SingleTick
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ListTile(
-          selected: GoRouterState.of(context).uri.path == 'channel/${widget.response.urlname}/home',
+          selected: GoRouterState.of(context).uri.path ==
+              'channel/${widget.response.urlname}/home',
           leading: AnimatedContainer(
-          width: 24,
-          height: 24,
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            border: GoRouterState.of(context).uri.path == 'channel/${widget.response.urlname}/home' ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : null, // Border color and width
-            borderRadius: BorderRadius.circular(100), // Slightly larger radius than the image
-          ),
-          child: ClipRRect( 
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                width: 24,
-                height: 24,
-                imageUrl: widget.response.icon.path,
-              )
+            width: 24,
+            height: 24,
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              border: GoRouterState.of(context).uri.path ==
+                      'channel/${widget.response.urlname}/home'
+                  ? Border.all(
+                      color: Theme.of(context).colorScheme.primary, width: 2)
+                  : null,
+              borderRadius: BorderRadius.circular(100),
             ),
+            child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CachedNetworkImage(
+                  width: 24,
+                  height: 24,
+                  imageUrl: widget.response.icon.path,
+                )),
           ),
           title: widget.isSidebarCollapsed
               ? null
@@ -380,63 +413,75 @@ class _SidebarChannelItemState extends State<SidebarChannelItem> with SingleTick
                 ),
           onTap: () {
             context.go('channel/${widget.response.urlname}/home');
+            scaffoldKey.currentState?.closeDrawer();
             if (!widget.isSidebarCollapsed && hasSubChannels) {
               _toggleExpansion();
             }
           },
           trailing: hasSubChannels && !widget.isSidebarCollapsed
-            ? AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200), // Duration for the animation
-                child: IconButton(
-                  key: ValueKey<bool>(_isExpanded), // Unique key for each state
-                  icon: Icon(
-                    _isExpanded ? Icons.expand_less : Icons.expand_more,
+              ? AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: IconButton(
+                    key: ValueKey<bool>(_isExpanded),
+                    icon: Icon(
+                      _isExpanded ? Icons.expand_less : Icons.expand_more,
+                    ),
+                    onPressed: _toggleExpansion,
                   ),
-                  onPressed: _toggleExpansion,
-                ),
-              )
-            : null,
+                )
+              : null,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
         ),
         if (hasSubChannels && _isExpanded)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _sortedChannels(widget.response.channels).map((subChannel) {
-                return ListTile(
-                  selected: GoRouterState.of(context).uri.path == 'channel/${widget.response.urlname}/${subChannel.urlname}',
-                    leading: Padding(
-                      padding: widget.isSidebarCollapsed ? const EdgeInsets.only(left: 2.23) : const EdgeInsets.only(left: 20.0),
-                      child: AnimatedContainer(
-                        width: 22,
-                        height: 22,
-                        duration: const Duration(milliseconds: 200),
-                        decoration: BoxDecoration(
-                          border: GoRouterState.of(context).uri.path == 'channel/${widget.response.urlname}/${subChannel.urlname}' ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : null, // Border color and width
-                          borderRadius: BorderRadius.circular(100), // Slightly larger radius than the image
-                        ),
-                        child: ClipRRect(
-                        borderRadius: BorderRadius.circular(11),
-                        child: CachedNetworkImage(
-                          width: 22,
-                          height: 22,
-                          imageUrl: subChannel.icon.path,
-                        )
-                      )
-                    ),
-                    ),
-                    title: widget.isSidebarCollapsed
-                      ? null
-                      : FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: widget.showText || widget.isSmallScreen
-                              ? Text(
-                                  subChannel.title,
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                    onTap: () => context.go('channel/${widget.response.urlname}/${subChannel.urlname}'),
-                );
-              }).toList(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children:
+                _sortedChannels(widget.response.channels).map((subChannel) {
+              return ListTile(
+                selected: GoRouterState.of(context).uri.path ==
+                    'channel/${widget.response.urlname}/${subChannel.urlname}',
+                leading: Padding(
+                  padding: widget.isSidebarCollapsed
+                      ? const EdgeInsets.only(left: 2.23)
+                      : const EdgeInsets.only(left: 20.0),
+                  child: AnimatedContainer(
+                      width: 22,
+                      height: 22,
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        border: GoRouterState.of(context).uri.path ==
+                                'channel/${widget.response.urlname}/${subChannel.urlname}'
+                            ? Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 2)
+                            : null,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: ClipRRect(
+                          borderRadius: BorderRadius.circular(11),
+                          child: CachedNetworkImage(
+                            width: 22,
+                            height: 22,
+                            imageUrl: subChannel.icon.path,
+                          ))),
+                ),
+                title: widget.isSidebarCollapsed
+                    ? null
+                    : FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: widget.showText || widget.isSmallScreen
+                            ? Text(
+                                subChannel.title,
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                onTap: () {
+                  context.go(
+                      'channel/${widget.response.urlname}/${subChannel.urlname}');
+                  scaffoldKey.currentState?.closeDrawer();
+                },
+              );
+            }).toList(),
           ),
       ],
     );

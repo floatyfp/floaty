@@ -1,5 +1,9 @@
 import 'package:floaty/settings.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
+
+final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
 final sidebarStateProvider = StateNotifierProvider<SidebarStateNotifier, SidebarState>((ref) {
   return SidebarStateNotifier();
 });
@@ -44,6 +48,10 @@ class SidebarStateNotifier extends StateNotifier<SidebarState> {
     if (!await Settings().containsKey('sidebarCollapsed')) {
       state = state.copyWith(isCollapsed: false);
     }
+  }
+
+  void forceExpandMobile() async {
+    state = state.copyWith(isCollapsed: false);
   }
 
   void setOpen() {

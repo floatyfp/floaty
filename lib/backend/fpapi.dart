@@ -4,7 +4,7 @@ import 'package:floaty/settings.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'dart:convert';
 
-class FPApiRequests{
+class FPApiRequests {
   late final Settings settings = Settings();
   static const String baseUrl = 'https://www.floatplane.com/api';
   static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
@@ -16,7 +16,6 @@ class FPApiRequests{
     final cachedEtag = prefs.getString('etag_$url');
     final cachedData = prefs.getString('data_$url');
 
-    // Create headers map with the correct types
     final Map<String, String> headers = {
       'Content-Type': 'application/json',
       'User-Agent': userAgent,
@@ -26,31 +25,25 @@ class FPApiRequests{
       headers['If-None-Match'] = cachedEtag;
     }
 
-    // Send request with the ETag header if it exists and is not expired
     final response = await http.get(url, headers: headers);
-    print(response.body);
 
     if (response.statusCode == 200) {
-      // Store new ETag, data, and update timestamp
       await prefs.setString('etag_$url', response.headers['etag'] ?? '');
       await prefs.setInt('etag_time_$url', currentTime);
-      await prefs.setString('data_$url', response.body); // Store response body
-      print("New data received: $response.body");
+      await prefs.setString('data_$url', response.body);
       return response.body;
     } else if (response.statusCode == 304 && cachedData != null) {
-      print("Using cached data: $cachedData");
       return cachedData;
     } else {
       return 'ded';
     }
   }
 
-
   Future<void> purgeOldEtags() async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
     final currentTime = DateTime.now().millisecondsSinceEpoch;
-    const expiryTime = 30 * 24 * 60 * 60 * 1000; // 30 days
+    const expiryTime = 30 * 24 * 60 * 60 * 1000;
 
     for (var key in keys) {
       if (key.startsWith('etag_time_')) {
@@ -58,38 +51,63 @@ class FPApiRequests{
         if (currentTime - lastUpdated > expiryTime) {
           final etagKey = key.replaceFirst('etag_time_', 'etag_');
           final dataKey = key.replaceFirst('etag_time_', 'data_');
-          await prefs.remove(key);       // Remove timestamp
-          await prefs.remove(etagKey);   // Remove ETag
-          await prefs.remove(dataKey);   // Remove cached data
+          await prefs.remove(key);
+          await prefs.remove(etagKey);
+          await prefs.remove(dataKey);
         }
       }
     }
   }
 
-  Future <List<CreatorResponse>> getSubscribedCreators() async {
-    final subres = await FPApiRequests()._fetchDataWithEtag('v3/user/subscriptions?active=true');
-    if (subres.isEmpty) {
-      throw Exception('No subscribed creators found');
-    }
-    List<dynamic> createids = jsonDecode(subres);
-    List<String> creatorIds = createids
-      .map((subscription) => subscription['creator'] as String)
-      .toList();
-    String url = 'v2/creator/info?creatorGUID=${creatorIds.first}';
-    for (int i = 1; i < creatorIds.length; i++) {
-      url += '&creatorGUID=${creatorIds[i]}';
-    }
-    print(url);
-    final creatorres = await  FPApiRequests()._fetchDataWithEtag(url);
-    final creatorress = jsonDecode(creatorres);
-    List<CreatorResponse> creatorResponses = creatorress.map((creatorJson) {
-      if (creatorJson is Map<String, dynamic>) {
-        return CreatorResponse.fromJson(creatorJson);
-      } else {
-        throw Exception('Invalid creator response format.');
+  Future<List<CreatorResponse>> getSubscribedCreators() async {
+    try {
+      final subres = await FPApiRequests()
+          ._fetchDataWithEtag('v3/user/subscriptions?active=true');
+      if (subres == null || subres.isEmpty) {
+        return [];
       }
-    }).toList();
-    print(creatorResponses);
-    return creatorResponses;
+      List<dynamic> subscriptions;
+      try {
+        subscriptions = jsonDecode(subres) as List<dynamic>;
+      } catch (e) {
+        return [];
+      }
+      List<String> creatorIds = [];
+      for (var subscription in subscriptions) {
+        if (subscription is Map<String, dynamic> &&
+            subscription.containsKey('creator') &&
+            subscription['creator'] != null) {
+          creatorIds.add(subscription['creator'].toString());
+        }
+      }
+      if (creatorIds.isEmpty) {
+        return [];
+      }
+      List<CreatorResponse> creators = [];
+      for (String id in creatorIds) {
+        try {
+          final creatorInfo = await FPApiRequests()
+              ._fetchDataWithEtag('v3/creator/info?id=$id');
+          if (creatorInfo != null && creatorInfo.isNotEmpty) {
+            Map<String, dynamic> creatorJson = jsonDecode(creatorInfo);
+            creators.add(CreatorResponse.fromJson(creatorJson));
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      return creators;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<User> getUser() async {
+    try {
+      final user = await FPApiRequests()._fetchDataWithEtag('v3/user/self');
+      return User.fromJson(jsonDecode(user));
+    } catch (e) {
+      rethrow;
+    }
   }
 }

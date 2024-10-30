@@ -1,4 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
+
 // ignore_for_file: unused_element
 
 part of 'definitions.dart';
@@ -11,7 +12,7 @@ CreatorResponse _$CreatorResponseFromJson(Map<String, dynamic> json) =>
     CreatorResponse(
       id: json['id'] as String,
       owner: Owner.fromJson(json['owner'] as Map<String, dynamic>),
-      title: json['title'] as String, 
+      title: json['title'] as String,
       urlname: json['urlname'] as String,
       description: json['description'] as String,
       about: json['about'] as String,
@@ -245,4 +246,21 @@ Map<String, dynamic> _$CreatorToJson(Creator instance) => <String, dynamic>{
       'defaultChannel': instance.defaultChannel,
       'socialLinks': instance.socialLinks,
       'channels': instance.channels,
+    };
+
+User _$UserFromJson(Map<String, dynamic> json) => User(
+      id: json['id'] as String,
+      username: json['username'] as String,
+      profileImage:
+          Image.fromJson(json['profileImage'] as Map<String, dynamic>),
+      email: json['email'] as String?,
+      displayname: json['displayname'] as String?,
+    );
+
+Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
+      'id': instance.id,
+      'username': instance.username,
+      'profileImage': instance.profileImage,
+      'email': instance.email,
+      'displayname': instance.displayname,
     };

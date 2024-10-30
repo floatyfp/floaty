@@ -6,25 +6,32 @@ import 'package:floaty/backend/definitions.dart';
 import 'package:floaty/backend/fpapi.dart';
 
 class RootLayout extends ConsumerStatefulWidget {
-  RootLayout({super.key, required this.child});
+  const RootLayout({super.key, required this.child});
   final Widget child;
 
   @override
   ConsumerState<RootLayout> createState() => _RootLayoutState();
 }
 
-class _RootLayoutState extends ConsumerState<RootLayout> with SingleTickerProviderStateMixin {
+class _RootLayoutState extends ConsumerState<RootLayout>
+    with SingleTickerProviderStateMixin {
   bool showText = false;
-  var creators = <CreatorResponse>[];
+  List<CreatorResponse> creators = [];
+  User? user;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _getcreator();
+    _loadsidebar();
   }
 
-  void _getcreator() async {
+  void _loadsidebar() async {
     creators = await FPApiRequests().getSubscribedCreators();
+    user = await FPApiRequests().getUser();
+    setState(() {
+      isLoading = false;
+    });
   }
 
   @override
@@ -36,13 +43,17 @@ class _RootLayoutState extends ConsumerState<RootLayout> with SingleTickerProvid
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isSmallScreen = screenWidth < 600;
     final bool isLargeScreen = screenWidth >= 1024;
+    final bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
 
     // Sidebar open/close logic
     Future.microtask(() async {
       if (isLargeScreen && isSidebarCollapsed) {
         sidebarNotifier.setExpanded();
-      } else if (!isLargeScreen && !isSidebarCollapsed) {
+      } else if (isMediumScreen && !isSidebarCollapsed) {
         sidebarNotifier.setCollapsed();
+      } else if (isSmallScreen && isSidebarCollapsed) {
+        //note to self: when i get a bug report in 6months of the the app not respecting user choice you can blame this line right here.
+        sidebarNotifier.forceExpandMobile();
       }
     });
 
@@ -62,8 +73,7 @@ class _RootLayoutState extends ConsumerState<RootLayout> with SingleTickerProvid
         showText = false; // Immediately hide text when collapsing
       });
     }
-
-   Widget buildSidebarContent() {
+    Widget buildSidebarContent() {
       return Column(
         children: [
           // This Expanded widget with SingleChildScrollView will make the top items scrollable
@@ -95,17 +105,20 @@ class _RootLayoutState extends ConsumerState<RootLayout> with SingleTickerProvid
                     isSmallScreen: isSmallScreen,
                     showText: showText,
                   ),
-                  ...creators.map((creatorResponse) => SidebarChannelItem(
-                      response: creatorResponse,
-                      isSidebarCollapsed: isSidebarCollapsed,
-                      isSmallScreen: isSmallScreen,
-                      showText: showText,
-                    )),
+                  if (isLoading)
+                    const CircularProgressIndicator()
+                  else
+                    ...creators.map((creatorResponse) => SidebarChannelItem(
+                          response: creatorResponse,
+                          isSidebarCollapsed: isSidebarCollapsed,
+                          isSmallScreen: isSmallScreen,
+                          showText: showText,
+                        )),
                 ],
               ),
             ),
           ),
-          
+
           // Bottom pinned items
           Column(
             children: [
@@ -117,14 +130,17 @@ class _RootLayoutState extends ConsumerState<RootLayout> with SingleTickerProvid
                 isSmallScreen: isSmallScreen,
                 showText: showText,
               ),
-              PictureSidebarItem(
-                picture: 'https://pbs.floatplane.com/profile_images/6142144ed18325f197211b18/657133415086207_1711875353613_100x100.jpeg',
-                title: 'bw86',
-                route: '/profile',
-                isSidebarCollapsed: isSidebarCollapsed,
-                isSmallScreen: isSmallScreen,
-                showText: showText,
-              ),
+              if (isLoading)
+                const CircularProgressIndicator()
+              else
+                PictureSidebarItem(
+                  picture: user?.profileImage.path ?? '',
+                  title: user?.username ?? '',
+                  route: '/profile',
+                  isSidebarCollapsed: isSidebarCollapsed,
+                  isSmallScreen: isSmallScreen,
+                  showText: showText,
+                ),
               if (!isSmallScreen)
                 SidebarSizeControl(
                   title: 'Collapse Sidebar',
@@ -141,18 +157,20 @@ class _RootLayoutState extends ConsumerState<RootLayout> with SingleTickerProvid
     }
 
     Widget sidebar = isSmallScreen
-        ? Drawer(child: buildSidebarContent())
+        ? SafeArea(child: Drawer(child: buildSidebarContent()))
         : AnimatedContainer(
             width: isSidebarCollapsed ? 70 : 260, // Sidebar width
-            duration: const Duration(milliseconds: 200), // Container animation duration
+            duration: const Duration(
+                milliseconds: 200), // Container animation duration
             child: Material(
-              color: const Color.fromARGB(255, 40, 40, 40),  
+              color: const Color.fromARGB(255, 40, 40, 40),
               elevation: 2,
               child: buildSidebarContent(),
             ),
           );
 
     return Scaffold(
+      key: scaffoldKey,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
@@ -170,6 +188,8 @@ class _RootLayoutState extends ConsumerState<RootLayout> with SingleTickerProvid
             : null,
       ),
       drawer: isSmallScreen ? sidebar : null,
+      //i got u people who use navigation based controls on android (im talking to myself this is literally for myself)
+      drawerEdgeDragWidth: 125,
       body: Row(
         children: [
           if (!isSmallScreen) sidebar,
