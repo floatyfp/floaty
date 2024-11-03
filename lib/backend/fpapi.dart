@@ -23,7 +23,6 @@ class FPApiRequests {
     final prefs = await SharedPreferences.getInstance();
     final currentTime = DateTime.now().millisecondsSinceEpoch;
 
-    // Create a unique key based on the request body
     final bodyKey = body != null ? jsonEncode(body) : '';
     final cachedEtag = prefs.getString('etag_$url:$bodyKey');
     final cachedData = prefs.getString('data_$url:$bodyKey');
@@ -34,16 +33,14 @@ class FPApiRequests {
       'Cookie': await settings.getKey('token'),
     };
 
-    // Include the ETag in the headers if it exists
     if (cachedEtag != null) {
       headers['If-None-Match'] = cachedEtag;
     }
 
-    // Make the POST request
     final response = await http.post(
       url,
       headers: headers,
-      body: body != null ? jsonEncode(body) : null, // Encode the body as JSON
+      body: body != null ? jsonEncode(body) : null,
     );
 
     if (response.statusCode == 200) {
@@ -53,9 +50,8 @@ class FPApiRequests {
       await prefs.setString('data_$url:$bodyKey', response.body);
       return response.body;
     } else if (response.statusCode == 304 && cachedData != null) {
-      return cachedData; // Return cached data if not modified
+      return cachedData;
     } else {
-      // Handle other status codes accordingly
       return 'ded';
     }
   }
@@ -266,17 +262,38 @@ class FPApiRequests {
       if (response == 'ded' || response.isEmpty) {
         return [];
       }
-      print(response);
       final List<dynamic> jsonResponse = jsonDecode(response);
       final List<GetProgressResponse> progressResponses = jsonResponse
           .map((data) =>
               GetProgressResponse.fromJson(data as Map<String, dynamic>))
           .toList();
-      print(progressResponses);
       return progressResponses;
     } catch (e) {
-      print('Error fetching video progress: $e');
       return [];
+    }
+  }
+
+  Future<List<CreatorModelV3>> getCreators({String? query}) async {
+    try {
+      // ignore: prefer_typing_uninitialized_variables
+      var subres;
+      if (query != null) {
+        subres = await FPApiRequests()
+            .fetchDataWithEtag('v3/creator/list?search=$query');
+      } else {
+        subres = await FPApiRequests().fetchDataWithEtag('v3/creator/list');
+      }
+
+      if (subres == null || subres.isEmpty) {
+        return [];
+      }
+
+      List<dynamic> jsonList = jsonDecode(subres);
+      List<CreatorModelV3> creators =
+          jsonList.map((json) => CreatorModelV3.fromJson(json)).toList();
+      return creators;
+    } catch (e) {
+      rethrow;
     }
   }
 }

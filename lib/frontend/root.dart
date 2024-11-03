@@ -5,6 +5,7 @@ import 'package:floaty/frontend/elements.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'package:floaty/backend/fpapi.dart';
 
+// ignore: library_private_types_in_public_api
 final GlobalKey<_RootLayoutState> rootLayoutKey = GlobalKey<_RootLayoutState>();
 
 class RootLayout extends ConsumerStatefulWidget {
@@ -21,7 +22,9 @@ class _RootLayoutState extends ConsumerState<RootLayout>
   List<CreatorModelV3> creators = [];
   UserSelfV3Response? user;
   bool isLoading = true;
-  String _appBarTitle = 'Floaty';
+  Widget _appBarTitle = const Text('Floaty');
+  List<Widget>? _appBarActions;
+  Widget? _appBarLeading;
 
   @override
   void initState() {
@@ -37,10 +40,11 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     });
   }
 
-  // Public method to set the app bar title
-  void setAppBarTitle(String title) {
+  void setAppBar(Widget title, {List<Widget>? actions, Widget? leading}) {
     setState(() {
       _appBarTitle = title;
+      _appBarActions = actions;
+      _appBarLeading = leading;
     });
   }
 
@@ -179,17 +183,24 @@ class _RootLayoutState extends ConsumerState<RootLayout>
         elevation: 0,
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         surfaceTintColor: Theme.of(context).appBarTheme.backgroundColor,
-        title: Text(_appBarTitle),
+        title: _appBarTitle,
+        actions: _appBarActions,
         leading: isSmallScreen
-            ? Builder(
-                builder: (BuildContext context) {
-                  return IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                  );
-                },
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Builder(
+                    builder: (BuildContext context) {
+                      return IconButton(
+                        icon: const Icon(Icons.menu),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      );
+                    },
+                  ),
+                  if (_appBarLeading != null) _appBarLeading!,
+                ],
               )
-            : null,
+            : _appBarLeading,
       ),
       drawer: isSmallScreen ? sidebar : null,
       //i got u people who use gesture based navigation controls on android (im talking to myself this is literally for myself)

@@ -7,6 +7,8 @@ import 'package:floaty/frontend/screens/home_screen.dart';
 import 'package:floaty/frontend/screens/settings_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/backend/fpapi.dart';
+import 'package:floaty/frontend/screens/browse_screen.dart';
+import 'package:floaty/frontend/screens/history_screen.dart';
 
 void main() {
   runApp(ProviderScope(child: MyApp()));
@@ -77,11 +79,26 @@ class MyApp extends StatelessWidget {
           routes: [
             GoRoute(
               path: '/home',
-              builder: (context, state) => HomeScreen(),
+              builder: (context, state) => const HomeScreen(),
             ),
             GoRoute(
-              path: '/settings',
-              builder: (context, state) => const SettingsScreen(),
+              path: '/browse',
+              builder: (context, state) => const BrowseScreen(),
+            ),
+            GoRoute(
+              path: '/history',
+              builder: (context, state) => const HistoryScreen(),
+            ),
+            ShellRoute(
+              builder: (context, state, child) {
+                return SettingsScreen(child);
+              },
+              routes: [
+                GoRoute(
+                  path: '/settings/account',
+                  builder: (context, state) => const HomeScreen(),
+                ),
+              ],
             ),
           ],
         ),

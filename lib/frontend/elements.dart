@@ -499,7 +499,6 @@ class BlogPostCard extends StatefulWidget {
 }
 
 class _BlogPostCardState extends State<BlogPostCard> {
-  bool _isPressed = false;
   String formatDuration(int seconds) {
     final duration = Duration(seconds: seconds);
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -536,174 +535,247 @@ class _BlogPostCardState extends State<BlogPostCard> {
     }
   }
 
-  void _handleTapDown(TapDownDetails details) {
-    setState(() {
-      _isPressed = true;
-    });
-  }
-
-  void _handleTapUp(TapUpDetails details) {
-    setState(() {
-      _isPressed = false;
-    });
-    context.go('channel/${widget.blogPost.id}');
-  }
-
-  void _handleTapCancel() {
-    setState(() {
-      _isPressed = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    var progressValue;
-    var computedValue;
+    var progressValue = 0;
+    var computedValue = 0.0;
     if (widget.response != null) {
       progressValue = widget.response?.progress ?? 0;
       computedValue = (progressValue / 100).clamp(0.0, 1.0);
     }
-    return GestureDetector(
-      onTap: () => context.go('channel/${widget.blogPost.id}'),
-      child: Container(
-        width: 300,
-        height: 250,
-        decoration: BoxDecoration(
-          color:
-              _isPressed ? Colors.black.withOpacity(0.5) : Colors.transparent,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: NetworkImage(
-                              widget.blogPost.thumbnail?.path ?? ''),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    if (_isPressed)
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => context.go('post/${widget.blogPost.id}'),
+        child: SizedBox(
+          width: 300,
+          height: 250,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Stack(
+                    children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(8),
+                          image: DecorationImage(
+                            image: NetworkImage(
+                                widget.blogPost.thumbnail?.path ?? ''),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                    if (widget.blogPost.metadata?.hasAudio != false ||
-                        widget.blogPost.metadata?.hasVideo != false)
+                      if (widget.blogPost.metadata?.hasAudio != false ||
+                          widget.blogPost.metadata?.hasVideo != false)
+                        Positioned(
+                          bottom: widget.response != null ? 12 : 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              widget.blogPost.metadata?.hasVideo == true
+                                  ? formatDuration(widget
+                                          .blogPost.metadata?.videoDuration
+                                          ?.toInt() ??
+                                      0)
+                                  : formatDuration(widget
+                                          .blogPost.metadata?.audioDuration
+                                          ?.toInt() ??
+                                      0),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      if (widget.response != null)
+                        Positioned(
+                            bottom: 2.5,
+                            left: 10,
+                            right: 10,
+                            child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                    backgroundColor:
+                                        Colors.black.withOpacity(0.7),
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                    minHeight: 5,
+                                    value: computedValue))),
                       Positioned(
                         bottom: widget.response != null ? 12 : 8,
-                        right: 8,
+                        left: 8,
                         child: Container(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             widget.blogPost.metadata?.hasVideo == true
-                                ? formatDuration(widget
-                                        .blogPost.metadata?.videoDuration
-                                        ?.toInt() ??
-                                    0)
-                                : formatDuration(widget
-                                        .blogPost.metadata?.audioDuration
-                                        ?.toInt() ??
-                                    0),
-                            style: TextStyle(color: Colors.white, fontSize: 12),
+                                ? 'Video'
+                                : widget.blogPost.metadata?.hasAudio == true
+                                    ? 'Audio'
+                                    : widget.blogPost.metadata?.hasPicture ==
+                                            true
+                                        ? 'Image'
+                                        : widget.blogPost.metadata
+                                                    ?.hasGallery ==
+                                                true
+                                            ? 'Gallery'
+                                            : 'Text',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 12),
                           ),
                         ),
                       ),
-                    if (widget.response != null)
-                      Positioned(
-                          bottom: 2.5,
-                          left: 10,
-                          right: 10,
-                          child: ClipRRect(
+                      if (widget.blogPost.isAccessible == false)
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.7),
                               borderRadius: BorderRadius.circular(4),
-                              child: LinearProgressIndicator(
-                                  backgroundColor:
-                                      Colors.black.withOpacity(0.7),
-                                  color: Theme.of(context).colorScheme.primary,
-                                  minHeight: 5,
-                                  value: computedValue))),
-                    Positioned(
-                      bottom: widget.response != null ? 12 : 8,
-                      left: 8,
-                      child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Icon(
+                              Icons.lock,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        child: Text(
-                          widget.blogPost.metadata?.hasVideo == true
-                              ? 'Video'
-                              : widget.blogPost.metadata?.hasAudio == true
-                                  ? 'Audio'
-                                  : widget.blogPost.metadata?.hasPicture == true
-                                      ? 'Image'
-                                      : widget.blogPost.metadata?.hasGallery ==
-                                              true
-                                          ? 'Gallery'
-                                          : 'Text',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
+                    ],
+                  ),
+                ),
+                AspectRatio(
+                  aspectRatio: 3.35,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: widget.blogPost.channel?.icon?.path ?? '',
+                            width: 25,
+                            height: 25,
+                            fit: BoxFit.cover,
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.blogPost.title ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${widget.blogPost.channel?.title} • ${getRelativeTime(widget.blogPost.releaseDate ?? DateTime.now())}',
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CreatorCard extends StatefulWidget {
+  final CreatorModelV3 creator;
+
+  const CreatorCard(this.creator, {super.key});
+
+  @override
+  _CreatorCardState createState() => _CreatorCardState();
+}
+
+class _CreatorCardState extends State<CreatorCard> {
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.grey[850],
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => context.go('channel/${widget.creator.id}'),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
+          child: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: 150,
+                  width: 250,
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(1200),
+                              image: DecorationImage(
+                                image: NetworkImage(
+                                    widget.creator.icon?.path ?? '',
+                                    scale: 10),
+                                fit: BoxFit.fill,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    if (widget.blogPost.isAccessible == false)
-                      Center(
-                        child: Container(
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Icon(
-                            Icons.lock,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-              AspectRatio(
-                aspectRatio: 3.35,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: widget.blogPost.channel?.icon?.path ?? '',
-                          width: 25,
-                          height: 25,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
+                SizedBox(
+                  height: 50,
+                  width: 250,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Text(
-                              widget.blogPost.title ?? '',
-                              style: TextStyle(
+                              textAlign: TextAlign.center,
+                              widget.creator.title ?? '',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -711,24 +783,14 @@ class _BlogPostCardState extends State<BlogPostCard> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              '${widget.blogPost.channel?.title} • ${getRelativeTime(widget.blogPost.releaseDate ?? DateTime.now())}',
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
                           ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

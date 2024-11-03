@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:floaty/frontend/root.dart';
 
+// ignore: must_be_immutable
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  Widget child = const Text('Settings');
+  SettingsScreen(child, {super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _SettingsScreenState createState() => _SettingsScreenState();
 }
 
@@ -18,7 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void setapptitle() {
-    rootLayoutKey.currentState?.setAppBarTitle('Settings');
+    rootLayoutKey.currentState?.setAppBar(const Text('Settings'));
   }
 
   @override

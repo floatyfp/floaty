@@ -5,15 +5,15 @@ import 'package:floaty/frontend/elements.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:floaty/frontend/root.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
-  _HomeScreenState createState() => _HomeScreenState();
+  _HistoryScreenState createState() => _HistoryScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HistoryScreenState extends State<HistoryScreen> {
   static const _pageSize = 20;
   final PagingController<int, BlogPostCard> _pagingController =
       PagingController<int, BlogPostCard>(firstPageKey: 0);
@@ -55,7 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
       isLastPage =
           !lastElements.any((element) => element.moreFetchable ?? false);
 
-      // Fetch video progress for the new blog posts
       List<String> blogPostIds = newposts
           .map((post) => post.id)
           .where((id) => id != null)
@@ -64,12 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
       List<GetProgressResponse> progressResponses =
           await FPApiRequests().getVideoProgress(blogPostIds);
 
-      // Create a mapping of blog post ID to progress response
       Map<String, GetProgressResponse?> progressMap = {
         for (var progress in progressResponses) progress.id!: progress
       };
 
-      // Append the fetched blog posts to the paging controller with their progress
       _pagingController.appendPage(
         newposts.map((post) {
           return BlogPostCard(post, response: progressMap[post.id]);
@@ -98,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
             maxCrossAxisExtent: 300,
             crossAxisSpacing: 2,
             mainAxisSpacing: 2,
-            childAspectRatio: 1.12,
+            childAspectRatio: 1.14,
           ),
           builderDelegate: PagedChildBuilderDelegate<BlogPostCard>(
             animateTransitions: true,
