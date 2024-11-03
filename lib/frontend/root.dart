@@ -5,6 +5,8 @@ import 'package:floaty/frontend/elements.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'package:floaty/backend/fpapi.dart';
 
+final GlobalKey<_RootLayoutState> rootLayoutKey = GlobalKey<_RootLayoutState>();
+
 class RootLayout extends ConsumerStatefulWidget {
   const RootLayout({super.key, required this.child});
   final Widget child;
@@ -16,9 +18,10 @@ class RootLayout extends ConsumerStatefulWidget {
 class _RootLayoutState extends ConsumerState<RootLayout>
     with SingleTickerProviderStateMixin {
   bool showText = false;
-  List<CreatorResponse> creators = [];
-  User? user;
+  List<CreatorModelV3> creators = [];
+  UserSelfV3Response? user;
   bool isLoading = true;
+  String _appBarTitle = 'Floaty';
 
   @override
   void initState() {
@@ -34,6 +37,13 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     });
   }
 
+  // Public method to set the app bar title
+  void setAppBarTitle(String title) {
+    setState(() {
+      _appBarTitle = title;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final sidebarState = ref.watch(sidebarStateProvider);
@@ -45,7 +55,6 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     final bool isLargeScreen = screenWidth >= 1024;
     final bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
 
-    // Sidebar open/close logic
     Future.microtask(() async {
       if (isLargeScreen && isSidebarCollapsed) {
         sidebarNotifier.setExpanded();
@@ -57,7 +66,6 @@ class _RootLayoutState extends ConsumerState<RootLayout>
       }
     });
 
-    // Manage text appearance after sidebar animation
     if (!isSidebarCollapsed) {
       if (!showText) {
         Future.delayed(const Duration(milliseconds: 200), () {
@@ -70,13 +78,12 @@ class _RootLayoutState extends ConsumerState<RootLayout>
       }
     } else {
       setState(() {
-        showText = false; // Immediately hide text when collapsing
+        showText = false;
       });
     }
     Widget buildSidebarContent() {
       return Column(
         children: [
-          // This Expanded widget with SingleChildScrollView will make the top items scrollable
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -118,8 +125,6 @@ class _RootLayoutState extends ConsumerState<RootLayout>
               ),
             ),
           ),
-
-          // Bottom pinned items
           Column(
             children: [
               SidebarItem(
@@ -134,7 +139,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                 const CircularProgressIndicator()
               else
                 PictureSidebarItem(
-                  picture: user?.profileImage.path ?? '',
+                  picture: user?.profileImage!.path ?? '',
                   title: user?.username ?? '',
                   route: '/profile',
                   isSidebarCollapsed: isSidebarCollapsed,
@@ -159,9 +164,8 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     Widget sidebar = isSmallScreen
         ? SafeArea(child: Drawer(child: buildSidebarContent()))
         : AnimatedContainer(
-            width: isSidebarCollapsed ? 70 : 260, // Sidebar width
-            duration: const Duration(
-                milliseconds: 200), // Container animation duration
+            width: isSidebarCollapsed ? 70 : 260,
+            duration: const Duration(milliseconds: 200),
             child: Material(
               color: const Color.fromARGB(255, 40, 40, 40),
               elevation: 2,
@@ -175,7 +179,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
         elevation: 0,
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         surfaceTintColor: Theme.of(context).appBarTheme.backgroundColor,
-        title: const Text('Responsive Sidebar'),
+        title: Text(_appBarTitle),
         leading: isSmallScreen
             ? Builder(
                 builder: (BuildContext context) {
@@ -188,7 +192,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
             : null,
       ),
       drawer: isSmallScreen ? sidebar : null,
-      //i got u people who use navigation based controls on android (im talking to myself this is literally for myself)
+      //i got u people who use gesture based navigation controls on android (im talking to myself this is literally for myself)
       drawerEdgeDragWidth: 125,
       body: Row(
         children: [

@@ -301,7 +301,7 @@ class _PictureSidebarItemState extends State<PictureSidebarItem>
 }
 
 class SidebarChannelItem extends StatefulWidget {
-  final CreatorResponse response;
+  final CreatorModelV3 response;
   final bool isSidebarCollapsed;
   final bool isSmallScreen;
   final bool showText;
@@ -366,14 +366,14 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
     });
   }
 
-  List<Channel> _sortedChannels(List<Channel> channels) {
-    return List<Channel>.from(channels)
-      ..sort((a, b) => a.order.compareTo(b.order));
+  List<ChannelModel> _sortedChannels(List<ChannelModel> channels) {
+    return List<ChannelModel>.from(channels)
+      ..sort((a, b) => a.order!.compareTo(b.order ?? 0));
   }
 
   @override
   Widget build(BuildContext context) {
-    bool hasSubChannels = widget.response.channels.length > 1;
+    bool hasSubChannels = widget.response.channels!.length > 1;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,7 +398,7 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                 child: CachedNetworkImage(
                   width: 24,
                   height: 24,
-                  imageUrl: widget.response.icon.path,
+                  imageUrl: widget.response.icon!.path ?? '',
                 )),
           ),
           title: widget.isSidebarCollapsed
@@ -407,7 +407,7 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                   opacity: _fadeAnimation,
                   child: widget.showText || widget.isSmallScreen
                       ? Text(
-                          widget.response.title,
+                          widget.response.title ?? '',
                         )
                       : const SizedBox.shrink(),
                 ),
@@ -435,8 +435,8 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
         if (hasSubChannels && _isExpanded)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children:
-                _sortedChannels(widget.response.channels).map((subChannel) {
+            children: _sortedChannels(widget.response.channels ?? [])
+                .map((subChannel) {
               return ListTile(
                 selected: GoRouterState.of(context).uri.path ==
                     'channel/${widget.response.urlname}/${subChannel.urlname}',
@@ -462,7 +462,7 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                           child: CachedNetworkImage(
                             width: 22,
                             height: 22,
-                            imageUrl: subChannel.icon.path,
+                            imageUrl: subChannel.icon!.path ?? '',
                           ))),
                 ),
                 title: widget.isSidebarCollapsed
@@ -471,7 +471,7 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                         opacity: _fadeAnimation,
                         child: widget.showText || widget.isSmallScreen
                             ? Text(
-                                subChannel.title,
+                                subChannel.title ?? '',
                               )
                             : const SizedBox.shrink(),
                       ),
@@ -484,6 +484,254 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
             }).toList(),
           ),
       ],
+    );
+  }
+}
+
+class BlogPostCard extends StatefulWidget {
+  final BlogPostModelV3 blogPost;
+  final GetProgressResponse? response;
+
+  const BlogPostCard(this.blogPost, {this.response, super.key});
+
+  @override
+  _BlogPostCardState createState() => _BlogPostCardState();
+}
+
+class _BlogPostCardState extends State<BlogPostCard> {
+  bool _isPressed = false;
+  String formatDuration(int seconds) {
+    final duration = Duration(seconds: seconds);
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(duration.inHours);
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final secs = twoDigits(duration.inSeconds.remainder(60));
+
+    return hours != "00" ? "$hours:$minutes:$secs" : "$minutes:$secs";
+  }
+
+  String getRelativeTime(DateTime? dateTime) {
+    if (dateTime == null) return 'Unknown date';
+
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 365) {
+      final years = (difference.inDays / 365).floor();
+      return '$years year${years > 1 ? 's' : ''} ago';
+    } else if (difference.inDays > 30) {
+      final months = (difference.inDays / 30).floor();
+      return '$months month${months > 1 ? 's' : ''} ago';
+    } else if (difference.inDays > 6) {
+      final weeks = (difference.inDays / 7).floor();
+      return '$weeks week${weeks > 1 ? 's' : ''} ago';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() {
+      _isPressed = true;
+    });
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() {
+      _isPressed = false;
+    });
+    context.go('channel/${widget.blogPost.id}');
+  }
+
+  void _handleTapCancel() {
+    setState(() {
+      _isPressed = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var progressValue;
+    var computedValue;
+    if (widget.response != null) {
+      progressValue = widget.response?.progress ?? 0;
+      computedValue = (progressValue / 100).clamp(0.0, 1.0);
+    }
+    return GestureDetector(
+      onTap: () => context.go('channel/${widget.blogPost.id}'),
+      child: Container(
+        width: 300,
+        height: 250,
+        decoration: BoxDecoration(
+          color:
+              _isPressed ? Colors.black.withOpacity(0.5) : Colors.transparent,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        image: DecorationImage(
+                          image: NetworkImage(
+                              widget.blogPost.thumbnail?.path ?? ''),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    if (_isPressed)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    if (widget.blogPost.metadata?.hasAudio != false ||
+                        widget.blogPost.metadata?.hasVideo != false)
+                      Positioned(
+                        bottom: widget.response != null ? 12 : 8,
+                        right: 8,
+                        child: Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            widget.blogPost.metadata?.hasVideo == true
+                                ? formatDuration(widget
+                                        .blogPost.metadata?.videoDuration
+                                        ?.toInt() ??
+                                    0)
+                                : formatDuration(widget
+                                        .blogPost.metadata?.audioDuration
+                                        ?.toInt() ??
+                                    0),
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    if (widget.response != null)
+                      Positioned(
+                          bottom: 2.5,
+                          left: 10,
+                          right: 10,
+                          child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                  backgroundColor:
+                                      Colors.black.withOpacity(0.7),
+                                  color: Theme.of(context).colorScheme.primary,
+                                  minHeight: 5,
+                                  value: computedValue))),
+                    Positioned(
+                      bottom: widget.response != null ? 12 : 8,
+                      left: 8,
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          widget.blogPost.metadata?.hasVideo == true
+                              ? 'Video'
+                              : widget.blogPost.metadata?.hasAudio == true
+                                  ? 'Audio'
+                                  : widget.blogPost.metadata?.hasPicture == true
+                                      ? 'Image'
+                                      : widget.blogPost.metadata?.hasGallery ==
+                                              true
+                                          ? 'Gallery'
+                                          : 'Text',
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    if (widget.blogPost.isAccessible == false)
+                      Center(
+                        child: Container(
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.lock,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              AspectRatio(
+                aspectRatio: 3.35,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl: widget.blogPost.channel?.icon?.path ?? '',
+                          width: 25,
+                          height: 25,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.blogPost.title ?? '',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '${widget.blogPost.channel?.title} • ${getRelativeTime(widget.blogPost.releaseDate ?? DateTime.now())}',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

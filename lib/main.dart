@@ -14,11 +14,11 @@ void main() {
 
 class MyApp extends StatelessWidget {
   MyApp({super.key});
- 
+
   final Checkers checkers = Checkers();
 
   final ThemeData customDarkTheme = ThemeData(
-    useMaterial3: true, 
+    useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.dark(
       primary: Colors.blue.shade600,
@@ -72,7 +72,7 @@ class MyApp extends StatelessWidget {
         ),
         ShellRoute(
           builder: (context, state, child) {
-            return RootLayout(child: child);
+            return RootLayout(key: rootLayoutKey, child: child);
           },
           routes: [
             GoRoute(
@@ -102,19 +102,19 @@ class MyApp extends StatelessWidget {
             if (isAuthenticated) return '/home';
             if (hasAccessTo2FA) return '/2fa';
             return null;
-            
+
           case '/2fa':
             if (hasAccessTo2FA) return null;
             if (isAuthenticated) return '/home';
             if (!isAuthenticated) return '/login';
             return null;
-            
+
           case '/home':
             if (!isAuthenticated && !hasAccessTo2FA) return '/login';
             if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
             if (isAuthenticated) return null;
             return null;
-            
+
           default:
             if (isAuthenticated) return null;
             return '/';
@@ -124,7 +124,7 @@ class MyApp extends StatelessWidget {
     );
 
     FPApiRequests().purgeOldEtags();
-    
+
     return MaterialApp.router(
       title: 'Floaty',
       theme: ThemeData.light(),
@@ -142,7 +142,7 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Future.delayed(const Duration(seconds: 2), () {
       if (context.mounted) {
-        context.go('/'); 
+        context.go('/');
       }
     });
 

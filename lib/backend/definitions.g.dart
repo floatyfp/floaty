@@ -1,126 +1,144 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-// ignore_for_file: unused_element
-
 part of 'definitions.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-CreatorResponse _$CreatorResponseFromJson(Map<String, dynamic> json) =>
-    CreatorResponse(
-      id: json['id'] as String,
-      owner: Owner.fromJson(json['owner'] as Map<String, dynamic>),
-      title: json['title'] as String,
-      urlname: json['urlname'] as String,
-      description: json['description'] as String,
-      about: json['about'] as String,
-      category: Category.fromJson(json['category'] as Map<String, dynamic>),
-      cover: Image.fromJson(json['cover'] as Map<String, dynamic>),
-      icon: Image.fromJson(json['icon'] as Map<String, dynamic>),
-      liveStream:
-          LiveStream.fromJson(json['liveStream'] as Map<String, dynamic>),
-      subscriptionPlans: (json['subscriptionPlans'] as List<dynamic>)
-          .map((e) => SubscriptionPlan.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      discoverable: json['discoverable'] as bool,
-      subscriberCountDisplay: json['subscriberCountDisplay'] as String,
-      incomeDisplay: json['incomeDisplay'] as bool,
-      defaultChannel: json['defaultChannel'] as String,
-      socialLinks:
-          SocialLinks.fromJson(json['socialLinks'] as Map<String, dynamic>),
-      channels: (json['channels'] as List<dynamic>)
-          .map((e) => Channel.fromJson(e as Map<String, dynamic>))
+ChildImageModel _$ChildImageModelFromJson(Map<String, dynamic> json) =>
+    ChildImageModel(
+      width: (json['width'] as num?)?.toInt(),
+      height: (json['height'] as num?)?.toInt(),
+      path: json['path'] as String?,
+    );
+
+Map<String, dynamic> _$ChildImageModelToJson(ChildImageModel instance) =>
+    <String, dynamic>{
+      'width': instance.width,
+      'height': instance.height,
+      'path': instance.path,
+    };
+
+ImageModel _$ImageModelFromJson(Map<String, dynamic> json) => ImageModel(
+      width: (json['width'] as num?)?.toInt(),
+      height: (json['height'] as num?)?.toInt(),
+      path: json['path'] as String?,
+      childImages: (json['childImages'] as List<dynamic>?)
+          ?.map((e) => ChildImageModel.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
 
-Map<String, dynamic> _$CreatorResponseToJson(CreatorResponse instance) =>
+Map<String, dynamic> _$ImageModelToJson(ImageModel instance) =>
+    <String, dynamic>{
+      'width': instance.width,
+      'height': instance.height,
+      'path': instance.path,
+      'childImages': instance.childImages,
+    };
+
+DiscordServerModel _$DiscordServerModelFromJson(Map<String, dynamic> json) =>
+    DiscordServerModel(
+      id: json['id'] as String?,
+      guildName: json['guildName'] as String?,
+      guildIcon: json['guildIcon'] as String?,
+      inviteLink: json['inviteLink'] as String?,
+      inviteMode: json['inviteMode'] as String?,
+    );
+
+Map<String, dynamic> _$DiscordServerModelToJson(DiscordServerModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'owner': instance.owner,
+      'guildName': instance.guildName,
+      'guildIcon': instance.guildIcon,
+      'inviteLink': instance.inviteLink,
+      'inviteMode': instance.inviteMode,
+    };
+
+ChannelModel _$ChannelModelFromJson(Map<String, dynamic> json) => ChannelModel(
+      id: json['id'] as String?,
+      creator: json['creator'] as String?,
+      title: json['title'] as String?,
+      urlname: json['urlname'] as String?,
+      about: json['about'] as String?,
+      order: (json['order'] as num?)?.toInt(),
+      cover: json['cover'] == null
+          ? null
+          : ImageModel.fromJson(json['cover'] as Map<String, dynamic>),
+      card: json['card'] == null
+          ? null
+          : ImageModel.fromJson(json['card'] as Map<String, dynamic>),
+      icon: json['icon'] == null
+          ? null
+          : ImageModel.fromJson(json['icon'] as Map<String, dynamic>),
+      socialLinks: json['socialLinks'] == null
+          ? null
+          : SocialLinksModel.fromJson(
+              json['socialLinks'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$ChannelModelToJson(ChannelModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'creator': instance.creator,
       'title': instance.title,
       'urlname': instance.urlname,
-      'description': instance.description,
       'about': instance.about,
-      'category': instance.category,
+      'order': instance.order,
       'cover': instance.cover,
+      'card': instance.card,
       'icon': instance.icon,
-      'liveStream': instance.liveStream,
-      'subscriptionPlans': instance.subscriptionPlans,
-      'discoverable': instance.discoverable,
-      'subscriberCountDisplay': instance.subscriberCountDisplay,
-      'incomeDisplay': instance.incomeDisplay,
-      'defaultChannel': instance.defaultChannel,
       'socialLinks': instance.socialLinks,
-      'channels': instance.channels,
     };
 
-Owner _$OwnerFromJson(Map<String, dynamic> json) => Owner(
-      id: json['id'] as String,
-      username: json['username'] as String,
+SocialLinksModel _$SocialLinksModelFromJson(Map<String, dynamic> json) =>
+    SocialLinksModel(
+      links: (json['links'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ),
     );
 
-Map<String, dynamic> _$OwnerToJson(Owner instance) => <String, dynamic>{
-      'id': instance.id,
-      'username': instance.username,
+Map<String, dynamic> _$SocialLinksModelToJson(SocialLinksModel instance) =>
+    <String, dynamic>{
+      'links': instance.links,
     };
 
-Category _$CategoryFromJson(Map<String, dynamic> json) => Category(
-      id: json['id'] as String,
-      title: json['title'] as String,
+LiveStreamOfflineModel _$LiveStreamOfflineModelFromJson(
+        Map<String, dynamic> json) =>
+    LiveStreamOfflineModel(
+      title: json['title'] as String?,
+      description: json['description'] as String?,
+      thumbnail: json['thumbnail'] == null
+          ? null
+          : ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$CategoryToJson(Category instance) => <String, dynamic>{
-      'id': instance.id,
+Map<String, dynamic> _$LiveStreamOfflineModelToJson(
+        LiveStreamOfflineModel instance) =>
+    <String, dynamic>{
       'title': instance.title,
+      'description': instance.description,
+      'thumbnail': instance.thumbnail,
     };
 
-Image _$ImageFromJson(Map<String, dynamic> json) => Image(
-      width: (json['width'] as num).toInt(),
-      height: (json['height'] as num).toInt(),
-      path: json['path'] as String,
-      childImages: (json['childImages'] as List<dynamic>?)
-          ?.map((e) => Image.fromJson(e as Map<String, dynamic>))
-          .toList(),
+LiveStreamModel _$LiveStreamModelFromJson(Map<String, dynamic> json) =>
+    LiveStreamModel(
+      id: json['id'] as String?,
+      title: json['title'] as String?,
+      description: json['description'] as String?,
+      thumbnail: json['thumbnail'] == null
+          ? null
+          : ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+      owner: json['owner'] as String?,
+      channel: json['channel'] as String?,
+      streamPath: json['streamPath'] as String?,
+      offline: json['offline'] == null
+          ? null
+          : LiveStreamOfflineModel.fromJson(
+              json['offline'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$ImageToJson(Image instance) => <String, dynamic>{
-      'width': instance.width,
-      'height': instance.height,
-      'path': instance.path,
-      'childImages': instance.childImages,
-    };
-
-Thumbnail _$ThumbnailFromJson(Map<String, dynamic> json) => Thumbnail(
-      width: (json['width'] as num).toInt(),
-      height: (json['height'] as num).toInt(),
-      path: json['path'] as String,
-      childImages: (json['childImages'] as List<dynamic>?)
-          ?.map((e) => Image.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-
-Map<String, dynamic> _$ThumbnailToJson(Thumbnail instance) => <String, dynamic>{
-      'width': instance.width,
-      'height': instance.height,
-      'path': instance.path,
-      'childImages': instance.childImages,
-    };
-
-LiveStream _$LiveStreamFromJson(Map<String, dynamic> json) => LiveStream(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      thumbnail: Thumbnail.fromJson(json['thumbnail'] as Map<String, dynamic>),
-      owner: json['owner'] as String,
-      channel: json['channel'] as String,
-      streamPath: json['streamPath'] as String,
-      offlineThumbnail:
-          Thumbnail.fromJson(json['offlineThumbnail'] as Map<String, dynamic>),
-    );
-
-Map<String, dynamic> _$LiveStreamToJson(LiveStream instance) =>
+Map<String, dynamic> _$LiveStreamModelToJson(LiveStreamModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'title': instance.title,
@@ -129,106 +147,50 @@ Map<String, dynamic> _$LiveStreamToJson(LiveStream instance) =>
       'owner': instance.owner,
       'channel': instance.channel,
       'streamPath': instance.streamPath,
-      'offlineThumbnail': instance.offlineThumbnail,
+      'offline': instance.offline,
     };
 
-SubscriptionPlan _$SubscriptionPlanFromJson(Map<String, dynamic> json) =>
-    SubscriptionPlan(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      price: json['price'] as String,
-      priceYearly: json['priceYearly'] as String,
-      currency: json['currency'] as String,
-      logo: json['logo'] as String?,
-      interval: json['interval'] as String,
-      featured: json['featured'] as bool,
-      allowGrandfatheredAccess: json['allowGrandfatheredAccess'] as bool,
-    );
-
-Map<String, dynamic> _$SubscriptionPlanToJson(SubscriptionPlan instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'title': instance.title,
-      'description': instance.description,
-      'price': instance.price,
-      'priceYearly': instance.priceYearly,
-      'currency': instance.currency,
-      'logo': instance.logo,
-      'interval': instance.interval,
-      'featured': instance.featured,
-      'allowGrandfatheredAccess': instance.allowGrandfatheredAccess,
-    };
-
-SocialLinks _$SocialLinksFromJson(Map<String, dynamic> json) => SocialLinks(
-      instagram: json['instagram'] as String?,
-      twitter: json['twitter'] as String?,
-      website: json['website'] as String?,
-      facebook: json['facebook'] as String?,
-      youtube: json['youtube'] as String?,
-    );
-
-Map<String, dynamic> _$SocialLinksToJson(SocialLinks instance) =>
-    <String, dynamic>{
-      'instagram': instance.instagram,
-      'twitter': instance.twitter,
-      'website': instance.website,
-      'facebook': instance.facebook,
-      'youtube': instance.youtube,
-    };
-
-Channel _$ChannelFromJson(Map<String, dynamic> json) => Channel(
-      id: json['id'] as String,
-      creator: json['creator'] as String,
-      title: json['title'] as String,
-      urlname: json['urlname'] as String,
-      about: json['about'] as String,
-      order: (json['order'] as num).toInt(),
-      cover: Image.fromJson(json['cover'] as Map<String, dynamic>),
-      icon: Image.fromJson(json['icon'] as Map<String, dynamic>),
-      socialLinks:
-          SocialLinks.fromJson(json['socialLinks'] as Map<String, dynamic>),
-    );
-
-Map<String, dynamic> _$ChannelToJson(Channel instance) => <String, dynamic>{
-      'id': instance.id,
-      'creator': instance.creator,
-      'title': instance.title,
-      'urlname': instance.urlname,
-      'about': instance.about,
-      'order': instance.order,
-      'cover': instance.cover,
-      'icon': instance.icon,
-      'socialLinks': instance.socialLinks,
-    };
-
-Creator _$CreatorFromJson(Map<String, dynamic> json) => Creator(
-      id: json['id'] as String,
-      owner: Owner.fromJson(json['owner'] as Map<String, dynamic>),
-      title: json['title'] as String,
-      urlname: json['urlname'] as String,
-      description: json['description'] as String,
-      about: json['about'] as String,
-      category: Category.fromJson(json['category'] as Map<String, dynamic>),
-      cover: Image.fromJson(json['cover'] as Map<String, dynamic>),
-      icon: Image.fromJson(json['icon'] as Map<String, dynamic>),
-      liveStream:
-          LiveStream.fromJson(json['liveStream'] as Map<String, dynamic>),
-      subscriptionPlans: (json['subscriptionPlans'] as List<dynamic>)
-          .map((e) => SubscriptionPlan.fromJson(e as Map<String, dynamic>))
+CreatorModelV3 _$CreatorModelV3FromJson(Map<String, dynamic> json) =>
+    CreatorModelV3(
+      id: json['id'] as String?,
+      owner: json['owner'],
+      title: json['title'] as String?,
+      urlname: json['urlname'] as String?,
+      description: json['description'] as String?,
+      about: json['about'] as String?,
+      category: json['category'] as Map<String, dynamic>?,
+      cover: json['cover'] == null
+          ? null
+          : ImageModel.fromJson(json['cover'] as Map<String, dynamic>),
+      icon: json['icon'] == null
+          ? null
+          : ImageModel.fromJson(json['icon'] as Map<String, dynamic>),
+      liveStream: json['liveStream'] == null
+          ? null
+          : LiveStreamModel.fromJson(
+              json['liveStream'] as Map<String, dynamic>),
+      subscriptionPlans: json['subscriptionPlans'] as List<dynamic>?,
+      discoverable: json['discoverable'] as bool?,
+      subscriberCountDisplay: json['subscriberCountDisplay'] as String?,
+      incomeDisplay: json['incomeDisplay'] as bool?,
+      defaultChannel: json['defaultChannel'] as String?,
+      socialLinks: json['socialLinks'] == null
+          ? null
+          : SocialLinksModel.fromJson(
+              json['socialLinks'] as Map<String, dynamic>),
+      channels: (json['channels'] as List<dynamic>?)
+          ?.map((e) => ChannelModel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      discoverable: json['discoverable'] as bool,
-      subscriberCountDisplay: json['subscriberCountDisplay'] as String,
-      incomeDisplay: json['incomeDisplay'] as bool,
-      defaultChannel: json['defaultChannel'] as String,
-      socialLinks:
-          SocialLinks.fromJson(json['socialLinks'] as Map<String, dynamic>),
-      channels: (json['channels'] as List<dynamic>)
-          .map((e) => Channel.fromJson(e as Map<String, dynamic>))
+      discordServers: (json['discordServers'] as List<dynamic>?)
+          ?.map((e) => DiscordServerModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      cardImage: json['cardImage'] == null
+          ? null
+          : ImageModel.fromJson(json['cardImage'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$CreatorToJson(Creator instance) => <String, dynamic>{
+Map<String, dynamic> _$CreatorModelV3ToJson(CreatorModelV3 instance) =>
+    <String, dynamic>{
       'id': instance.id,
       'owner': instance.owner,
       'title': instance.title,
@@ -246,21 +208,174 @@ Map<String, dynamic> _$CreatorToJson(Creator instance) => <String, dynamic>{
       'defaultChannel': instance.defaultChannel,
       'socialLinks': instance.socialLinks,
       'channels': instance.channels,
+      'discordServers': instance.discordServers,
+      'cardImage': instance.cardImage,
     };
 
-User _$UserFromJson(Map<String, dynamic> json) => User(
-      id: json['id'] as String,
-      username: json['username'] as String,
-      profileImage:
-          Image.fromJson(json['profileImage'] as Map<String, dynamic>),
-      email: json['email'] as String?,
-      displayname: json['displayname'] as String?,
+PostMetadataModel _$PostMetadataModelFromJson(Map<String, dynamic> json) =>
+    PostMetadataModel(
+      hasVideo: json['hasVideo'] as bool?,
+      videoCount: (json['videoCount'] as num?)?.toInt(),
+      videoDuration: (json['videoDuration'] as num?)?.toDouble(),
+      hasAudio: json['hasAudio'] as bool?,
+      audioCount: (json['audioCount'] as num?)?.toInt(),
+      audioDuration: (json['audioDuration'] as num?)?.toDouble(),
+      hasPicture: json['hasPicture'] as bool?,
+      pictureCount: (json['pictureCount'] as num?)?.toInt(),
+      hasGallery: json['hasGallery'] as bool?,
+      galleryCount: (json['galleryCount'] as num?)?.toInt(),
+      isFeatured: json['isFeatured'] as bool?,
     );
 
-Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
+Map<String, dynamic> _$PostMetadataModelToJson(PostMetadataModel instance) =>
+    <String, dynamic>{
+      'hasVideo': instance.hasVideo,
+      'videoCount': instance.videoCount,
+      'videoDuration': instance.videoDuration,
+      'hasAudio': instance.hasAudio,
+      'audioCount': instance.audioCount,
+      'audioDuration': instance.audioDuration,
+      'hasPicture': instance.hasPicture,
+      'pictureCount': instance.pictureCount,
+      'hasGallery': instance.hasGallery,
+      'galleryCount': instance.galleryCount,
+      'isFeatured': instance.isFeatured,
+    };
+
+BlogPostModelV3 _$BlogPostModelV3FromJson(Map<String, dynamic> json) =>
+    BlogPostModelV3(
+      id: json['id'] as String?,
+      guid: json['guid'] as String?,
+      title: json['title'] as String?,
+      text: json['text'] as String?,
+      type: json['type'] as String?,
+      channel: json['channel'] == null
+          ? null
+          : ChannelModel.fromJson(json['channel'] as Map<String, dynamic>),
+      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      attachmentOrder: (json['attachmentOrder'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      metadata: json['metadata'] == null
+          ? null
+          : PostMetadataModel.fromJson(
+              json['metadata'] as Map<String, dynamic>),
+      releaseDate: json['releaseDate'] == null
+          ? null
+          : DateTime.parse(json['releaseDate'] as String),
+      likes: (json['likes'] as num?)?.toInt(),
+      dislikes: (json['dislikes'] as num?)?.toInt(),
+      score: (json['score'] as num?)?.toInt(),
+      comments: (json['comments'] as num?)?.toInt(),
+      creator: json['creator'] as Map<String, dynamic>?,
+      wasReleasedSilently: json['wasReleasedSilently'] as bool?,
+      thumbnail: json['thumbnail'] == null
+          ? null
+          : ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+      isAccessible: json['isAccessible'] as bool?,
+      videoAttachments: json['videoAttachments'] as List<dynamic>?,
+      audioAttachments: json['audioAttachments'] as List<dynamic>?,
+      pictureAttachments: json['pictureAttachments'] as List<dynamic>?,
+      galleryAttachments: json['galleryAttachments'] as List<dynamic>?,
+    );
+
+Map<String, dynamic> _$BlogPostModelV3ToJson(BlogPostModelV3 instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'guid': instance.guid,
+      'title': instance.title,
+      'text': instance.text,
+      'type': instance.type,
+      'channel': instance.channel,
+      'tags': instance.tags,
+      'attachmentOrder': instance.attachmentOrder,
+      'metadata': instance.metadata,
+      'releaseDate': instance.releaseDate?.toIso8601String(),
+      'likes': instance.likes,
+      'dislikes': instance.dislikes,
+      'score': instance.score,
+      'comments': instance.comments,
+      'creator': instance.creator,
+      'wasReleasedSilently': instance.wasReleasedSilently,
+      'thumbnail': instance.thumbnail,
+      'isAccessible': instance.isAccessible,
+      'videoAttachments': instance.videoAttachments,
+      'audioAttachments': instance.audioAttachments,
+      'pictureAttachments': instance.pictureAttachments,
+      'galleryAttachments': instance.galleryAttachments,
+    };
+
+ContentCreatorListLastItems _$ContentCreatorListLastItemsFromJson(
+        Map<String, dynamic> json) =>
+    ContentCreatorListLastItems(
+      creatorId: json['creatorId'] as String?,
+      blogPostId: json['blogPostId'] as String?,
+      moreFetchable: json['moreFetchable'] as bool?,
+    );
+
+Map<String, dynamic> _$ContentCreatorListLastItemsToJson(
+        ContentCreatorListLastItems instance) =>
+    <String, dynamic>{
+      'creatorId': instance.creatorId,
+      'blogPostId': instance.blogPostId,
+      'moreFetchable': instance.moreFetchable,
+    };
+
+ContentCreatorListV3Response _$ContentCreatorListV3ResponseFromJson(
+        Map<String, dynamic> json) =>
+    ContentCreatorListV3Response(
+      blogPosts: (json['blogPosts'] as List<dynamic>?)
+          ?.map((e) => BlogPostModelV3.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      lastElements: (json['lastElements'] as List<dynamic>?)
+          ?.map((e) =>
+              ContentCreatorListLastItems.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$ContentCreatorListV3ResponseToJson(
+        ContentCreatorListV3Response instance) =>
+    <String, dynamic>{
+      'blogPosts': instance.blogPosts,
+      'lastElements': instance.lastElements,
+    };
+
+UserSelfV3Response _$UserSelfV3ResponseFromJson(Map<String, dynamic> json) =>
+    UserSelfV3Response(
+      id: json['id'] as String?,
+      username: json['username'] as String?,
+      profileImage: json['profileImage'] == null
+          ? null
+          : ImageModel.fromJson(json['profileImage'] as Map<String, dynamic>),
+      email: json['email'] as String?,
+      displayName: json['displayName'] as String?,
+      creators: json['creators'] as List<dynamic>?,
+      scheduledDeletionDate: json['scheduledDeletionDate'] == null
+          ? null
+          : DateTime.parse(json['scheduledDeletionDate'] as String),
+    );
+
+Map<String, dynamic> _$UserSelfV3ResponseToJson(UserSelfV3Response instance) =>
+    <String, dynamic>{
       'id': instance.id,
       'username': instance.username,
       'profileImage': instance.profileImage,
       'email': instance.email,
-      'displayname': instance.displayname,
+      'displayName': instance.displayName,
+      'creators': instance.creators,
+      'scheduledDeletionDate':
+          instance.scheduledDeletionDate?.toIso8601String(),
+    };
+
+GetProgressResponse _$GetProgressResponseFromJson(Map<String, dynamic> json) =>
+    GetProgressResponse(
+      id: json['id'] as String?,
+      progress: (json['progress'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$GetProgressResponseToJson(
+        GetProgressResponse instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'progress': instance.progress,
     };
