@@ -769,27 +769,23 @@ class _CreatorCardState extends State<CreatorCard> {
                 SizedBox(
                   height: 50,
                   width: 250,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              textAlign: TextAlign.center,
-                              widget.creator.title ?? '',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          textAlign: TextAlign.center,
+                          widget.creator.title ?? '',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
