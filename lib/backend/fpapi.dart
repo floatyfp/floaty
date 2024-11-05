@@ -264,8 +264,7 @@ class FPApiRequests {
       }
       final List<dynamic> jsonResponse = jsonDecode(response);
       final List<GetProgressResponse> progressResponses = jsonResponse
-          .map((data) =>
-              GetProgressResponse.fromJson(data as Map<String, dynamic>))
+          .map((data) => GetProgressResponse.fromJson(data))
           .toList();
       return progressResponses;
     } catch (e) {
@@ -292,6 +291,39 @@ class FPApiRequests {
       List<CreatorModelV3> creators =
           jsonList.map((json) => CreatorModelV3.fromJson(json)).toList();
       return creators;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<HistoryModelV3>> getHistory({int? offset}) async {
+    try {
+      int offsetInt = 0;
+      if (offset != null) {
+        offsetInt = offset;
+      }
+      final response = await FPApiRequests()
+          .fetchDataWithEtag('v3/content/history?offset=$offsetInt');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print(response);
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+
+      if (response == null || response.isEmpty) {
+        return [];
+      }
+
+      List<dynamic> jsonList = jsonDecode(response);
+      List<HistoryModelV3> history =
+          jsonList.map((json) => HistoryModelV3.fromJson(json)).toList();
+      return history;
     } catch (e) {
       rethrow;
     }

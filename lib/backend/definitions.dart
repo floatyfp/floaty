@@ -162,7 +162,7 @@ class CreatorModelV3 {
   final String? urlname;
   final String? description;
   final String? about;
-  final Map<String, dynamic>? category;
+  final dynamic? category;
   final ImageModel? cover;
   final ImageModel? icon;
   final LiveStreamModel? liveStream;
@@ -245,7 +245,7 @@ class BlogPostModelV3 {
   final String? title;
   final String? text;
   final String? type;
-  final ChannelModel? channel;
+  final dynamic channel;
   final List<String>? tags;
   final List<String>? attachmentOrder;
   final PostMetadataModel? metadata;
@@ -254,7 +254,7 @@ class BlogPostModelV3 {
   final int? dislikes;
   final int? score;
   final int? comments;
-  final Map<String, dynamic>? creator;
+  final dynamic? creator;
   final bool? wasReleasedSilently;
   final ImageModel? thumbnail;
   final bool? isAccessible;
@@ -358,7 +358,6 @@ class UserSelfV3Response {
 class GetProgressResponse {
   final String? id;
 
-  /// Percentage of the blog post's media that has been consumed so far. Ranges from 0 to 100.
   @JsonKey(defaultValue: 0)
   final int? progress;
 
@@ -371,4 +370,27 @@ class GetProgressResponse {
       _$GetProgressResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$GetProgressResponseToJson(this);
+}
+
+@JsonSerializable()
+class HistoryModelV3 {
+  final String? userId;
+  final String? contentId;
+  final String? contentType;
+  final int? progress;
+  final DateTime? updatedAt;
+  final BlogPostModelV3 blogPost;
+
+  HistoryModelV3({
+    this.userId,
+    this.contentId,
+    this.contentType,
+    this.progress,
+    this.updatedAt,
+    required this.blogPost,
+  });
+
+  factory HistoryModelV3.fromJson(Map<String, dynamic> json) =>
+      _$HistoryModelV3FromJson(json);
+  Map<String, dynamic> toJson() => _$HistoryModelV3ToJson(this);
 }

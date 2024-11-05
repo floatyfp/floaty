@@ -25,7 +25,7 @@ ImageModel _$ImageModelFromJson(Map<String, dynamic> json) => ImageModel(
       height: (json['height'] as num?)?.toInt(),
       path: json['path'] as String?,
       childImages: (json['childImages'] as List<dynamic>?)
-          ?.map((e) => ChildImageModel.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => ChildImageModel.fromJson(e))
           .toList(),
     );
 
@@ -62,19 +62,12 @@ ChannelModel _$ChannelModelFromJson(Map<String, dynamic> json) => ChannelModel(
       urlname: json['urlname'] as String?,
       about: json['about'] as String?,
       order: (json['order'] as num?)?.toInt(),
-      cover: json['cover'] == null
-          ? null
-          : ImageModel.fromJson(json['cover'] as Map<String, dynamic>),
-      card: json['card'] == null
-          ? null
-          : ImageModel.fromJson(json['card'] as Map<String, dynamic>),
-      icon: json['icon'] == null
-          ? null
-          : ImageModel.fromJson(json['icon'] as Map<String, dynamic>),
+      cover: json['cover'] == null ? null : ImageModel.fromJson(json['cover']),
+      card: json['card'] == null ? null : ImageModel.fromJson(json['card']),
+      icon: json['icon'] == null ? null : ImageModel.fromJson(json['icon']),
       socialLinks: json['socialLinks'] == null
           ? null
-          : SocialLinksModel.fromJson(
-              json['socialLinks'] as Map<String, dynamic>),
+          : SocialLinksModel.fromJson(json['socialLinks']),
     );
 
 Map<String, dynamic> _$ChannelModelToJson(ChannelModel instance) =>
@@ -93,7 +86,7 @@ Map<String, dynamic> _$ChannelModelToJson(ChannelModel instance) =>
 
 SocialLinksModel _$SocialLinksModelFromJson(Map<String, dynamic> json) =>
     SocialLinksModel(
-      links: (json['links'] as Map<String, dynamic>?)?.map(
+      links: (json['links'])?.map(
         (k, e) => MapEntry(k, e as String),
       ),
     );
@@ -110,7 +103,7 @@ LiveStreamOfflineModel _$LiveStreamOfflineModelFromJson(
       description: json['description'] as String?,
       thumbnail: json['thumbnail'] == null
           ? null
-          : ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+          : ImageModel.fromJson(json['thumbnail']),
     );
 
 Map<String, dynamic> _$LiveStreamOfflineModelToJson(
@@ -128,14 +121,13 @@ LiveStreamModel _$LiveStreamModelFromJson(Map<String, dynamic> json) =>
       description: json['description'] as String?,
       thumbnail: json['thumbnail'] == null
           ? null
-          : ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+          : ImageModel.fromJson(json['thumbnail']),
       owner: json['owner'] as String?,
       channel: json['channel'] as String?,
       streamPath: json['streamPath'] as String?,
       offline: json['offline'] == null
           ? null
-          : LiveStreamOfflineModel.fromJson(
-              json['offline'] as Map<String, dynamic>),
+          : LiveStreamOfflineModel.fromJson(json['offline']),
     );
 
 Map<String, dynamic> _$LiveStreamModelToJson(LiveStreamModel instance) =>
@@ -159,16 +151,11 @@ CreatorModelV3 _$CreatorModelV3FromJson(Map<String, dynamic> json) =>
       description: json['description'] as String?,
       about: json['about'] as String?,
       category: json['category'] as Map<String, dynamic>?,
-      cover: json['cover'] == null
-          ? null
-          : ImageModel.fromJson(json['cover'] as Map<String, dynamic>),
-      icon: json['icon'] == null
-          ? null
-          : ImageModel.fromJson(json['icon'] as Map<String, dynamic>),
+      cover: json['cover'] == null ? null : ImageModel.fromJson(json['cover']),
+      icon: json['icon'] == null ? null : ImageModel.fromJson(json['icon']),
       liveStream: json['liveStream'] == null
           ? null
-          : LiveStreamModel.fromJson(
-              json['liveStream'] as Map<String, dynamic>),
+          : LiveStreamModel.fromJson(json['liveStream']),
       subscriptionPlans: json['subscriptionPlans'] as List<dynamic>?,
       discoverable: json['discoverable'] as bool?,
       subscriberCountDisplay: json['subscriberCountDisplay'] as String?,
@@ -176,17 +163,16 @@ CreatorModelV3 _$CreatorModelV3FromJson(Map<String, dynamic> json) =>
       defaultChannel: json['defaultChannel'] as String?,
       socialLinks: json['socialLinks'] == null
           ? null
-          : SocialLinksModel.fromJson(
-              json['socialLinks'] as Map<String, dynamic>),
+          : SocialLinksModel.fromJson(json['socialLinks']),
       channels: (json['channels'] as List<dynamic>?)
-          ?.map((e) => ChannelModel.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => ChannelModel.fromJson(e))
           .toList(),
       discordServers: (json['discordServers'] as List<dynamic>?)
-          ?.map((e) => DiscordServerModel.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => DiscordServerModel.fromJson(e))
           .toList(),
       cardImage: json['cardImage'] == null
           ? null
-          : ImageModel.fromJson(json['cardImage'] as Map<String, dynamic>),
+          : ImageModel.fromJson(json['cardImage']),
     );
 
 Map<String, dynamic> _$CreatorModelV3ToJson(CreatorModelV3 instance) =>
@@ -249,8 +235,8 @@ BlogPostModelV3 _$BlogPostModelV3FromJson(Map<String, dynamic> json) =>
       title: json['title'] as String?,
       text: json['text'] as String?,
       type: json['type'] as String?,
-      channel: json['channel'] == null
-          ? null
+      channel: json['channel'] is String
+          ? json['channel']
           : ChannelModel.fromJson(json['channel'] as Map<String, dynamic>),
       tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
       attachmentOrder: (json['attachmentOrder'] as List<dynamic>?)
@@ -258,8 +244,7 @@ BlogPostModelV3 _$BlogPostModelV3FromJson(Map<String, dynamic> json) =>
           .toList(),
       metadata: json['metadata'] == null
           ? null
-          : PostMetadataModel.fromJson(
-              json['metadata'] as Map<String, dynamic>),
+          : PostMetadataModel.fromJson(json['metadata']),
       releaseDate: json['releaseDate'] == null
           ? null
           : DateTime.parse(json['releaseDate'] as String),
@@ -267,11 +252,13 @@ BlogPostModelV3 _$BlogPostModelV3FromJson(Map<String, dynamic> json) =>
       dislikes: (json['dislikes'] as num?)?.toInt(),
       score: (json['score'] as num?)?.toInt(),
       comments: (json['comments'] as num?)?.toInt(),
-      creator: json['creator'] as Map<String, dynamic>?,
+      creator: json['creator'] is String
+          ? json['creator']
+          : ChannelModel.fromJson(json['creator']),
       wasReleasedSilently: json['wasReleasedSilently'] as bool?,
       thumbnail: json['thumbnail'] == null
           ? null
-          : ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+          : ImageModel.fromJson(json['thumbnail']),
       isAccessible: json['isAccessible'] as bool?,
       videoAttachments: json['videoAttachments'] as List<dynamic>?,
       audioAttachments: json['audioAttachments'] as List<dynamic>?,
@@ -325,11 +312,10 @@ ContentCreatorListV3Response _$ContentCreatorListV3ResponseFromJson(
         Map<String, dynamic> json) =>
     ContentCreatorListV3Response(
       blogPosts: (json['blogPosts'] as List<dynamic>?)
-          ?.map((e) => BlogPostModelV3.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => BlogPostModelV3.fromJson(e))
           .toList(),
       lastElements: (json['lastElements'] as List<dynamic>?)
-          ?.map((e) =>
-              ContentCreatorListLastItems.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => ContentCreatorListLastItems.fromJson(e))
           .toList(),
     );
 
@@ -346,7 +332,7 @@ UserSelfV3Response _$UserSelfV3ResponseFromJson(Map<String, dynamic> json) =>
       username: json['username'] as String?,
       profileImage: json['profileImage'] == null
           ? null
-          : ImageModel.fromJson(json['profileImage'] as Map<String, dynamic>),
+          : ImageModel.fromJson(json['profileImage']),
       email: json['email'] as String?,
       displayName: json['displayName'] as String?,
       creators: json['creators'] as List<dynamic>?,
@@ -378,4 +364,26 @@ Map<String, dynamic> _$GetProgressResponseToJson(
     <String, dynamic>{
       'id': instance.id,
       'progress': instance.progress,
+    };
+
+HistoryModelV3 _$HistoryModelV3FromJson(Map<String, dynamic> json) =>
+    HistoryModelV3(
+      userId: json['userId'] as String?,
+      contentId: json['contentId'] as String?,
+      contentType: json['contentType'] as String?,
+      progress: (json['progress'] as num?)?.toInt(),
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
+      blogPost: BlogPostModelV3.fromJson(json['blogPost']),
+    );
+
+Map<String, dynamic> _$HistoryModelV3ToJson(HistoryModelV3 instance) =>
+    <String, dynamic>{
+      'userId': instance.userId,
+      'contentId': instance.contentId,
+      'contentType': instance.contentType,
+      'progress': instance.progress,
+      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'blogPost': instance.blogPost,
     };

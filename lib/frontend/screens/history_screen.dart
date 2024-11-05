@@ -14,11 +14,10 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  static const _pageSize = 20;
   final PagingController<int, BlogPostCard> _pagingController =
       PagingController<int, BlogPostCard>(firstPageKey: 0);
   List<String> creatorIds = [];
-  List<ContentCreatorListLastItems> lastElements = [];
+  int offset = 0;
   List<BlogPostModelV3> newposts = [];
   bool isLastPage = false;
 
@@ -34,46 +33,30 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   void setapptitle() {
-    rootLayoutKey.currentState?.setAppBar(const Text('Home'));
+    rootLayoutKey.currentState?.setAppBar(const Text('History'));
   }
 
   Future<void> _fetchPage(int pageKey) async {
     try {
-      creatorIds = await FPApiRequests().getSubscribedCreatorsIds();
+      final historyResponse = await FPApiRequests().getHistory(offset: offset);
+      print(historyResponse);
 
-      ContentCreatorListV3Response? home;
-      if (lastElements.isNotEmpty) {
-        home = await FPApiRequests()
-            .getHomeFeed(creatorIds, _pageSize, lastElements);
-      } else {
-        home = await FPApiRequests().getHomeFeed(creatorIds, _pageSize);
-      }
+      offset = offset + 20;
 
-      newposts = home.blogPosts ?? [];
-      lastElements = home.lastElements ?? [];
+      final isLastPage = historyResponse.length < 20;
 
-      isLastPage =
-          !lastElements.any((element) => element.moreFetchable ?? false);
+      final newPosts = historyResponse.map((historyItem) {
+        return BlogPostCard(
+          historyItem.blogPost,
+          response: GetProgressResponse(
+              id: historyItem.contentId, progress: historyItem.progress),
+        );
+      }).toList();
 
-      List<String> blogPostIds = newposts
-          .map((post) => post.id)
-          .where((id) => id != null)
-          .cast<String>()
-          .toList();
-      List<GetProgressResponse> progressResponses =
-          await FPApiRequests().getVideoProgress(blogPostIds);
-
-      Map<String, GetProgressResponse?> progressMap = {
-        for (var progress in progressResponses) progress.id!: progress
-      };
-
-      _pagingController.appendPage(
-        newposts.map((post) {
-          return BlogPostCard(post, response: progressMap[post.id]);
-        }).toList(),
-        isLastPage ? null : pageKey + 1,
-      );
+      // Append the new page data to the paging controller
+      _pagingController.appendPage(newPosts, isLastPage ? null : pageKey + 1);
     } catch (error) {
+      print(error);
       _pagingController.error = error;
     }
   }

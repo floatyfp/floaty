@@ -643,12 +643,13 @@ class _BlogPostCardState extends State<BlogPostCard> {
                       if (widget.blogPost.isAccessible == false)
                         Center(
                           child: Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(17),
                             decoration: BoxDecoration(
                               color: Colors.black.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(100),
                             ),
                             child: const Icon(
+                              size: 45,
                               Icons.lock,
                               color: Colors.white,
                             ),
@@ -666,13 +667,16 @@ class _BlogPostCardState extends State<BlogPostCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: widget.blogPost.channel?.icon?.path ?? '',
-                            width: 25,
-                            height: 25,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                            child: widget.blogPost.channel is ChannelModel
+                                ? CachedNetworkImage(
+                                    imageUrl:
+                                        widget.blogPost.channel?.icon?.path ??
+                                            '',
+                                    width: 25,
+                                    height: 25,
+                                    fit: BoxFit.cover,
+                                  )
+                                : SizedBox.shrink()),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -690,7 +694,7 @@ class _BlogPostCardState extends State<BlogPostCard> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${widget.blogPost.channel?.title} • ${getRelativeTime(widget.blogPost.releaseDate ?? DateTime.now())}',
+                                '${widget.blogPost.channel is ChannelModel ? widget.blogPost.channel?.title ?? '' : widget.blogPost.creator.title ?? ''} • ${getRelativeTime(widget.blogPost.releaseDate ?? DateTime.now())}',
                                 style: TextStyle(
                                   color: Colors.grey[400],
                                   fontSize: 12,
