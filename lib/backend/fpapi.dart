@@ -196,9 +196,9 @@ class FPApiRequests {
     }
   }
 
-  Future<ContentCreatorListV3Response> getHomeFeed(
+  Future<ContentCreatorListV3Response> getMultiCreatorVideoFeed(
       List<String> creatorIds, int limit,
-      [List<ContentCreatorListLastItems>? lastElements]) async {
+      {List<ContentCreatorListLastItems>? lastElements}) async {
     try {
       if (creatorIds.isEmpty) {
         return ContentCreatorListV3Response(blogPosts: [], lastElements: []);
@@ -243,6 +243,48 @@ class FPApiRequests {
       return ContentCreatorListV3Response.fromJson(decodedResponse);
     } catch (error) {
       return ContentCreatorListV3Response(blogPosts: [], lastElements: []);
+    }
+  }
+
+  Future<List<BlogPostModelV3>> getSubchannelVideoFeed(List<String> creatorIds,
+      int limit, String channel, int fetchAfter) async {
+    try {
+      final Map<String, dynamic> queryParams = {
+        'id': creatorIds.first,
+        'channel': channel,
+        'limit': limit.toString(),
+        'fetchAfter': fetchAfter,
+      };
+
+      final response = await fetchDataWithEtag(
+        'v3/content/creator',
+        queryParams,
+      );
+
+      if (response == 'ded' || response.isEmpty) {
+        return [];
+      }
+
+      List<dynamic>? decodedResponse;
+      try {
+        decodedResponse = json.decode(response) as List<dynamic>;
+      } catch (e) {
+        return [];
+      }
+
+      // Convert each item in the list to BlogPostModelV3
+      return decodedResponse
+          .map((item) {
+            try {
+              return BlogPostModelV3.fromJson(item as Map<String, dynamic>);
+            } catch (e) {
+              return null; // Skip items that fail to parse
+            }
+          })
+          .whereType<BlogPostModelV3>()
+          .toList();
+    } catch (error) {
+      return [];
     }
   }
 
@@ -313,6 +355,42 @@ class FPApiRequests {
       List<HistoryModelV3> history =
           jsonList.map((json) => HistoryModelV3.fromJson(json)).toList();
       return history;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<CreatorModelV3> getCreator({String? urlname, int? id}) async {
+    try {
+      dynamic creatorInfo;
+      if (urlname != null) {
+        creatorInfo = await FPApiRequests()
+            .fetchDataWithEtag('v3/creator/named?creatorURL=$urlname');
+      } else {
+        creatorInfo =
+            await FPApiRequests().fetchDataWithEtag('v3/creator/info?id=$id');
+      }
+      if (creatorInfo != null && creatorInfo.isNotEmpty) {
+        List<dynamic> creatorList = jsonDecode(creatorInfo);
+        if (creatorList.isNotEmpty) {
+          Map<String, dynamic> creatorJson = creatorList.first;
+          return CreatorModelV3.fromJson(creatorJson);
+        }
+      }
+      return CreatorModelV3();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<StatsModel> getStats(String creatorId) async {
+    try {
+      final stats = await FPApiRequests()
+          .fetchDataWithEtag('v2/plan/info?creatorId=$creatorId');
+      dynamic statsJson = jsonDecode(stats);
+      return StatsModel(
+          totalIncome: statsJson['totalIncome'],
+          totalSubcriberCount: statsJson['totalSubscriberCount']);
     } catch (e) {
       rethrow;
     }

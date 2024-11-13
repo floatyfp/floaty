@@ -43,10 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       ContentCreatorListV3Response? home;
       if (lastElements.isNotEmpty) {
-        home = await FPApiRequests()
-            .getHomeFeed(creatorIds, _pageSize, lastElements);
+        home = await FPApiRequests().getMultiCreatorVideoFeed(
+            creatorIds, _pageSize,
+            lastElements: lastElements);
       } else {
-        home = await FPApiRequests().getHomeFeed(creatorIds, _pageSize);
+        home = await FPApiRequests()
+            .getMultiCreatorVideoFeed(creatorIds, _pageSize);
       }
 
       newposts = home.blogPosts ?? [];

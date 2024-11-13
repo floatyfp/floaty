@@ -96,10 +96,20 @@ class ChannelModel {
 
 @JsonSerializable()
 class SocialLinksModel {
-  final Map<String, String>? links;
+  final dynamic discord;
+  final dynamic twitter;
+  final dynamic youtube;
+  final dynamic facebook;
+  final dynamic instagram;
+  final dynamic website;
 
   SocialLinksModel({
-    this.links,
+    this.discord,
+    this.twitter,
+    this.youtube,
+    this.facebook,
+    this.instagram,
+    this.website,
   });
 
   factory SocialLinksModel.fromJson(Map<String, dynamic> json) =>
@@ -162,7 +172,7 @@ class CreatorModelV3 {
   final String? urlname;
   final String? description;
   final String? about;
-  final dynamic? category;
+  final dynamic category;
   final ImageModel? cover;
   final ImageModel? icon;
   final LiveStreamModel? liveStream;
@@ -254,7 +264,7 @@ class BlogPostModelV3 {
   final int? dislikes;
   final int? score;
   final int? comments;
-  final dynamic? creator;
+  final dynamic creator;
   final bool? wasReleasedSilently;
   final ImageModel? thumbnail;
   final bool? isAccessible;
@@ -393,4 +403,19 @@ class HistoryModelV3 {
   factory HistoryModelV3.fromJson(Map<String, dynamic> json) =>
       _$HistoryModelV3FromJson(json);
   Map<String, dynamic> toJson() => _$HistoryModelV3ToJson(this);
+}
+
+@JsonSerializable()
+class StatsModel {
+  final dynamic totalSubcriberCount;
+  final dynamic totalIncome;
+
+  StatsModel({
+    this.totalSubcriberCount,
+    this.totalIncome,
+  });
+
+  factory StatsModel.fromJson(Map<String, dynamic> json) =>
+      _$StatsModelFromJson(json);
+  Map<String, dynamic> toJson() => _$StatsModelToJson(this);
 }

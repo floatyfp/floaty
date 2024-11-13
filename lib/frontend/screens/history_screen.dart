@@ -18,6 +18,7 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _HistoryScreenState createState() => _HistoryScreenState();
 }
 
@@ -84,7 +85,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _pagingController.appendPage(
           itemsWithHeaders, isLastPage ? null : pageKey + 1);
     } catch (error) {
-      print(error);
       _pagingController.error = error;
     }
   }

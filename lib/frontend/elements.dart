@@ -380,14 +380,14 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
       children: [
         ListTile(
           selected: GoRouterState.of(context).uri.path ==
-              'channel/${widget.response.urlname}/home',
+              '/channel/${widget.response.urlname}',
           leading: AnimatedContainer(
             width: 24,
             height: 24,
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
               border: GoRouterState.of(context).uri.path ==
-                      'channel/${widget.response.urlname}/home'
+                      '/channel/${widget.response.urlname}'
                   ? Border.all(
                       color: Theme.of(context).colorScheme.primary, width: 2)
                   : null,
@@ -412,9 +412,9 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                       : const SizedBox.shrink(),
                 ),
           onTap: () {
-            context.go('channel/${widget.response.urlname}/home');
+            context.push('/channel/${widget.response.urlname}');
             scaffoldKey.currentState?.closeDrawer();
-            if (!widget.isSidebarCollapsed && hasSubChannels) {
+            if (hasSubChannels) {
               _toggleExpansion();
             }
           },
@@ -439,7 +439,7 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                 .map((subChannel) {
               return ListTile(
                 selected: GoRouterState.of(context).uri.path ==
-                    'channel/${widget.response.urlname}/${subChannel.urlname}',
+                    '/channel/${widget.response.urlname}/${subChannel.urlname}',
                 leading: Padding(
                   padding: widget.isSidebarCollapsed
                       ? const EdgeInsets.only(left: 2.23)
@@ -450,7 +450,7 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
                         border: GoRouterState.of(context).uri.path ==
-                                'channel/${widget.response.urlname}/${subChannel.urlname}'
+                                '/channel/${widget.response.urlname}/${subChannel.urlname}'
                             ? Border.all(
                                 color: Theme.of(context).colorScheme.primary,
                                 width: 2)
@@ -476,8 +476,8 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
                             : const SizedBox.shrink(),
                       ),
                 onTap: () {
-                  context.go(
-                      'channel/${widget.response.urlname}/${subChannel.urlname}');
+                  context.push(
+                      '/channel/${widget.response.urlname}/${subChannel.urlname}');
                   scaffoldKey.currentState?.closeDrawer();
                 },
               );
@@ -547,7 +547,7 @@ class _BlogPostCardState extends State<BlogPostCard> {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.go('post/${widget.blogPost.id}'),
+        onTap: () => context.push('post/${widget.blogPost.id}'),
         child: SizedBox(
           width: 300,
           height: 250,
@@ -676,7 +676,7 @@ class _BlogPostCardState extends State<BlogPostCard> {
                                     height: 25,
                                     fit: BoxFit.cover,
                                   )
-                                : SizedBox.shrink()),
+                                : const SizedBox.shrink()),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -735,7 +735,7 @@ class _CreatorCardState extends State<CreatorCard> {
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.go('channel/${widget.creator.id}'),
+        onTap: () => context.push('/channel/${widget.creator.urlname}'),
         child: Padding(
           padding: const EdgeInsets.only(left: 8.0, right: 8.0, top: 8.0),
           child: Center(
@@ -794,6 +794,37 @@ class _CreatorCardState extends State<CreatorCard> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class StatColumn extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const StatColumn({super.key, required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 24.0,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 4.0),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14.0,
+            color: Colors.grey.shade400, // Lighter grey color for the label
+          ),
+        ),
+      ],
     );
   }
 }

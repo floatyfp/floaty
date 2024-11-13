@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/frontend/screens/browse_screen.dart';
 import 'package:floaty/frontend/screens/history_screen.dart';
+import 'package:floaty/frontend/screens/channel_screen.dart';
 
 void main() {
   runApp(ProviderScope(child: MyApp()));
@@ -88,6 +89,41 @@ class MyApp extends StatelessWidget {
             GoRoute(
               path: '/history',
               builder: (context, state) => const HistoryScreen(),
+            ),
+            GoRoute(
+              path: '/channel/:ChannelName/:SubName',
+              builder: (context, state) {
+                final channelName =
+                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                final subName = state.pathParameters['SubName'];
+                return ChannelScreen(
+                  channelName: channelName,
+                  subName: subName,
+                );
+              },
+            ),
+            // thanks goRouter i hate it
+            GoRoute(
+              path: '/channel/:ChannelName/:SubName?',
+              builder: (context, state) {
+                final channelName =
+                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                final subName = state.pathParameters['SubName'];
+                return ChannelScreen(
+                  channelName: channelName,
+                  subName: subName,
+                );
+              },
+            ),
+            GoRoute(
+              path: '/channel/:ChannelName',
+              builder: (context, state) {
+                final channelName =
+                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                return ChannelScreen(
+                  channelName: channelName,
+                );
+              },
             ),
             ShellRoute(
               builder: (context, state, child) {

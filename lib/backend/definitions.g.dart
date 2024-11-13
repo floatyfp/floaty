@@ -86,14 +86,22 @@ Map<String, dynamic> _$ChannelModelToJson(ChannelModel instance) =>
 
 SocialLinksModel _$SocialLinksModelFromJson(Map<String, dynamic> json) =>
     SocialLinksModel(
-      links: (json['links'])?.map(
-        (k, e) => MapEntry(k, e as String),
-      ),
+      discord: json['discord'],
+      twitter: json['twitter'],
+      youtube: json['youtube'],
+      facebook: json['facebook'],
+      instagram: json['instagram'],
+      website: json['website'],
     );
 
 Map<String, dynamic> _$SocialLinksModelToJson(SocialLinksModel instance) =>
     <String, dynamic>{
-      'links': instance.links,
+      'discord': instance.discord,
+      'twitter': instance.twitter,
+      'youtube': instance.youtube,
+      'facebook': instance.facebook,
+      'instagram': instance.instagram,
+      'website': instance.website,
     };
 
 LiveStreamOfflineModel _$LiveStreamOfflineModelFromJson(
@@ -386,4 +394,15 @@ Map<String, dynamic> _$HistoryModelV3ToJson(HistoryModelV3 instance) =>
       'progress': instance.progress,
       'updatedAt': instance.updatedAt?.toIso8601String(),
       'blogPost': instance.blogPost,
+    };
+
+StatsModel _$StatsModelFromJson(Map<String, dynamic> json) => StatsModel(
+      totalSubcriberCount: json['totalSubcriberCount'],
+      totalIncome: json['totalIncome'],
+    );
+
+Map<String, dynamic> _$StatsModelToJson(StatsModel instance) =>
+    <String, dynamic>{
+      'totalSubcriberCount': instance.totalSubcriberCount,
+      'totalIncome': instance.totalIncome,
     };
