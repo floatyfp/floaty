@@ -48,31 +48,36 @@ class _BrowseScreenState extends State<BrowseScreen> {
     );
   }
 
-  void _performSearch(String query) async {
+  void _performSearch(String query) {
     setState(() {
       isLoading = true;
     });
-    List<CreatorModelV3> fetchedCreators =
-        await FPApiRequests().getCreators(query: query);
-    setState(() {
-      creators = fetchedCreators;
-      isLoading = false;
-    });
-  }
-
-  Future<void> fetchCreators() async {
-    try {
-      List<CreatorModelV3> fetchedCreators =
-          await FPApiRequests().getCreators();
+    FPApiRequests().getCreatorsStream(query: query).listen((fetchedCreators) {
       setState(() {
         creators = fetchedCreators;
         isLoading = false;
       });
-    } catch (e) {
+    }, onError: (error) {
       setState(() {
         isLoading = false;
       });
-    }
+    });
+  }
+
+  void fetchCreators() {
+    setState(() {
+      isLoading = true;
+    });
+    FPApiRequests().getCreatorsStream().listen((fetchedCreators) {
+      setState(() {
+        creators = fetchedCreators;
+        isLoading = false;
+      });
+    }, onError: (error) {
+      setState(() {
+        isLoading = false;
+      });
+    });
   }
 
   @override
@@ -92,7 +97,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
                         padding: const EdgeInsets.only(top: 8),
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(
-                          childAspectRatio: 0.98,
                           maxCrossAxisExtent: 300,
                           mainAxisSpacing: 8,
                           crossAxisSpacing: 8,

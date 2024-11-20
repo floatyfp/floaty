@@ -37,50 +37,45 @@ class _HomeScreenState extends State<HomeScreen> {
     rootLayoutKey.currentState?.setAppBar(const Text('Home'));
   }
 
-  Future<void> _fetchPage(int pageKey) async {
-    try {
-      creatorIds = await FPApiRequests().getSubscribedCreatorsIds();
+  void _fetchPage(int pageKey) {
+    FPApiRequests().getSubscribedCreatorsIdsStream().listen((creatorIds) {
+      FPApiRequests()
+          .getMultiCreatorVideoFeedStream(creatorIds, _pageSize,
+              lastElements: lastElements)
+          .listen((home) {
+        newposts = home.blogPosts ?? [];
+        lastElements = home.lastElements ?? [];
 
-      ContentCreatorListV3Response? home;
-      if (lastElements.isNotEmpty) {
-        home = await FPApiRequests().getMultiCreatorVideoFeed(
-            creatorIds, _pageSize,
-            lastElements: lastElements);
-      } else {
-        home = await FPApiRequests()
-            .getMultiCreatorVideoFeed(creatorIds, _pageSize);
-      }
+        isLastPage =
+            !lastElements.any((element) => element.moreFetchable ?? false);
 
-      newposts = home.blogPosts ?? [];
-      lastElements = home.lastElements ?? [];
+        List<String> blogPostIds = newposts
+            .map((post) => post.id)
+            .where((id) => id != null)
+            .cast<String>()
+            .toList();
 
-      isLastPage =
-          !lastElements.any((element) => element.moreFetchable ?? false);
+        FPApiRequests().getVideoProgressStream(blogPostIds).listen(
+            (progressResponses) {
+          Map<String, GetProgressResponse?> progressMap = {
+            for (var progress in progressResponses) progress.id!: progress
+          };
 
-      // Fetch video progress for the new blog posts
-      List<String> blogPostIds = newposts
-          .map((post) => post.id)
-          .where((id) => id != null)
-          .cast<String>()
-          .toList();
-      List<GetProgressResponse> progressResponses =
-          await FPApiRequests().getVideoProgress(blogPostIds);
-
-      // Create a mapping of blog post ID to progress response
-      Map<String, GetProgressResponse?> progressMap = {
-        for (var progress in progressResponses) progress.id!: progress
-      };
-
-      // Append the fetched blog posts to the paging controller with their progress
-      _pagingController.appendPage(
-        newposts.map((post) {
-          return BlogPostCard(post, response: progressMap[post.id]);
-        }).toList(),
-        isLastPage ? null : pageKey + 1,
-      );
-    } catch (error) {
+          _pagingController.appendPage(
+            newposts.map((post) {
+              return BlogPostCard(post, response: progressMap[post.id]);
+            }).toList(),
+            isLastPage ? null : pageKey + 1,
+          );
+        }, onError: (error) {
+          _pagingController.error = error;
+        });
+      }, onError: (error) {
+        _pagingController.error = error;
+      });
+    }, onError: (error) {
       _pagingController.error = error;
-    }
+    });
   }
 
   @override

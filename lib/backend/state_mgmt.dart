@@ -25,7 +25,18 @@ class SidebarState {
 
 class SidebarStateNotifier extends StateNotifier<SidebarState> {
   SidebarStateNotifier()
-      : super(SidebarState(isCollapsed: false, isOpen: false));
+      : super(SidebarState(isCollapsed: false, isOpen: false)) {
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    if (await Settings().containsKey('sidebarCollapsed')) {
+      final savedState = await Settings().getBool('sidebarCollapsed');
+      if (savedState) {
+        state = state.copyWith(isCollapsed: savedState);
+      }
+    }
+  }
 
   void toggleCollapseExpand() {
     state = state.copyWith(isCollapsed: !state.isCollapsed);
@@ -36,8 +47,12 @@ class SidebarStateNotifier extends StateNotifier<SidebarState> {
   }
 
   void toggleCollapse() {
-    Settings().setBool('sidebarCollapsed', !state.isCollapsed);
-    state = state.copyWith(isCollapsed: !state.isCollapsed);
+    final newState = !state.isCollapsed;
+    state = state.copyWith(isCollapsed: newState);
+    // Save settings after state change to prevent UI lag
+    Future(() async {
+      await Settings().setBool('sidebarCollapsed', newState);
+    });
   }
 
   void setCollapsed() async {
@@ -50,10 +65,6 @@ class SidebarStateNotifier extends StateNotifier<SidebarState> {
     if (!await Settings().containsKey('sidebarCollapsed')) {
       state = state.copyWith(isCollapsed: false);
     }
-  }
-
-  void forceExpandMobile() async {
-    state = state.copyWith(isCollapsed: false);
   }
 
   void setOpen() {

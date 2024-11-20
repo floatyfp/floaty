@@ -27,6 +27,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       PagingController<int, HistoryListItem>(firstPageKey: 0);
   int offset = 0;
   DateTime? lastDate;
+  bool firstLoad = true;
 
   @override
   void initState() {
@@ -43,9 +44,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     rootLayoutKey.currentState?.setAppBar(const Text('History'));
   }
 
-  Future<void> _fetchPage(int pageKey) async {
-    try {
-      final historyResponse = await FPApiRequests().getHistory(offset: offset);
+  void _fetchPage(int pageKey) {
+    FPApiRequests().getHistoryStream(offset: offset).listen((historyResponse) {
       offset += 20;
       final isLastPage = historyResponse.length < 20;
 
@@ -84,9 +84,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
       _pagingController.appendPage(
           itemsWithHeaders, isLastPage ? null : pageKey + 1);
-    } catch (error) {
+    }, onError: (error) {
       _pagingController.error = error;
-    }
+    });
   }
 
   bool isSameDay(DateTime date1, DateTime date2) {

@@ -32,11 +32,28 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     _loadsidebar();
   }
 
-  void _loadsidebar() async {
-    creators = await FPApiRequests().getSubscribedCreators();
-    user = await FPApiRequests().getUser();
+  void _loadsidebar() {
     setState(() {
-      isLoading = false;
+      isLoading = true;
+    });
+    FPApiRequests().getSubscribedCreatorsStream().listen((fetchedCreators) {
+      setState(() {
+        creators = fetchedCreators;
+      });
+      FPApiRequests().getUserStream().listen((fetchedUser) {
+        setState(() {
+          user = fetchedUser;
+          isLoading = false;
+        });
+      }, onError: (error) {
+        setState(() {
+          isLoading = false;
+        });
+      });
+    }, onError: (error) {
+      setState(() {
+        isLoading = false;
+      });
     });
   }
 
@@ -52,21 +69,19 @@ class _RootLayoutState extends ConsumerState<RootLayout>
   Widget build(BuildContext context) {
     final sidebarState = ref.watch(sidebarStateProvider);
     final sidebarNotifier = ref.read(sidebarStateProvider.notifier);
-    final isSidebarCollapsed = sidebarState.isCollapsed;
-
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isSmallScreen = screenWidth < 600;
     final bool isLargeScreen = screenWidth >= 1024;
     final bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
+
+    // Force expanded state on small screens
+    final isSidebarCollapsed = isSmallScreen ? false : sidebarState.isCollapsed;
 
     Future.microtask(() async {
       if (isLargeScreen && isSidebarCollapsed) {
         sidebarNotifier.setExpanded();
       } else if (isMediumScreen && !isSidebarCollapsed) {
         sidebarNotifier.setCollapsed();
-      } else if (isSmallScreen && isSidebarCollapsed) {
-        //note to self: when i get a bug report in 6months of the the app not respecting user choice you can blame this line right here.
-        sidebarNotifier.forceExpandMobile();
       }
     });
 
