@@ -36,11 +36,11 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     setState(() {
       isLoading = true;
     });
-    FPApiRequests().getSubscribedCreatorsStream().listen((fetchedCreators) {
+    FPApiRequests().getSubscribedCreators().listen((fetchedCreators) {
       setState(() {
         creators = fetchedCreators;
       });
-      FPApiRequests().getUserStream().listen((fetchedUser) {
+      FPApiRequests().getUser().listen((fetchedUser) {
         setState(() {
           user = fetchedUser;
           isLoading = false;
@@ -74,7 +74,6 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     final bool isLargeScreen = screenWidth >= 1024;
     final bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
 
-    // Force expanded state on small screens
     final isSidebarCollapsed = isSmallScreen ? false : sidebarState.isCollapsed;
 
     Future.microtask(() async {

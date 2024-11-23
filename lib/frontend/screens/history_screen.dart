@@ -24,75 +24,18 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final PagingController<int, HistoryListItem> _pagingController =
-      PagingController<int, HistoryListItem>(firstPageKey: 0);
-  int offset = 0;
-  DateTime? lastDate;
-  bool firstLoad = true;
+      PagingController(firstPageKey: 0);
+
+  int _offset = 0;
+  static const _pageSize = 20;
 
   @override
   void initState() {
     super.initState();
-    _pagingController.addPageRequestListener((pageKey) {
-      _fetchPage(pageKey);
-    });
+    _pagingController.addPageRequestListener(_fetchPage);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setAppTitle();
+      rootLayoutKey.currentState?.setAppBar(const Text('History'));
     });
-  }
-
-  void setAppTitle() {
-    rootLayoutKey.currentState?.setAppBar(const Text('History'));
-  }
-
-  void _fetchPage(int pageKey) {
-    FPApiRequests().getHistoryStream(offset: offset).listen((historyResponse) {
-      offset += 20;
-      final isLastPage = historyResponse.length < 20;
-
-      List<HistoryListItem> itemsWithHeaders = [];
-      for (var historyItem in historyResponse) {
-        DateTime watchedDate = historyItem.updatedAt ?? DateTime.now();
-        String formattedDate;
-
-        if (lastDate == null || !isSameDay(lastDate!, watchedDate)) {
-          final now = DateTime.now();
-
-          if (isSameDay(watchedDate, now)) {
-            formattedDate = "Today";
-          } else if (isSameDay(
-              watchedDate, now.subtract(const Duration(days: 1)))) {
-            formattedDate = "Yesterday";
-          } else {
-            final difference = now.difference(watchedDate).inDays;
-            if (difference < 7) {
-              formattedDate = DateFormat.EEEE().format(watchedDate);
-            } else {
-              formattedDate = DateFormat.yMMMMd().format(watchedDate);
-            }
-          }
-
-          itemsWithHeaders.add(HistoryListItem.header(formattedDate));
-          lastDate = watchedDate;
-        }
-
-        itemsWithHeaders.add(HistoryListItem.post(
-          BlogPostCard(historyItem.blogPost,
-              response: GetProgressResponse(
-                  id: historyItem.contentId, progress: historyItem.progress)),
-        ));
-      }
-
-      _pagingController.appendPage(
-          itemsWithHeaders, isLastPage ? null : pageKey + 1);
-    }, onError: (error) {
-      _pagingController.error = error;
-    });
-  }
-
-  bool isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-        date1.month == date2.month &&
-        date1.day == date2.day;
   }
 
   @override
@@ -101,43 +44,131 @@ class _HistoryScreenState extends State<HistoryScreen> {
     super.dispose();
   }
 
+  List<HistoryListItem> _processHistoryItems(List<HistoryModelV3> items) {
+    List<HistoryListItem> processedItems = [];
+    DateTime? currentDate;
+
+    for (var item in items) {
+      final watchedDate = item.updatedAt ?? DateTime.now();
+
+      if (currentDate == null || !_isSameDay(currentDate, watchedDate)) {
+        final headerText = _getDateHeader(watchedDate);
+        processedItems.add(HistoryListItem.header(headerText));
+        currentDate = watchedDate;
+      }
+
+      processedItems.add(
+        HistoryListItem.post(
+          BlogPostCard(
+            item.blogPost,
+            response: GetProgressResponse(
+              id: item.contentId,
+              progress: item.progress,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return processedItems;
+  }
+
+  String _getDateHeader(DateTime date) {
+    final now = DateTime.now();
+
+    if (_isSameDay(date, now)) {
+      return 'Today';
+    }
+
+    if (_isSameDay(date, now.subtract(const Duration(days: 1)))) {
+      return 'Yesterday';
+    }
+
+    final difference = now.difference(date).inDays;
+    if (difference < 7) {
+      return DateFormat.EEEE().format(date);
+    }
+
+    return DateFormat.yMMMMd().format(date);
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
+  }
+
+  void _fetchPage(int pageKey) async {
+    try {
+      final items = await FPApiRequests().getHistory(offset: _offset);
+
+      if (!mounted) return;
+
+      final isLastPage = items.length < _pageSize;
+      final processedItems = _processHistoryItems(items);
+
+      setState(() {
+        _offset += _pageSize;
+      });
+
+      _pagingController.appendPage(
+          processedItems, isLastPage ? null : pageKey + 1);
+    } catch (error) {
+      if (mounted) {
+        _pagingController.error = 'An error occurred loading history';
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: PagedGridView<int, HistoryListItem>(
-          pagingController: _pagingController,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 300,
-            crossAxisSpacing: 2,
-            mainAxisSpacing: 2,
-            childAspectRatio: 1.12,
-          ),
-          builderDelegate: PagedChildBuilderDelegate<HistoryListItem>(
-            animateTransitions: true,
-            itemBuilder: (context, item, index) {
-              if (item.header != null) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      item.header!,
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                );
-              } else if (item.post != null) {
-                return item.post!;
-              }
-              return const SizedBox.shrink();
-            },
-            noItemsFoundIndicatorBuilder: (context) => const Center(
-              child: Text("No items found."),
+        child: LayoutBuilder(builder: (context, constraints) {
+          return PagedGridView<int, HistoryListItem>(
+            pagingController: _pagingController,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent:
+                  constraints.maxWidth <= 450 ? constraints.maxWidth : 300,
+              crossAxisSpacing: 4,
+              mainAxisSpacing: 4,
+              childAspectRatio: constraints.maxWidth <= 450 ? 1.2 : 1.175,
             ),
-          ),
-        ),
+            builderDelegate: PagedChildBuilderDelegate<HistoryListItem>(
+              animateTransitions: true,
+              itemBuilder: (context, item, index) {
+                if (item.header != null) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        item.header!,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                if (item.post != null) {
+                  return item.post ??
+                      Padding(
+                          padding: EdgeInsets.all(
+                              constraints.maxWidth <= 450 ? 4 : 2),
+                          child: item.post);
+                } else {
+                  return SizedBox.shrink();
+                }
+              },
+              noItemsFoundIndicatorBuilder: (context) => const Center(
+                child: Text("No items found."),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

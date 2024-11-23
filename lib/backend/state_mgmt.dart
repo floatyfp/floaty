@@ -49,7 +49,6 @@ class SidebarStateNotifier extends StateNotifier<SidebarState> {
   void toggleCollapse() {
     final newState = !state.isCollapsed;
     state = state.copyWith(isCollapsed: newState);
-    // Save settings after state change to prevent UI lag
     Future(() async {
       await Settings().setBool('sidebarCollapsed', newState);
     });

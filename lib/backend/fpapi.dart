@@ -117,28 +117,22 @@ class FPApiRequests {
     }
   }
 
-  Stream<UserSelfV3Response> getUserStream() async* {
+  Stream<UserSelfV3Response> getUser() async* {
     try {
-      // Fetch cached data first
       final cachedData = await getCachedResponse('v3/user/self');
       if (cachedData != null && cachedData.isNotEmpty) {
-        yield UserSelfV3Response.fromJson(
-            jsonDecode(cachedData)); // Emit cached data
+        yield UserSelfV3Response.fromJson(jsonDecode(cachedData));
       }
 
-      // Proceed with the API call
       final user = await fetchDataWithEtag('v3/user/self');
       if (user != null && user.isNotEmpty) {
-        yield UserSelfV3Response.fromJson(jsonDecode(user)); // Emit fresh data
+        yield UserSelfV3Response.fromJson(jsonDecode(user));
       }
-    } catch (e) {
-      // Handle errors gracefully
-    }
+    } catch (e) {}
   }
 
-  Stream<List<CreatorModelV3>> getSubscribedCreatorsStream() async* {
+  Stream<List<CreatorModelV3>> getSubscribedCreators() async* {
     try {
-      // Fetch cached data first
       final cachedData =
           await getCachedResponse('v3/user/subscriptions?active=true');
       if (cachedData != null && cachedData.isNotEmpty) {
@@ -162,10 +156,9 @@ class FPApiRequests {
             continue;
           }
         }
-        yield creators; // Emit cached data
+        yield creators;
       }
 
-      // Proceed with the API call
       final subres =
           await fetchDataWithEtag('v3/user/subscriptions?active=true');
       if (subres != null && subres.isNotEmpty) {
@@ -189,16 +182,15 @@ class FPApiRequests {
             continue;
           }
         }
-        yield creators; // Emit fresh data
+        yield creators;
       }
     } catch (e) {
-      yield []; // Emit empty list on error
+      yield [];
     }
   }
 
-  Stream<List<String>> getSubscribedCreatorsIdsStream() async* {
+  Stream<List<String>> getSubscribedCreatorsIds() async* {
     try {
-      // Fetch cached data first
       final cachedData =
           await getCachedResponse('v3/user/subscriptions?active=true');
       if (cachedData != null && cachedData.isNotEmpty) {
@@ -209,10 +201,9 @@ class FPApiRequests {
                 subscription['creator'] is String)
             .map((subscription) => subscription['creator'] as String)
             .toList();
-        yield creatorIds; // Emit cached data
+        yield creatorIds;
       }
 
-      // Proceed with the API call
       final subres =
           await fetchDataWithEtag('v3/user/subscriptions?active=true');
       if (subres != null && subres.isNotEmpty) {
@@ -223,22 +214,17 @@ class FPApiRequests {
                 subscription['creator'] is String)
             .map((subscription) => subscription['creator'] as String)
             .toList();
-        yield creatorIds; // Emit fresh data
+        yield creatorIds;
       }
-    } catch (e) {
-      // Handle errors gracefully
-    }
+    } catch (e) {}
   }
 
-  Stream<ContentCreatorListV3Response> getMultiCreatorVideoFeedStream(
+  Future<ContentCreatorListV3Response> getMultiCreatorVideoFeed(
       List<String> creatorIds, int limit,
-      {List<ContentCreatorListLastItems>? lastElements}) async* {
+      {List<ContentCreatorListLastItems>? lastElements}) async {
     try {
       if (creatorIds.isEmpty) {
-        yield ContentCreatorListV3Response(
-            blogPosts: [],
-            lastElements: []); // Emit empty response for empty input
-        return;
+        return ContentCreatorListV3Response(blogPosts: [], lastElements: []);
       }
 
       final Map<String, dynamic> queryParams = {
@@ -256,28 +242,18 @@ class FPApiRequests {
         }
       }
 
-      // Fetch cached data first
-      final cachedData =
-          await getCachedResponse('v3/content/creator/list', queryParams);
-      if (cachedData != null && cachedData.isNotEmpty) {
-        yield ContentCreatorListV3Response.fromJson(
-            jsonDecode(cachedData)); // Emit cached data
-      }
-
-      // Proceed with the API call
       final response =
           await fetchDataWithEtag('v3/content/creator/list', queryParams);
       if (response != null && response.isNotEmpty) {
-        yield ContentCreatorListV3Response.fromJson(
-            jsonDecode(response)); // Emit fresh data
+        return ContentCreatorListV3Response.fromJson(jsonDecode(response));
       }
+      return ContentCreatorListV3Response(blogPosts: [], lastElements: []);
     } catch (error) {
-      yield ContentCreatorListV3Response(
-          blogPosts: [], lastElements: []); // Emit empty response on error
+      return ContentCreatorListV3Response(blogPosts: [], lastElements: []);
     }
   }
 
-  Stream<List<BlogPostModelV3>> getChannelVideoFeedStream(
+  Future<List<BlogPostModelV3>> getChannelVideoFeed(
     String creator,
     int limit,
     int fetchAfter, {
@@ -288,7 +264,7 @@ class FPApiRequests {
     DateTime? fromDate,
     DateTime? toDate,
     bool? isAscending,
-  }) async* {
+  }) async {
     try {
       bool? hasVideo = contentTypes?.contains('Video');
       bool? hasAudio = contentTypes?.contains('Audio');
@@ -319,114 +295,75 @@ class FPApiRequests {
           'search': searchQuery,
       };
 
-      // Fetch cached data first
-      final cachedData =
-          await getCachedResponse('v3/content/creator', queryParams);
-      if (cachedData != null && cachedData.isNotEmpty) {
-        List<dynamic> decodedResponse =
-            json.decode(cachedData) as List<dynamic>;
-        yield decodedResponse
-            .map((item) => BlogPostModelV3.fromJson(item))
-            .toList(); // Emit cached data
-      }
-
-      // Proceed with the API call
       final response =
           await fetchDataWithEtag('v3/content/creator', queryParams);
       if (response != null && response.isNotEmpty) {
         List<dynamic> decodedResponse = json.decode(response) as List<dynamic>;
-        yield decodedResponse
+        return decodedResponse
             .map((item) => BlogPostModelV3.fromJson(item))
-            .toList(); // Emit fresh data
+            .toList();
       }
+      return [];
     } catch (error) {
-      yield []; // Emit empty list on error
+      return [];
     }
   }
 
-  Stream<List<GetProgressResponse>> getVideoProgressStream(
-      List<String> blogPostIds) async* {
+  Future<List<GetProgressResponse>> getVideoProgress(
+      List<String> blogPostIds) async {
     final Map<String, dynamic> requestBody = {
       "ids": blogPostIds,
       "contentType": "blogPost"
     };
 
     try {
-      // Fetch cached data first
-      final cachedData =
-          await getCachedResponse('v3/content/get/progress', requestBody);
-      if (cachedData != null && cachedData.isNotEmpty) {
-        final List<dynamic> jsonResponse = jsonDecode(cachedData);
-        yield jsonResponse
-            .map((data) => GetProgressResponse.fromJson(data))
-            .toList(); // Emit cached data
-      }
-
-      // Proceed with the API call
       final response =
           await postDataWithEtag('v3/content/get/progress', requestBody);
       // ignore: unnecessary_null_comparison
       if (response != null && response.isNotEmpty) {
         final List<dynamic> jsonResponse = jsonDecode(response);
-        yield jsonResponse
+        return jsonResponse
             .map((data) => GetProgressResponse.fromJson(data))
-            .toList(); // Emit fresh data
+            .toList();
       }
+      return [];
     } catch (e) {
-      yield []; // Emit empty list on error
+      return [];
     }
   }
 
-  Stream<List<CreatorModelV3>> getCreatorsStream({String? query}) async* {
+  Stream<List<CreatorModelV3>> getCreators({String? query}) async* {
     try {
-      // Fetch cached data first
       final apiUrl =
           query != null ? 'v3/creator/list?search=$query' : 'v3/creator/list';
       final cachedData = await getCachedResponse(apiUrl);
       if (cachedData != null && cachedData.isNotEmpty) {
         List<dynamic> jsonList = jsonDecode(cachedData);
-        yield jsonList
-            .map((json) => CreatorModelV3.fromJson(json))
-            .toList(); // Emit cached data
+        yield jsonList.map((json) => CreatorModelV3.fromJson(json)).toList();
       }
 
-      // Proceed with the API call
       final subres = await fetchDataWithEtag(apiUrl);
       if (subres != null && subres.isNotEmpty) {
         List<dynamic> jsonList = jsonDecode(subres);
-        yield jsonList
-            .map((json) => CreatorModelV3.fromJson(json))
-            .toList(); // Emit fresh data
+        yield jsonList.map((json) => CreatorModelV3.fromJson(json)).toList();
       }
     } catch (e) {
-      yield []; // Emit empty list on error
+      yield [];
     }
   }
 
-  Stream<List<HistoryModelV3>> getHistoryStream({int? offset}) async* {
+  Future<List<HistoryModelV3>> getHistory({int? offset}) async {
     try {
       int offsetInt = offset ?? 0;
-      // Fetch cached data first
-      final cachedData =
-          await getCachedResponse('v3/content/history?offset=$offsetInt');
-      if (cachedData != null && cachedData.isNotEmpty) {
-        List<dynamic> jsonList = jsonDecode(cachedData);
-        yield jsonList
-            .map((json) => HistoryModelV3.fromJson(json))
-            .toList(); // Emit cached data
-      }
-
-      // Proceed with the API call
       final response =
           await fetchDataWithEtag('v3/content/history?offset=$offsetInt');
       if (response != null && response.isNotEmpty) {
         List<dynamic> jsonList = jsonDecode(response);
-        yield jsonList
-            .map((json) => HistoryModelV3.fromJson(json))
-            .toList(); // Emit fresh data
+        return jsonList.map((json) => HistoryModelV3.fromJson(json)).toList();
       }
+      return [];
     } catch (e) {
-      yield []; // Emit empty list on error
+      return [];
     }
   }
 
@@ -436,7 +373,6 @@ class FPApiRequests {
           ? 'v3/creator/named?creatorURL=$urlname'
           : 'v3/creator/info?id=$id';
 
-      // Fetch cached data first
       final cachedData = await getCachedResponse(apiUrl);
       CreatorModelV3? cachedCreator;
       if (cachedData != null && cachedData.isNotEmpty) {
@@ -444,54 +380,41 @@ class FPApiRequests {
         if (creatorList.isNotEmpty) {
           Map<String, dynamic> creatorJson = creatorList.first;
           cachedCreator = CreatorModelV3.fromJson(creatorJson);
-          yield cachedCreator; // Emit cached data
+          yield cachedCreator;
         }
       }
 
-      // Proceed with the API call
       final creatorInfo = await fetchDataWithEtag(apiUrl);
 
-      // Compare and emit fresh data if different
       if (creatorInfo != null && creatorInfo.isNotEmpty) {
         List<dynamic> creatorList = jsonDecode(creatorInfo);
         if (creatorList.isNotEmpty) {
           Map<String, dynamic> creatorJson = creatorList.first;
           final freshCreator = CreatorModelV3.fromJson(creatorJson);
           if (freshCreator != cachedCreator) {
-            yield freshCreator; // Emit fresh data
+            yield freshCreator;
           }
         }
       }
     } catch (e) {
-      yield CreatorModelV3(); // Emit default on error
+      yield CreatorModelV3();
     }
   }
 
-  Stream<StatsModel> getStatsStream(String creatorId) async* {
+  Future<StatsModel> getStats(String creatorId) async {
     try {
-      // Fetch cached data first
-      final cachedData =
-          await getCachedResponse('v2/plan/info?creatorId=$creatorId');
-      if (cachedData != null && cachedData.isNotEmpty) {
-        dynamic statsJson = jsonDecode(cachedData);
-        yield StatsModel(
-          totalIncome: statsJson['totalIncome'],
-          totalSubcriberCount: statsJson['totalSubscriberCount'],
-        ); // Emit cached data
-      }
-
-      // Proceed with the API call
       final stats =
           await fetchDataWithEtag('v2/plan/info?creatorId=$creatorId');
       if (stats != null && stats.isNotEmpty) {
         dynamic statsJson = jsonDecode(stats);
-        yield StatsModel(
+        return StatsModel(
           totalIncome: statsJson['totalIncome'],
           totalSubcriberCount: statsJson['totalSubscriberCount'],
-        ); // Emit fresh data
+        );
       }
+      return StatsModel(totalIncome: 0, totalSubcriberCount: 0);
     } catch (e) {
-      // Handle errors gracefully
+      return StatsModel(totalIncome: 0, totalSubcriberCount: 0);
     }
   }
 

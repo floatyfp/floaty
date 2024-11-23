@@ -443,12 +443,21 @@ class BlogPostCard extends StatelessWidget {
                           Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
-                              image: DecorationImage(
-                                image: NetworkImage(
-                                    blogPost.thumbnail?.path ?? ''),
-                                fit: BoxFit.cover,
-                              ),
+                              image: blogPost.thumbnail?.path != null
+                                  ? DecorationImage(
+                                      image: NetworkImage(
+                                          blogPost.thumbnail?.path ?? ''),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                             ),
+                            child: blogPost.thumbnail?.path == null
+                                ? const ClipRRect(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(8)),
+                                    child: GradientPlaceholder(),
+                                  )
+                                : null,
                           ),
                           if (blogPost.metadata?.hasAudio != false ||
                               blogPost.metadata?.hasVideo != false)
@@ -510,12 +519,9 @@ class BlogPostCard extends StatelessWidget {
                                     ? 'Video'
                                     : blogPost.metadata?.hasAudio == true
                                         ? 'Audio'
-                                        : blogPost.metadata
-                                                    ?.hasPicture ==
-                                                true
+                                        : blogPost.metadata?.hasPicture == true
                                             ? 'Image'
-                                            : blogPost.metadata
-                                                        ?.hasGallery ==
+                                            : blogPost.metadata?.hasGallery ==
                                                     true
                                                 ? 'Gallery'
                                                 : 'Text',
@@ -600,6 +606,25 @@ class BlogPostCard extends StatelessWidget {
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class GradientPlaceholder extends StatelessWidget {
+  const GradientPlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF23A6D5),
+            Color(0xFF23D5AB),
+          ],
+          transform: GradientRotation(-45 * 3.14159 / 180),
         ),
       ),
     );
@@ -724,7 +749,6 @@ class _FilterPanelState extends State<FilterPanel>
   @override
   void initState() {
     super.initState();
-    // Initialize with provided values or defaults
     selectedContentTypes = Set<String>.from(widget.initialContentTypes ?? {});
     _searchController.text = widget.initialSearchQuery ?? '';
     _durationRange = widget.initialDurationRange ?? const RangeValues(0, 180);
@@ -750,7 +774,6 @@ class _FilterPanelState extends State<FilterPanel>
 
     _checkIfDefault();
 
-    // Add post-frame callback to notify size after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _notifySizeChanged();
     });
@@ -771,7 +794,7 @@ class _FilterPanelState extends State<FilterPanel>
         selectedContentTypes.length == contentTypes.length;
     final isDateDefault = startDate == null && endDate == null;
     final isSearchDefault = _searchController.text.isEmpty;
-    final isSortDefault = !_isAscending; // Descending order is default
+    final isSortDefault = !_isAscending;
 
     setState(() {
       _isDefault = isSearchDefault &&
@@ -830,7 +853,6 @@ class _FilterPanelState extends State<FilterPanel>
   void _handleContentTypeChange(String value) {
     setState(() {
       if (value == 'Text') {
-        // If Text is selected, clear other selections and only set Text
         if (selectedContentTypes.contains('Text')) {
           selectedContentTypes.remove('Text');
         } else {
@@ -838,7 +860,6 @@ class _FilterPanelState extends State<FilterPanel>
           selectedContentTypes.add('Text');
         }
       } else {
-        // If other type is selected, unselect Text
         selectedContentTypes.remove('Text');
         if (selectedContentTypes.contains(value)) {
           selectedContentTypes.remove(value);

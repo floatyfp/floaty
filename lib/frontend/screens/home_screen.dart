@@ -4,6 +4,7 @@ import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/frontend/elements.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:floaty/frontend/root.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +22,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ContentCreatorListLastItems> lastElements = [];
   List<BlogPostModelV3> newposts = [];
   bool isLastPage = false;
+  bool firstPage = true;
+  int pageloadint = 0;
 
   @override
   void initState() {
@@ -37,45 +40,66 @@ class _HomeScreenState extends State<HomeScreen> {
     rootLayoutKey.currentState?.setAppBar(const Text('Home'));
   }
 
-  void _fetchPage(int pageKey) {
-    FPApiRequests().getSubscribedCreatorsIdsStream().listen((creatorIds) {
-      FPApiRequests()
-          .getMultiCreatorVideoFeedStream(creatorIds, _pageSize,
-              lastElements: lastElements)
-          .listen((home) {
-        newposts = home.blogPosts ?? [];
-        lastElements = home.lastElements ?? [];
+  Future<List<String>> _getCreatorIds() {
+    Completer<List<String>> completer = Completer();
 
-        isLastPage =
-            !lastElements.any((element) => element.moreFetchable ?? false);
-
-        List<String> blogPostIds = newposts
-            .map((post) => post.id)
-            .where((id) => id != null)
-            .cast<String>()
-            .toList();
-
-        FPApiRequests().getVideoProgressStream(blogPostIds).listen(
-            (progressResponses) {
-          Map<String, GetProgressResponse?> progressMap = {
-            for (var progress in progressResponses) progress.id!: progress
-          };
-
-          _pagingController.appendPage(
-            newposts.map((post) {
-              return BlogPostCard(post, response: progressMap[post.id]);
-            }).toList(),
-            isLastPage ? null : pageKey + 1,
-          );
-        }, onError: (error) {
-          _pagingController.error = error;
-        });
-      }, onError: (error) {
-        _pagingController.error = error;
+    FPApiRequests().getSubscribedCreatorsIds().listen((ids) {
+      setState(() {
+        creatorIds = ids;
       });
+      if (!completer.isCompleted) {
+        completer.complete(ids);
+      }
     }, onError: (error) {
-      _pagingController.error = error;
+      if (!completer.isCompleted) {
+        completer.completeError(error);
+      }
     });
+
+    return completer.future;
+  }
+
+  Future<void> _fetchPage(int pageKey) async {
+    try {
+      creatorIds = await _getCreatorIds();
+
+      ContentCreatorListV3Response? home;
+      if (lastElements.isNotEmpty) {
+        home = await FPApiRequests().getMultiCreatorVideoFeed(
+            creatorIds, _pageSize,
+            lastElements: lastElements);
+      } else {
+        home = await FPApiRequests()
+            .getMultiCreatorVideoFeed(creatorIds, _pageSize);
+      }
+
+      newposts = home.blogPosts ?? [];
+      lastElements = home.lastElements ?? [];
+
+      isLastPage =
+          !lastElements.any((element) => element.moreFetchable ?? false);
+
+      List<String> blogPostIds = newposts
+          .map((post) => post.id)
+          .where((id) => id != null)
+          .cast<String>()
+          .toList();
+      List<GetProgressResponse> progressResponses =
+          await FPApiRequests().getVideoProgress(blogPostIds);
+
+      Map<String, GetProgressResponse?> progressMap = {
+        for (var progress in progressResponses) progress.id!: progress
+      };
+
+      _pagingController.appendPage(
+        newposts.map((post) {
+          return BlogPostCard(post, response: progressMap[post.id]);
+        }).toList(),
+        isLastPage ? null : pageKey + 1,
+      );
+    } catch (error) {
+      _pagingController.error = error;
+    }
   }
 
   @override
@@ -89,24 +113,31 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.only(left: 4, right: 4),
-        child: PagedGridView<int, BlogPostCard>(
-          pagingController: _pagingController,
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 300,
-            crossAxisSpacing: 2,
-            mainAxisSpacing: 2,
-            childAspectRatio: 1.12,
-          ),
-          builderDelegate: PagedChildBuilderDelegate<BlogPostCard>(
-            animateTransitions: true,
-            itemBuilder: (context, item, index) {
-              return BlogPostCard(item.blogPost, response: item.response);
-            },
-            noItemsFoundIndicatorBuilder: (context) => const Center(
-              child: Text("No items found."),
+        child: LayoutBuilder(builder: (context, constraints) {
+          return PagedGridView<int, BlogPostCard>(
+            pagingController: _pagingController,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent:
+                  constraints.maxWidth <= 450 ? constraints.maxWidth : 300,
+              crossAxisSpacing: 4,
+              mainAxisSpacing: 4,
+              childAspectRatio: constraints.maxWidth <= 450 ? 1.2 : 1.175,
             ),
-          ),
-        ),
+            builderDelegate: PagedChildBuilderDelegate<BlogPostCard>(
+              animateTransitions: true,
+              itemBuilder: (context, item, index) {
+                return Padding(
+                    padding:
+                        EdgeInsets.all(constraints.maxWidth <= 450 ? 4 : 2),
+                    child:
+                        BlogPostCard(item.blogPost, response: item.response));
+              },
+              noItemsFoundIndicatorBuilder: (context) => const Center(
+                child: Text("No items found."),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }

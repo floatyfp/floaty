@@ -47,6 +47,8 @@ class _ChannelScreenState extends State<ChannelScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
   bool _isAscending = false;
+  bool firstPage = true;
+  int pageloadint = 0;
 
   void _toggleSearch() {
     if (!searchfieldvisible && selectedIndex == 0) {
@@ -151,72 +153,64 @@ class _ChannelScreenState extends State<ChannelScreen> {
     super.dispose();
   }
 
-  void _fetchPage(int pageKey) {
-    FPApiRequests()
-        .getChannelVideoFeedStream(
-      rootchannel.id,
-      _pageSize,
-      fetchafter,
-      channel: !isRootChannel ? channel.id : null,
-      searchQuery: _searchQuery,
-      durationRange: _durationRange,
-      fromDate: _startDate,
-      toDate: _endDate,
-      isAscending: _isAscending,
-      contentTypes: _selectedContentTypes,
-    )
-        .listen((home) {
+  Future<void> _fetchPage(int pageKey) async {
+    try {
+      home = await FPApiRequests().getChannelVideoFeed(
+        rootchannel.id,
+        _pageSize,
+        fetchafter,
+        channel: !isRootChannel ? channel.id : null,
+        searchQuery: _searchQuery,
+        durationRange: _durationRange,
+        fromDate: _startDate,
+        toDate: _endDate,
+        isAscending: _isAscending,
+        contentTypes: _selectedContentTypes,
+      );
       fetchafter = fetchafter + 20;
 
       newposts = home;
-      isLastPage = home.length < _pageSize;
+      isLastPage = home!.length < _pageSize;
 
       List<String> blogPostIds = newposts
           .map((post) => post.id)
           .where((id) => id != null)
           .cast<String>()
           .toList();
+      List<GetProgressResponse> progressResponses =
+          await FPApiRequests().getVideoProgress(blogPostIds);
 
-      FPApiRequests().getVideoProgressStream(blogPostIds).listen(
-          (progressResponses) {
-        Map<String, GetProgressResponse?> progressMap = {
-          for (var progress in progressResponses) progress.id!: progress
-        };
+      Map<String, GetProgressResponse?> progressMap = {
+        for (var progress in progressResponses) progress.id!: progress
+      };
 
-        _pagingController.appendPage(
-          newposts.map((post) {
-            return BlogPostCard(post, response: progressMap[post.id]);
-          }).toList(),
-          isLastPage ? null : pageKey + 1,
-        );
-      }, onError: (error) {
-        _pagingController.error = error;
-      });
-    }, onError: (error) {
+      _pagingController.appendPage(
+        newposts.map((post) {
+          return BlogPostCard(post, response: progressMap[post.id]);
+        }).toList(),
+        isLastPage ? null : pageKey + 1,
+      );
+    } catch (error) {
       _pagingController.error = error;
-    });
+    }
   }
 
-  void getStats() {
-    FPApiRequests().getStatsStream(rootchannel.id!).listen((res) {
+  void getStats() async {
+    final stats = await FPApiRequests().getStats(rootchannel.id!);
+    if (mounted) {
       setState(() {
-        response = res;
+        response = stats;
         isLoading = false;
       });
-    }, onError: (error) {
-      setState(() {
-        isLoading = false;
-      });
-    });
+    }
   }
 
   void load() {
-    bool statsFetched = false; // Flag to track if stats have been fetched
+    bool statsFetched = false;
 
     if (widget.subName != null) {
       isRootChannel = false;
 
-      // Listen to creator data stream
       FPApiRequests().getCreator(urlname: widget.channelName).listen((creator) {
         setState(() {
           rootchannel = creator;
@@ -225,7 +219,6 @@ class _ChannelScreenState extends State<ChannelScreen> {
           );
           rootLayoutKey.currentState?.setAppBar(Text(channel.title));
 
-          // Ensure rootchannel is not null before fetching stats
           if (!statsFetched && rootchannel.id != null) {
             statsFetched = true;
             getStats();
@@ -235,14 +228,12 @@ class _ChannelScreenState extends State<ChannelScreen> {
     } else {
       isRootChannel = true;
 
-      // Listen to creator data stream
       FPApiRequests().getCreator(urlname: widget.channelName).listen((creator) {
         setState(() {
           channel = creator;
           rootchannel = creator;
           rootLayoutKey.currentState?.setAppBar(Text(channel.title));
 
-          // Ensure rootchannel is not null before fetching stats
           if (!statsFetched && rootchannel.id != null) {
             statsFetched = true;
             getStats();
@@ -492,28 +483,42 @@ class _ChannelScreenState extends State<ChannelScreen> {
                     else if (selectedIndex == 0)
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        sliver: PagedSliverGrid<int, BlogPostCard>(
-                          pagingController: _pagingController,
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 300,
-                            crossAxisSpacing: 2,
-                            mainAxisSpacing: 2,
-                            childAspectRatio: 1.12,
-                          ),
-                          builderDelegate:
-                              PagedChildBuilderDelegate<BlogPostCard>(
-                            animateTransitions: true,
-                            itemBuilder: (context, item, index) {
-                              return BlogPostCard(item.blogPost,
-                                  response: item.response);
-                            },
-                            noItemsFoundIndicatorBuilder: (context) =>
-                                const Center(
-                              child: Text("No items found."),
+                        sliver: SliverLayoutBuilder(
+                            builder: (context, constraints) {
+                          return PagedSliverGrid<int, BlogPostCard>(
+                            pagingController: _pagingController,
+                            gridDelegate:
+                                SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent:
+                                  constraints.crossAxisExtent <= 450
+                                      ? constraints.crossAxisExtent
+                                      : 300,
+                              crossAxisSpacing: 4,
+                              mainAxisSpacing: 4,
+                              childAspectRatio:
+                                  constraints.crossAxisExtent <= 450
+                                      ? 1.2
+                                      : 1.175,
                             ),
-                          ),
-                        ),
+                            builderDelegate:
+                                PagedChildBuilderDelegate<BlogPostCard>(
+                              animateTransitions: true,
+                              itemBuilder: (context, item, index) {
+                                return Padding(
+                                    padding: EdgeInsets.all(
+                                        constraints.crossAxisExtent <= 450
+                                            ? 4
+                                            : 2),
+                                    child: BlogPostCard(item.blogPost,
+                                        response: item.response));
+                              },
+                              noItemsFoundIndicatorBuilder: (context) =>
+                                  const Center(
+                                child: Text("No items found."),
+                              ),
+                            ),
+                          );
+                        }),
                       )
                     else if (selectedIndex == 1)
                       SliverToBoxAdapter(

@@ -52,7 +52,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
     setState(() {
       isLoading = true;
     });
-    FPApiRequests().getCreatorsStream(query: query).listen((fetchedCreators) {
+    FPApiRequests().getCreators(query: query).listen((fetchedCreators) {
       setState(() {
         creators = fetchedCreators;
         isLoading = false;
@@ -68,7 +68,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
     setState(() {
       isLoading = true;
     });
-    FPApiRequests().getCreatorsStream().listen((fetchedCreators) {
+    FPApiRequests().getCreators().listen((fetchedCreators) {
       setState(() {
         creators = fetchedCreators;
         isLoading = false;
