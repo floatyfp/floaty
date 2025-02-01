@@ -1,0 +1,58 @@
+name: Debug Build - Floaty
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    name: Debug Build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "stable"
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      # Android Debug Build
+      - name: Build Android Debug APK (Split by ABI)
+        if: matrix.os == 'ubuntu-latest'
+        run: flutter build apk --debug --split-per-abi
+
+      # Windows Debug Build
+      - name: Build Windows (Debug)
+        if: matrix.os == 'windows-latest'
+        run: flutter build windows --debug
+
+      # macOS Debug Build
+      - name: Build macOS (Debug)
+        if: matrix.os == 'macos-latest'
+        run: flutter build macos --debug
+
+      # Linux Debug Build
+      - name: Build Linux (Debug)
+        if: matrix.os == 'ubuntu-latest'
+        run: flutter build linux --debug
+
+      # iOS Debug Build (Only on macOS)
+      - name: Build iOS (Debug - No Codesign)
+        if: matrix.os == 'macos-latest'
+        run: flutter build ios --debug --no-codesign
