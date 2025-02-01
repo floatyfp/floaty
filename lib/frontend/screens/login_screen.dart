@@ -17,8 +17,10 @@ class LoginScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Center(child: Text('Please enter both Password and username.', style: TextStyle(color: Colors.white))),
-            backgroundColor: Colors.black.withOpacity(0.4),
+            content: const Center(
+                child: Text('Please enter both Password and username.',
+                    style: TextStyle(color: Colors.white))),
+            backgroundColor: Colors.black.withValues(alpha: 0.4),
           ),
         );
       }
@@ -33,15 +35,17 @@ class LoginScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Center(child: Text(response['message'], style: const TextStyle(color: Colors.white))),
-            backgroundColor: Colors.black.withOpacity(0.4),
+            content: Center(
+                child: Text(response['message'],
+                    style: const TextStyle(color: Colors.white))),
+            backgroundColor: Colors.black.withValues(alpha: 0.4),
           ),
         );
       }
     }
     if (context.mounted) {
       context.pushReplacement('/home');
-    }  
+    }
     return;
   }
 
@@ -64,7 +68,7 @@ class LoginScreen extends StatelessWidget {
             width: 350,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -90,7 +94,9 @@ class LoginScreen extends StatelessWidget {
                   child: TextField(
                     controller: _usernameController,
                     style: const TextStyle(color: Colors.white),
-                    onSubmitted: (String value) {login(value, _passwordController.text, context);},
+                    onSubmitted: (String value) {
+                      login(value, _passwordController.text, context);
+                    },
                     decoration: InputDecoration(
                       labelText: 'Email',
                       labelStyle: const TextStyle(color: Colors.white),
@@ -106,7 +112,9 @@ class LoginScreen extends StatelessWidget {
                   child: TextField(
                     controller: _passwordController,
                     style: const TextStyle(color: Colors.white),
-                    onSubmitted: (String value) {login(_usernameController.text, value, context);},
+                    onSubmitted: (String value) {
+                      login(_usernameController.text, value, context);
+                    },
                     decoration: InputDecoration(
                       labelText: 'Password',
                       labelStyle: const TextStyle(color: Colors.white),
@@ -122,7 +130,8 @@ class LoginScreen extends StatelessWidget {
                   width: 300,
                   child: ElevatedButton(
                     onPressed: () {
-                      login(_usernameController.text, _passwordController.text, context);
+                      login(_usernameController.text, _passwordController.text,
+                          context);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1e88e5),
@@ -160,8 +169,10 @@ class TwoFaScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Center(child: Text('Please enter 2fa code.', style: TextStyle(color: Colors.white))),
-            backgroundColor: Colors.black.withOpacity(0.4),
+            content: const Center(
+                child: Text('Please enter 2fa code.',
+                    style: TextStyle(color: Colors.white))),
+            backgroundColor: Colors.black.withValues(alpha: 0.4),
           ),
         );
       }
@@ -171,8 +182,10 @@ class TwoFaScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Center(child: Text(response['message'], style: const TextStyle(color: Colors.white))),
-            backgroundColor: Colors.black.withOpacity(0.4),
+            content: Center(
+                child: Text(response['message'],
+                    style: const TextStyle(color: Colors.white))),
+            backgroundColor: Colors.black.withValues(alpha: 0.4),
           ),
         );
       }
@@ -181,13 +194,15 @@ class TwoFaScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Center(child: Text('An Unknown Error has occured. Please try again.', style: TextStyle(color: Colors.white))),
-            backgroundColor: Colors.black.withOpacity(0.4),
+            content: const Center(
+                child: Text('An Unknown Error has occured. Please try again.',
+                    style: TextStyle(color: Colors.white))),
+            backgroundColor: Colors.black.withValues(alpha: 0.4),
           ),
         );
       }
     }
-    settings.setKey('token', await settings.getKey('2faHeader'));
+
     if (context.mounted) {
       context.pushReplacement('/home');
     }
@@ -213,7 +228,7 @@ class TwoFaScreen extends StatelessWidget {
             width: 350,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -239,7 +254,9 @@ class TwoFaScreen extends StatelessWidget {
                   child: TextField(
                     controller: twofaCodeController,
                     style: const TextStyle(color: Colors.white),
-                    onSubmitted: (String value) {twofa(value, context);},
+                    onSubmitted: (String value) {
+                      twofa(value, context);
+                    },
                     decoration: InputDecoration(
                       labelText: 'Code',
                       labelStyle: const TextStyle(color: Colors.white),

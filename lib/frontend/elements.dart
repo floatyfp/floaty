@@ -1,11 +1,15 @@
 // ignore_for_file: use_super_parameters, library_private_types_in_public_api
 
-import 'package:floaty/backend/state_mgmt.dart';
+import 'dart:math';
+
+import 'package:floaty/frontend/root.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:floaty/backend/state_mgmt.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
+import 'package:floaty/backend/fpapi.dart';
 
 class SidebarSizeControl extends StatelessWidget {
   final String title;
@@ -84,6 +88,36 @@ class SidebarItem extends StatelessWidget {
           },
       contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
     );
+  }
+}
+
+class SidebarText extends StatelessWidget {
+  final String title;
+  final bool isSidebarCollapsed;
+  final bool isSmallScreen;
+  final bool showText;
+
+  const SidebarText({
+    Key? key,
+    required this.title,
+    required this.isSidebarCollapsed,
+    required this.isSmallScreen,
+    required this.showText,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return showText || isSmallScreen
+        ? ListTile(
+            title: isSidebarCollapsed
+                ? null
+                : showText || isSmallScreen
+                    ? Text(title,
+                        style: const TextStyle(fontWeight: FontWeight.bold))
+                    : const SizedBox.shrink(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+          )
+        : const SizedBox.shrink();
   }
 }
 
@@ -424,7 +458,7 @@ class BlogPostCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.push('post/${blogPost.id}'),
+        onTap: () => context.push('/post/${blogPost.id}'),
         child: OverflowBox(
           maxHeight: double.infinity,
           child: LayoutBuilder(
@@ -468,7 +502,7 @@ class BlogPostCard extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 4, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.7),
+                                  color: Colors.black.withValues(alpha: 0.7),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -497,7 +531,7 @@ class BlogPostCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                                 child: LinearProgressIndicator(
                                   backgroundColor:
-                                      Colors.black.withOpacity(0.7),
+                                      Colors.black.withValues(alpha: 0.7),
                                   color: Theme.of(context).colorScheme.primary,
                                   minHeight: 5,
                                   value: computedValue,
@@ -511,7 +545,7 @@ class BlogPostCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 4, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
+                                color: Colors.black.withValues(alpha: 0.7),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -538,7 +572,7 @@ class BlogPostCard extends StatelessWidget {
                                 padding:
                                     EdgeInsets.all(constraints.maxWidth * 0.06),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.7),
+                                  color: Colors.black.withValues(alpha: 0.7),
                                   borderRadius: BorderRadius.circular(100),
                                 ),
                                 child: Icon(
@@ -745,6 +779,7 @@ class _FilterPanelState extends State<FilterPanel>
   bool _isAscending = false;
   late AnimationController _sortAnimController;
   Timer? _debounce;
+  String? _previousText;
 
   @override
   void initState() {
@@ -757,12 +792,20 @@ class _FilterPanelState extends State<FilterPanel>
     endDate = widget.initialEndDate;
     _isAscending = widget.initialIsAscending ?? false;
 
+    //this is some of the stupidest shit ive written to date all because i just cant directly listen to text changes.
     _searchController.addListener(() {
+      if (_searchController.text.isEmpty) {
+        return;
+      }
       if (_searchController.text.isNotEmpty) {
         setState(() {
           _isDefault = false;
         });
       }
+      if (_previousText == _searchController.text) {
+        return;
+      }
+      _previousText = _searchController.text;
       _debouncedNotifyFilterChanged();
     });
 
@@ -1249,13 +1292,11 @@ class _FilterPanelState extends State<FilterPanel>
                                     selectedContentTypes.remove('Text');
                                   }
                                 } else {
-                                  if (selectedContentTypes.contains('Text')) {
-                                    return;
-                                  }
-                                  if (checked) {
-                                    selectedContentTypes.add(value);
-                                  } else {
+                                  selectedContentTypes.remove('Text');
+                                  if (selectedContentTypes.contains(value)) {
                                     selectedContentTypes.remove(value);
+                                  } else {
+                                    selectedContentTypes.add(value);
                                   }
                                 }
                                 _debouncedNotifyFilterChanged();
@@ -1377,6 +1418,1064 @@ class _FilterPanelState extends State<FilterPanel>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ExpandableDescription extends StatefulWidget {
+  final String description;
+  final int initialLines;
+
+  const ExpandableDescription({
+    Key? key,
+    required this.description,
+    this.initialLines = 3,
+  }) : super(key: key);
+
+  @override
+  State<ExpandableDescription> createState() => _ExpandableDescriptionState();
+}
+
+class _ExpandableDescriptionState extends State<ExpandableDescription> {
+  bool _expanded = false;
+  bool _needsExpansion = false;
+  final _textKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTextOverflow();
+    });
+  }
+
+  void _checkTextOverflow() {
+    final textBox = _textKey.currentContext?.findRenderObject() as RenderBox?;
+    if (textBox == null) return;
+
+    final TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: widget.description,
+        style: TextStyle(
+          color: Colors.grey[400],
+          fontSize: 14,
+        ),
+      ),
+      maxLines: widget.initialLines,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: textBox.size.width);
+
+    setState(() {
+      _needsExpansion = painter.didExceedMaxLines;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedCrossFade(
+              firstChild: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: 14.0 * widget.initialLines * 1.5,
+                ),
+                child: ClipRect(
+                  child: Text(
+                    widget.description,
+                    key: _textKey,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                    maxLines: widget.initialLines,
+                    overflow: TextOverflow.fade,
+                  ),
+                ),
+              ),
+              secondChild: Text(
+                widget.description,
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 14,
+                ),
+              ),
+              crossFadeState: _expanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
+            ),
+            if (_needsExpansion)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _expanded = !_expanded;
+                  });
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _expanded ? 'Show less' : 'Show more',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class CommentItem extends StatefulWidget {
+  final CommentModel comment;
+  final ContentPostV3Response content;
+  final Function(String)? onReply;
+
+  const CommentItem({
+    super.key,
+    required this.comment,
+    required this.content,
+    this.onReply,
+  });
+
+  @override
+  State<CommentItem> createState() => _CommentItemState();
+}
+
+class _CommentItemState extends State<CommentItem> {
+  bool _isEditing = false;
+  late TextEditingController _editController;
+  late String _commentText;
+  bool _showReplyBox = false;
+  bool _isLiked = false;
+  bool _isDisliked = false;
+  int _likeCount = 0;
+  int _dislikeCount = 0;
+  final _replyController = TextEditingController();
+  final _focusNode = FocusNode();
+  int _currentLength = 0;
+
+  void _updateCharCount() {
+    setState(() {
+      _currentLength = _replyController.text.length;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _commentText = widget.comment.text;
+    _editController = TextEditingController(text: _commentText);
+    _likeCount = widget.comment.likes;
+    _replyController.addListener(_updateCharCount);
+  }
+
+  @override
+  void dispose() {
+    _editController.dispose();
+    _replyController.removeListener(_updateCharCount);
+    _replyController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleEditSubmit() async {
+    if (_editController.text.trim().length >= 3 &&
+        _editController.text.trim().length <= 1500) {
+      try {
+        final editedComment = await FPApiRequests()
+            .editComment(widget.comment.id, _editController.text.trim());
+
+        if (editedComment == 'OK') {
+          if (mounted) {
+            setState(() {
+              _commentText = _editController.text.trim();
+              _isEditing = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to edit comment')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to edit comment: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  void _toggleReplyBox() {
+    setState(() {
+      _showReplyBox = !_showReplyBox;
+      if (_showReplyBox) {
+        _replyController.text = '@${widget.comment.user.username} ';
+        Future.delayed(Duration.zero, () => _focusNode.requestFocus());
+      }
+    });
+  }
+
+  void _handleReply() {
+    if (_replyController.text.length >= 3 &&
+        _replyController.text.length <= 1500) {
+      if (widget.onReply != null) {
+        widget.onReply!(_replyController.text);
+      }
+      setState(() {
+        _showReplyBox = false;
+      });
+      _replyController.clear();
+    }
+  }
+
+  String getRelativeTime(DateTime? dateTime) {
+    if (dateTime == null) return 'Unknown date';
+
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 365) {
+      final years = (difference.inDays / 365).floor();
+      return '$years year${years > 1 ? 's' : ''} ago';
+    } else if (difference.inDays > 30) {
+      final months = (difference.inDays / 30).floor();
+      return '$months month${months > 1 ? 's' : ''} ago';
+    } else if (difference.inDays > 6) {
+      final weeks = (difference.inDays / 7).floor();
+      return '$weeks week${weeks > 1 ? 's' : ''} ago';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+    } else {
+      return 'Just now';
+    }
+  }
+
+  String formatDateTime(DateTime dateTime) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+
+    int hour = dateTime.hour % 12;
+    hour = hour == 0 ? 12 : hour;
+
+    return '${months[dateTime.month - 1]} ${dateTime.day.toString().padLeft(2, '0')}, ${dateTime.year} '
+        '$hour:${dateTime.minute.toString().padLeft(2, '0')} '
+        '${dateTime.hour >= 12 ? 'PM' : 'AM'}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey[800],
+                backgroundImage: CachedNetworkImageProvider(
+                    widget.comment.user.profileImage.path ?? ''),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        if (widget.comment.user.id !=
+                            widget.content.creator?.owner)
+                          Text(
+                            widget.comment.user.username,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        if (widget.comment.user.id ==
+                            widget.content.creator?.owner)
+                          Text(
+                            widget.content.channel?.title ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        if (widget.comment.user.id ==
+                            widget.content.creator?.owner)
+                          Tooltip(
+                            message: 'Creator',
+                            child: const Icon(
+                              Icons.verified,
+                              color: Colors.blue,
+                              size: 16,
+                            ),
+                          ),
+                        if (widget.comment.user.id ==
+                            widget.content.creator?.owner)
+                          const SizedBox(width: 8),
+                        Tooltip(
+                          message:
+                              'Posted on ${formatDateTime(widget.comment.postDate)}',
+                          child: Text(
+                            getRelativeTime(widget.comment.postDate),
+                            style: TextStyle(
+                                color: Colors.grey[400], fontSize: 12),
+                          ),
+                        ),
+                        if (widget.comment.isEdited) const SizedBox(width: 8),
+                        if (widget.comment.isEdited)
+                          Tooltip(
+                            message: widget.comment.editDate != null
+                                ? 'Comment was edited ${widget.comment.editCount} times. Last edited on ${formatDateTime(widget.comment.editDate!)}'
+                                : 'Comment was edited ${widget.comment.editCount} times',
+                            child: Text(
+                              '<edited>',
+                              style: TextStyle(
+                                  color: Colors.grey[400], fontSize: 12),
+                            ),
+                          ),
+                        if (widget.comment.pinDate != null)
+                          const SizedBox(width: 8),
+                        if (widget.comment.pinDate != null)
+                          Tooltip(
+                            message:
+                                'Pinned on ${formatDateTime(widget.comment.pinDate!)}',
+                            child: Icon(
+                              Icons.push_pin,
+                              color: Colors.grey[600],
+                              size: 16,
+                            ),
+                          ),
+                        Spacer(),
+                        if (widget.comment.user.id ==
+                            rootLayoutKey.currentState?.user?.id)
+                          MenuAnchor(
+                            style: MenuStyle(
+                              padding:
+                                  WidgetStatePropertyAll(EdgeInsets.all(5)),
+                              minimumSize: WidgetStatePropertyAll(Size.zero),
+                            ),
+                            menuChildren: [
+                              MenuItemButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isEditing = true;
+                                    _editController.text = _commentText;
+                                  });
+                                },
+                                child: const Text('Edit'),
+                              ),
+                              MenuItemButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext dialogContext) {
+                                      return AlertDialog(
+                                        title: const Text('Delete Comment'),
+                                        content: const Text(
+                                            'Are you sure you want to delete this comment?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(dialogContext)
+                                                    .pop(),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () async {
+                                              var res = await FPApiRequests()
+                                                  .deleteComment(
+                                                      widget.comment.id);
+
+                                              if (res == 'OK') {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _commentText =
+                                                        'This comment has been deleted.';
+                                                  });
+                                                }
+                                              } else {
+                                                if (mounted) {
+                                                  // ignore: use_build_context_synchronously
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                          'Failed to delete comment'),
+                                                    ),
+                                                  );
+                                                }
+                                              }
+
+                                              if (mounted) {
+                                                // ignore: use_build_context_synchronously
+                                                Navigator.of(dialogContext)
+                                                    .pop();
+                                              }
+                                            },
+                                            child: const Text('Delete',
+                                                style: TextStyle(
+                                                    color: Colors.red)),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                            builder: (BuildContext context,
+                                MenuController controller, Widget? child) {
+                              return IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.more_vert, size: 17.0),
+                                onPressed: () {
+                                  if (controller.isOpen) {
+                                    controller.close();
+                                  } else {
+                                    controller.open();
+                                  }
+                                },
+                              );
+                            },
+                          )
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    _isEditing
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextField(
+                                controller: _editController,
+                                style: const TextStyle(color: Colors.white),
+                                maxLength: 1500,
+                                maxLines: null,
+                                keyboardType: TextInputType.multiline,
+                                decoration: InputDecoration(
+                                  hintText: 'Edit your comment',
+                                  hintStyle: TextStyle(color: Colors.grey[400]),
+                                  border: UnderlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.grey[800]!),
+                                  ),
+                                  counterText: '',
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${_editController.text.length}/1500',
+                                      style: TextStyle(
+                                        color:
+                                            _editController.text.length > 1500
+                                                ? Colors.red
+                                                : Colors.grey[400],
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    TextButton(
+                                      onPressed: () =>
+                                          setState(() => _isEditing = false),
+                                      child: const Text('CANCEL'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      onPressed:
+                                          _editController.text.trim().length >=
+                                                      3 &&
+                                                  _editController.text
+                                                          .trim()
+                                                          .length <=
+                                                      1500
+                                              ? _handleEditSubmit
+                                              : null,
+                                      child: const Text('SAVE'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        : ExpandableDescription(
+                            description: _commentText,
+                            initialLines: 6,
+                          ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            splashFactory: InkRipple.splashFactory,
+                            overlayColor: Colors.grey[800],
+                            minimumSize: const Size(0, 0),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
+                          ),
+                          icon: AnimatedTheme(
+                            data: Theme.of(context).copyWith(
+                              iconTheme: IconThemeData(
+                                size: 16,
+                                color: _isLiked
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.white,
+                              ),
+                            ),
+                            duration: const Duration(milliseconds: 200),
+                            child: const Icon(Icons.thumb_up_outlined),
+                          ),
+                          label: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _isLiked
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            child: Text('$_likeCount'),
+                          ),
+                          onPressed: () async {
+                            final res = await FPApiRequests().likeComment(
+                                widget.comment.id, widget.content.id!);
+                            if (res == 'success') {
+                              setState(() {
+                                if (_isLiked) {
+                                  _likeCount--;
+                                  _isLiked = false;
+                                } else {
+                                  _likeCount++;
+                                  if (_isDisliked) {
+                                    _dislikeCount--;
+                                    _isDisliked = false;
+                                  }
+                                  _isLiked = true;
+                                }
+                              });
+                            } else if (res == 'removed') {
+                              setState(() {
+                                _likeCount--;
+                                _isLiked = false;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 5),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            splashFactory: InkRipple.splashFactory,
+                            overlayColor: Colors.grey[800],
+                            minimumSize: const Size(0, 0),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
+                          ),
+                          icon: AnimatedTheme(
+                            data: Theme.of(context).copyWith(
+                              iconTheme: IconThemeData(
+                                size: 16,
+                                color: _isDisliked
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.white,
+                              ),
+                            ),
+                            duration: const Duration(milliseconds: 200),
+                            child: const Icon(Icons.thumb_down_outlined),
+                          ),
+                          label: AnimatedDefaultTextStyle(
+                            duration: const Duration(milliseconds: 200),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _isDisliked
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            child: Text('$_dislikeCount'),
+                          ),
+                          onPressed: () async {
+                            final res = await FPApiRequests().dislikeComment(
+                                widget.comment.id, widget.content.id!);
+                            if (res == 'success') {
+                              setState(() {
+                                if (_isDisliked) {
+                                  _dislikeCount--;
+                                  _isDisliked = false;
+                                } else {
+                                  _dislikeCount++;
+                                  if (_isLiked) {
+                                    _likeCount--;
+                                    _isLiked = false;
+                                  }
+                                  _isDisliked = true;
+                                }
+                              });
+                            } else if (res == 'removed') {
+                              setState(() {
+                                _dislikeCount--;
+                                _isDisliked = false;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 16),
+                        TextButton(
+                          onPressed: _toggleReplyBox,
+                          style: TextButton.styleFrom(
+                            splashFactory: InkRipple.splashFactory,
+                            overlayColor: Colors.grey[800],
+                            minimumSize: const Size(0, 0),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                          ),
+                          child: Text(
+                            'REPLY',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 44),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _replyController,
+                    focusNode: _focusNode,
+                    style: const TextStyle(color: Colors.white),
+                    maxLength: 1500,
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: 'Write a reply',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      border: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey[800]!),
+                      ),
+                      counterText: '',
+                    ),
+                    onSubmitted: (_) => _handleReply(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Row(
+                      children: [
+                        Text(
+                          '$_currentLength/1500',
+                          style: TextStyle(
+                            color: _currentLength > 1500
+                                ? Colors.red
+                                : Colors.grey[400],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () =>
+                              setState(() => _showReplyBox = false),
+                          style: TextButton.styleFrom(
+                            splashFactory: InkRipple.splashFactory,
+                            overlayColor: Colors.grey[800],
+                          ),
+                          child: Text(
+                            'CANCEL',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed:
+                              _currentLength >= 3 && _currentLength <= 1500
+                                  ? _handleReply
+                                  : null,
+                          style: TextButton.styleFrom(
+                            splashFactory: InkRipple.splashFactory,
+                            overlayColor: Colors.grey[800],
+                          ),
+                          child: Text(
+                            'REPLY',
+                            style: TextStyle(
+                              color:
+                                  _currentLength >= 3 && _currentLength <= 1500
+                                      ? Colors.white
+                                      : Colors.grey[600],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            crossFadeState: _showReplyBox
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: const Duration(milliseconds: 200),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CommentHolder extends StatefulWidget {
+  final CommentModel comment;
+  final ContentPostV3Response content;
+  final Function(String, String)? onReply;
+
+  const CommentHolder({
+    super.key,
+    required this.comment,
+    required this.content,
+    this.onReply,
+  });
+
+  @override
+  State<CommentHolder> createState() => _CommentHolderState();
+}
+
+class _CommentHolderState extends State<CommentHolder> {
+  late List<CommentModel> _replies;
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _replies = widget.comment.replies ?? [];
+  }
+
+  Future<void> _loadMoreReplies() async {
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    await FPApiRequests()
+        .getReplies(
+      widget.comment.id,
+      widget.content.id!,
+      5,
+      _replies.last.id,
+    )
+        .then((replies) {
+      setState(() {
+        _replies.addAll(replies);
+        _isLoadingMore = false;
+      });
+    });
+  }
+
+  Future<CommentModel> sendreply(
+      String blogPost, String replyTo, String text) async {
+    final reply =
+        await FPApiRequests().comment(blogPost, text, replyto: replyTo);
+
+    setState(() {
+      _replies.insert(0, reply!);
+    });
+    return reply!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CommentItem(
+          comment: widget.comment,
+          content: widget.content,
+          onReply: (text) {
+            sendreply(widget.content.id!, widget.comment.id, text);
+          },
+        ),
+        if (_replies.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 44.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ..._replies.map((reply) => CommentItem(
+                      comment: reply,
+                      content: widget.content,
+                      onReply: (text) {
+                        sendreply(widget.content.id!, widget.comment.id, text);
+                      },
+                    )),
+                if ((widget.comment.totalReplies ?? 0) > _replies.length)
+                  TextButton(
+                    onPressed: _isLoadingMore ? null : _loadMoreReplies,
+                    child: _isLoadingMore
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            'Show ${min(5, (widget.comment.totalReplies ?? 0) - _replies.length)} more ${((widget.comment.totalReplies ?? 0) - _replies.length) == 1 ? 'reply' : 'replies'}',
+                            style: TextStyle(color: Colors.grey[400]),
+                          ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+enum CardState { initial, expanded }
+
+class StateCard extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final Widget thumbnail;
+  final VoidCallback? onTap;
+  final double width;
+  final double height;
+  final bool isViewing;
+  final bool isSelected;
+  final Widget? topIcon;
+
+  const StateCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.thumbnail,
+    this.onTap,
+    this.width = 160,
+    this.height = 90,
+    this.isViewing = false,
+    this.isSelected = false,
+    this.topIcon,
+  });
+
+  @override
+  State<StateCard> createState() => _StateCardState();
+}
+
+class _StateCardState extends State<StateCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.05,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => _controller.forward(),
+      onExit: (_) => _controller.reverse(),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: ScaleTransition(
+          scale: _scaleAnimation,
+          child: Container(
+            width: widget.width,
+            height: widget.height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: widget.isSelected
+                  ? Border.all(
+                      color: Colors.blue,
+                      width: 2,
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Thumbnail
+                  widget.thumbnail,
+
+                  // Viewing overlay
+                  if (widget.isViewing)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      child: const Center(
+                        child: Text(
+                          'Viewing',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Top icon
+                  if (widget.topIcon != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: widget.topIcon!,
+                      ),
+                    ),
+
+                  // Title and subtitle at bottom
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.8),
+                          ],
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            widget.subtitle,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            widget.title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Hover overlay
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

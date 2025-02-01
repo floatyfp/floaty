@@ -41,9 +41,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<List<String>> _getCreatorIds() {
+    if (!mounted) return Future.value([]);
+    
     Completer<List<String>> completer = Completer();
 
     FPApiRequests().getSubscribedCreatorsIds().listen((ids) {
+      if (!mounted) {
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+        return;
+      }
       setState(() {
         creatorIds = ids;
       });
@@ -60,8 +68,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchPage(int pageKey) async {
+    if (!mounted) return;
+    
     try {
       creatorIds = await _getCreatorIds();
+      if (!mounted) return;
 
       ContentCreatorListV3Response? home;
       if (lastElements.isNotEmpty) {
@@ -72,6 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
         home = await FPApiRequests()
             .getMultiCreatorVideoFeed(creatorIds, _pageSize);
       }
+
+      if (!mounted) return;
 
       newposts = home.blogPosts ?? [];
       lastElements = home.lastElements ?? [];
@@ -87,6 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
       List<GetProgressResponse> progressResponses =
           await FPApiRequests().getVideoProgress(blogPostIds);
 
+      if (!mounted) return;
+
       Map<String, GetProgressResponse?> progressMap = {
         for (var progress in progressResponses) progress.id!: progress
       };
@@ -98,7 +113,9 @@ class _HomeScreenState extends State<HomeScreen> {
         isLastPage ? null : pageKey + 1,
       );
     } catch (error) {
-      _pagingController.error = error;
+      if (mounted) {
+        _pagingController.error = error;
+      }
     }
   }
 

@@ -406,3 +406,258 @@ Map<String, dynamic> _$StatsModelToJson(StatsModel instance) =>
       'totalSubcriberCount': instance.totalSubcriberCount,
       'totalIncome': instance.totalIncome,
     };
+
+ContentPostV3Response _$ContentPostV3ResponseFromJson(
+        Map<String, dynamic> json) =>
+    ContentPostV3Response(
+      id: json['id'] as String?,
+      guid: json['guid'] as String?,
+      title: json['title'] as String?,
+      text: json['text'] as String?,
+      type: json['type'] as String?,
+      channel: json['channel'] == null
+          ? null
+          : ChannelModel.fromJson(json['channel'] as Map<String, dynamic>),
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
+      attachmentOrder: (json['attachmentOrder'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      metadata: json['metadata'] == null
+          ? null
+          : PostMetadataModel.fromJson(
+              json['metadata'] as Map<String, dynamic>),
+      releaseDate: json['releaseDate'] == null
+          ? null
+          : DateTime.parse(json['releaseDate'] as String),
+      likes: (json['likes'] as num?)?.toInt(),
+      dislikes: (json['dislikes'] as num?)?.toInt(),
+      score: (json['score'] as num?)?.toInt(),
+      comments: (json['comments'] as num?)?.toInt(),
+      creator: json['creator'] == null
+          ? null
+          : CreatorModelV2.fromJson(json['creator'] as Map<String, dynamic>),
+      wasReleasedSilently: json['wasReleasedSilently'] as bool?,
+      thumbnail: json['thumbnail'] == null
+          ? null
+          : ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+      isAccessible: json['isAccessible'] as bool?,
+      userInteraction: json['userInteraction'] as List<dynamic>? ?? [],
+      videoAttachments: (json['videoAttachments'] as List<dynamic>?)
+              ?.map((e) =>
+                  VideoAttachmentModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      audioAttachments: (json['audioAttachments'] as List<dynamic>?)
+              ?.map((e) =>
+                  AudioAttachmentModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      pictureAttachments: (json['pictureAttachments'] as List<dynamic>?)
+              ?.map((e) =>
+                  PictureAttachmentModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      galleryAttachments: json['galleryAttachments'] as List<dynamic>? ?? [],
+    );
+
+Map<String, dynamic> _$ContentPostV3ResponseToJson(
+        ContentPostV3Response instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'guid': instance.guid,
+      'title': instance.title,
+      'text': instance.text,
+      'type': instance.type,
+      'channel': instance.channel,
+      'tags': instance.tags,
+      'attachmentOrder': instance.attachmentOrder,
+      'metadata': instance.metadata,
+      'releaseDate': instance.releaseDate?.toIso8601String(),
+      'likes': instance.likes,
+      'dislikes': instance.dislikes,
+      'score': instance.score,
+      'comments': instance.comments,
+      'creator': instance.creator,
+      'wasReleasedSilently': instance.wasReleasedSilently,
+      'thumbnail': instance.thumbnail,
+      'isAccessible': instance.isAccessible,
+      'userInteraction': instance.userInteraction,
+      'videoAttachments': instance.videoAttachments,
+      'audioAttachments': instance.audioAttachments,
+      'pictureAttachments': instance.pictureAttachments,
+      'galleryAttachments': instance.galleryAttachments,
+    };
+
+VideoAttachmentModel _$VideoAttachmentModelFromJson(
+        Map<String, dynamic> json) =>
+    VideoAttachmentModel(
+      id: json['id'] as String,
+      guid: json['guid'] as String,
+      title: json['title'] as String,
+      type: json['type'] as String,
+      description: json['description'] as String,
+      releaseDate: json['releaseDate'] == null
+          ? null
+          : DateTime.parse(json['releaseDate'] as String),
+      duration: (json['duration'] as num).toDouble(),
+      creator: json['creator'] as String,
+      likes: (json['likes'] as num).toInt(),
+      dislikes: (json['dislikes'] as num).toInt(),
+      score: (json['score'] as num).toInt(),
+      isProcessing: json['isProcessing'] as bool,
+      primaryBlogPost: json['primaryBlogPost'] as String,
+      thumbnail: ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+      isAccessible: json['isAccessible'] as bool,
+    );
+
+Map<String, dynamic> _$VideoAttachmentModelToJson(
+        VideoAttachmentModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'guid': instance.guid,
+      'title': instance.title,
+      'type': instance.type,
+      'description': instance.description,
+      'releaseDate': instance.releaseDate?.toIso8601String(),
+      'duration': instance.duration,
+      'creator': instance.creator,
+      'likes': instance.likes,
+      'dislikes': instance.dislikes,
+      'score': instance.score,
+      'isProcessing': instance.isProcessing,
+      'primaryBlogPost': instance.primaryBlogPost,
+      'thumbnail': instance.thumbnail,
+      'isAccessible': instance.isAccessible,
+    };
+
+AudioAttachmentModel _$AudioAttachmentModelFromJson(
+        Map<String, dynamic> json) =>
+    AudioAttachmentModel(
+      id: json['id'] as String,
+      guid: json['guid'] as String,
+      title: json['title'] as String,
+      type: json['type'] as String,
+      description: json['description'] as String,
+      duration: (json['duration'] as num).toInt(),
+      waveform: json['waveform'],
+      creator: json['creator'] as String,
+      likes: (json['likes'] as num).toInt(),
+      dislikes: (json['dislikes'] as num).toInt(),
+      score: (json['score'] as num).toInt(),
+      isProcessing: json['isProcessing'] as bool,
+      primaryBlogPost: json['primaryBlogPost'] as String,
+      isAccessible: json['isAccessible'] as bool,
+    );
+
+Map<String, dynamic> _$AudioAttachmentModelToJson(
+        AudioAttachmentModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'guid': instance.guid,
+      'title': instance.title,
+      'type': instance.type,
+      'description': instance.description,
+      'duration': instance.duration,
+      'waveform': instance.waveform,
+      'creator': instance.creator,
+      'likes': instance.likes,
+      'dislikes': instance.dislikes,
+      'score': instance.score,
+      'isProcessing': instance.isProcessing,
+      'primaryBlogPost': instance.primaryBlogPost,
+      'isAccessible': instance.isAccessible,
+    };
+
+PictureAttachmentModel _$PictureAttachmentModelFromJson(
+        Map<String, dynamic> json) =>
+    PictureAttachmentModel(
+      id: json['id'] as String,
+      guid: json['guid'] as String,
+      title: json['title'] as String,
+      type: json['type'] as String,
+      description: json['description'] as String,
+      likes: (json['likes'] as num).toInt(),
+      dislikes: (json['dislikes'] as num).toInt(),
+      score: (json['score'] as num).toInt(),
+      isProcessing: json['isProcessing'] as bool,
+      creator: json['creator'] as String,
+      primaryBlogPost: json['primaryBlogPost'] as String,
+      thumbnail: ImageModel.fromJson(json['thumbnail'] as Map<String, dynamic>),
+      isAccessible: json['isAccessible'] as bool,
+    );
+
+Map<String, dynamic> _$PictureAttachmentModelToJson(
+        PictureAttachmentModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'guid': instance.guid,
+      'title': instance.title,
+      'type': instance.type,
+      'description': instance.description,
+      'likes': instance.likes,
+      'dislikes': instance.dislikes,
+      'score': instance.score,
+      'isProcessing': instance.isProcessing,
+      'creator': instance.creator,
+      'primaryBlogPost': instance.primaryBlogPost,
+      'thumbnail': instance.thumbnail,
+      'isAccessible': instance.isAccessible,
+    };
+
+CreatorModelV2 _$CreatorModelV2FromJson(Map<String, dynamic> json) =>
+    CreatorModelV2(
+      id: json['id'] as String?,
+      owner: json['owner'] as String?,
+      title: json['title'] as String?,
+      urlname: json['urlname'] as String?,
+      description: json['description'] as String?,
+      about: json['about'] as String?,
+      category: json['category'] as String?,
+      cover: json['cover'] == null
+          ? null
+          : ImageModel.fromJson(json['cover'] as Map<String, dynamic>),
+      icon: json['icon'] == null
+          ? null
+          : ImageModel.fromJson(json['icon'] as Map<String, dynamic>),
+      liveStream: json['liveStream'],
+      subscriptionPlans: json['subscriptionPlans'] as List<dynamic>? ?? [],
+      discoverable: json['discoverable'] as bool?,
+      subscriberCountDisplay: json['subscriberCountDisplay'] as String?,
+      incomeDisplay: json['incomeDisplay'] as bool?,
+      defaultChannel: json['defaultChannel'] as String?,
+    );
+
+Map<String, dynamic> _$CreatorModelV2ToJson(CreatorModelV2 instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'owner': instance.owner,
+      'title': instance.title,
+      'urlname': instance.urlname,
+      'description': instance.description,
+      'about': instance.about,
+      'category': instance.category,
+      'cover': instance.cover,
+      'icon': instance.icon,
+      'liveStream': instance.liveStream,
+      'subscriptionPlans': instance.subscriptionPlans,
+      'discoverable': instance.discoverable,
+      'subscriberCountDisplay': instance.subscriberCountDisplay,
+      'incomeDisplay': instance.incomeDisplay,
+      'defaultChannel': instance.defaultChannel,
+    };
+
+UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
+      id: json['id'] as String,
+      username: json['username'] as String,
+      profileImage:
+          ImageModel.fromJson(json['profileImage'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
+      'id': instance.id,
+      'username': instance.username,
+      'profileImage': instance.profileImage,
+    };

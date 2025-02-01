@@ -160,7 +160,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               constraints.maxWidth <= 450 ? 4 : 2),
                           child: item.post);
                 } else {
-                  return SizedBox.shrink();
+                  return const SizedBox.shrink();
                 }
               },
               noItemsFoundIndicatorBuilder: (context) => const Center(

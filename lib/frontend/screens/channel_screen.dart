@@ -315,7 +315,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
                                       end: Alignment.bottomCenter,
                                       colors: [
                                         Colors.transparent,
-                                        Colors.black.withOpacity(0.4),
+                                        Colors.black.withValues(alpha: 0.4),
                                       ],
                                     ),
                                   ),
@@ -550,12 +550,12 @@ class _ChannelScreenState extends State<ChannelScreen> {
                           Theme.of(context).scaffoldBackgroundColor,
                           Theme.of(context)
                               .scaffoldBackgroundColor
-                              .withOpacity(0.9),
+                              .withValues(alpha: 0.9),
                         ],
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -599,8 +599,8 @@ class _ChannelScreenState extends State<ChannelScreen> {
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.blue.withOpacity(0.4)
-              : Colors.grey.withOpacity(0.7),
+              ? Colors.blue.withValues(alpha: 0.4)
+              : Colors.grey.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(

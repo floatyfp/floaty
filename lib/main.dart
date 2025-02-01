@@ -1,22 +1,66 @@
-import 'package:floaty/frontend/root.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:floaty/frontend/screens/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/backend/checkers.dart';
+import 'package:floaty/backend/fpapi.dart';
+import 'package:floaty/frontend/screens/login_screen.dart';
 import 'package:floaty/frontend/screens/home_screen.dart';
 import 'package:floaty/frontend/screens/settings_screen.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/frontend/screens/browse_screen.dart';
 import 'package:floaty/frontend/screens/history_screen.dart';
 import 'package:floaty/frontend/screens/channel_screen.dart';
+import 'package:floaty/frontend/screens/post_screen.dart';
+import 'package:floaty/frontend/root.dart';
+import 'package:floaty/services/system/single_instance_service.dart';
+import 'package:floaty/services/system/tray_service.dart';
+import 'package:window_manager/window_manager.dart';
+import 'dart:io' show Platform, exit;
+import 'package:media_kit/media_kit.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize MediaKit
+  MediaKit.ensureInitialized();
+
+  if (!Platform.isAndroid && !Platform.isIOS) {
+    // Initialize single instance service
+    final singleInstanceService = await SingleInstanceService.getInstance();
+    await singleInstanceService.initialize();
+
+    // Only continue if this is the first instance
+    // Note: For Windows, this is handled in initialize()
+    if (!Platform.isWindows) {
+      final isFirstInstance = await singleInstanceService.isFirstInstance();
+      if (!isFirstInstance) {
+        exit(0);
+      }
+    }
+
+    // Initialize tray service
+    final trayService = await TrayService.getInstance();
+    await trayService.initialize();
+
+    // Initialize window manager
+    await windowManager.ensureInitialized();
+
+    WindowOptions windowOptions = WindowOptions(
+      skipTaskbar: false,
+    );
+
+    await windowManager.waitUntilReadyToShow(windowOptions);
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
   runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key});
+  MyApp({super.key}) {
+    // Set up window manager event handlers
+    windowManager.addListener(_AppWindowListener());
+  }
 
   final Checkers checkers = Checkers();
 
@@ -99,6 +143,15 @@ class MyApp extends StatelessWidget {
                 return ChannelScreen(
                   channelName: channelName,
                   subName: subName,
+                );
+              },
+            ),
+            GoRoute(
+              path: '/post/:postid',
+              builder: (context, state) {
+                final postid = state.pathParameters['postid'] ?? '';
+                return VideoDetailPage(
+                  postId: postid,
                 );
               },
             ),
@@ -216,5 +269,12 @@ class SplashScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _AppWindowListener extends WindowListener {
+  @override
+  void onWindowClose() async {
+    await windowManager.hide();
   }
 }

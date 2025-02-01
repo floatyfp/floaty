@@ -419,3 +419,375 @@ class StatsModel {
       _$StatsModelFromJson(json);
   Map<String, dynamic> toJson() => _$StatsModelToJson(this);
 }
+
+@JsonSerializable()
+class ContentPostV3Response {
+  final String? id;
+  final String? guid;
+  final String? title;
+  final String? text;
+  final String? type;
+  final ChannelModel? channel;
+  @JsonKey(defaultValue: [])
+  final List<String> tags;
+  @JsonKey(defaultValue: [])
+  final List<String> attachmentOrder;
+  final PostMetadataModel? metadata;
+  final DateTime? releaseDate;
+  final int? likes;
+  final int? dislikes;
+  final int? score;
+  final int? comments;
+  final CreatorModelV2? creator;
+  final bool? wasReleasedSilently;
+  final ImageModel? thumbnail;
+  final bool? isAccessible;
+  @JsonKey(defaultValue: [])
+  final List<dynamic> userInteraction;
+  @JsonKey(defaultValue: [])
+  final List<VideoAttachmentModel> videoAttachments;
+  @JsonKey(defaultValue: [])
+  final List<AudioAttachmentModel> audioAttachments;
+  @JsonKey(defaultValue: [])
+  final List<PictureAttachmentModel> pictureAttachments;
+  @JsonKey(defaultValue: [])
+  final List<dynamic> galleryAttachments;
+
+  ContentPostV3Response({
+    this.id,
+    this.guid,
+    this.title,
+    this.text,
+    this.type,
+    this.channel,
+    this.tags = const [],
+    this.attachmentOrder = const [],
+    this.metadata,
+    this.releaseDate,
+    this.likes,
+    this.dislikes,
+    this.score,
+    this.comments,
+    this.creator,
+    this.wasReleasedSilently,
+    this.thumbnail,
+    this.isAccessible,
+    this.userInteraction = const [],
+    this.videoAttachments = const [],
+    this.audioAttachments = const [],
+    this.pictureAttachments = const [],
+    this.galleryAttachments = const [],
+  });
+
+  factory ContentPostV3Response.fromJson(Map<String, dynamic> json) =>
+      _$ContentPostV3ResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ContentPostV3ResponseToJson(this);
+}
+
+@JsonSerializable()
+class VideoAttachmentModel {
+  final String id;
+  final String guid;
+  final String title;
+  final String type;
+  final String description;
+  final DateTime? releaseDate;
+  final double duration;
+  final String creator;
+  final int likes;
+  final int dislikes;
+  final int score;
+  final bool isProcessing;
+  final String primaryBlogPost;
+  final ImageModel thumbnail;
+  final bool isAccessible;
+
+  VideoAttachmentModel({
+    required this.id,
+    required this.guid,
+    required this.title,
+    required this.type,
+    required this.description,
+    this.releaseDate,
+    required this.duration,
+    required this.creator,
+    required this.likes,
+    required this.dislikes,
+    required this.score,
+    required this.isProcessing,
+    required this.primaryBlogPost,
+    required this.thumbnail,
+    required this.isAccessible,
+  });
+
+  factory VideoAttachmentModel.fromJson(Map<String, dynamic> json) =>
+      _$VideoAttachmentModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$VideoAttachmentModelToJson(this);
+}
+
+@JsonSerializable()
+class AudioAttachmentModel {
+  final String id;
+  final String guid;
+  final String title;
+  final String type;
+  final String description;
+  final int duration;
+  final dynamic waveform;
+  final String creator;
+  final int likes;
+  final int dislikes;
+  final int score;
+  final bool isProcessing;
+  final String primaryBlogPost;
+  final bool isAccessible;
+
+  AudioAttachmentModel({
+    required this.id,
+    required this.guid,
+    required this.title,
+    required this.type,
+    required this.description,
+    required this.duration,
+    required this.waveform,
+    required this.creator,
+    required this.likes,
+    required this.dislikes,
+    required this.score,
+    required this.isProcessing,
+    required this.primaryBlogPost,
+    required this.isAccessible,
+  });
+
+  factory AudioAttachmentModel.fromJson(Map<String, dynamic> json) =>
+      _$AudioAttachmentModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AudioAttachmentModelToJson(this);
+}
+
+@JsonSerializable()
+class PictureAttachmentModel {
+  final String id;
+  final String guid;
+  final String title;
+  final String type;
+  final String description;
+  final int likes;
+  final int dislikes;
+  final int score;
+  final bool isProcessing;
+  final String creator;
+  final String primaryBlogPost;
+  final ImageModel thumbnail;
+  final bool isAccessible;
+
+  PictureAttachmentModel({
+    required this.id,
+    required this.guid,
+    required this.title,
+    required this.type,
+    required this.description,
+    required this.likes,
+    required this.dislikes,
+    required this.score,
+    required this.isProcessing,
+    required this.creator,
+    required this.primaryBlogPost,
+    required this.thumbnail,
+    required this.isAccessible,
+  });
+
+  factory PictureAttachmentModel.fromJson(Map<String, dynamic> json) =>
+      _$PictureAttachmentModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PictureAttachmentModelToJson(this);
+}
+
+@JsonSerializable()
+class CreatorModelV2 {
+  final String? id;
+  final String? owner;
+  final String? title;
+  final String? urlname;
+  final String? description;
+  final String? about;
+  final String? category;
+  final ImageModel? cover;
+  final ImageModel? icon;
+  final dynamic liveStream;
+  @JsonKey(defaultValue: [])
+  final List<dynamic> subscriptionPlans;
+  final bool? discoverable;
+  final String? subscriberCountDisplay;
+  final bool? incomeDisplay;
+  final String? defaultChannel;
+
+  CreatorModelV2({
+    this.id,
+    this.owner,
+    this.title,
+    this.urlname,
+    this.description,
+    this.about,
+    this.category,
+    this.cover,
+    this.icon,
+    this.liveStream,
+    this.subscriptionPlans = const [],
+    this.discoverable,
+    this.subscriberCountDisplay,
+    this.incomeDisplay,
+    this.defaultChannel,
+  });
+
+  factory CreatorModelV2.fromJson(Map<String, dynamic> json) =>
+      _$CreatorModelV2FromJson(json);
+
+  Map<String, dynamic> toJson() => _$CreatorModelV2ToJson(this);
+}
+
+class CommentModel {
+  final String id;
+  final String blogPost;
+  final UserModel user;
+  final String text;
+  final String? replying;
+  final DateTime postDate;
+  final DateTime? editDate;
+  final DateTime? pinDate;
+  final int editCount;
+  final bool isEdited;
+  final int likes;
+  final int dislikes;
+  final int score;
+  final UserInteractionModel interactionCounts;
+  final int? totalReplies;
+  final List<CommentModel>? replies;
+  final UserInteractionModel? userInteraction;
+
+  CommentModel({
+    required this.id,
+    required this.blogPost,
+    required this.user,
+    required this.text,
+    this.replying,
+    required this.postDate,
+    this.editDate,
+    this.pinDate,
+    required this.editCount,
+    required this.isEdited,
+    required this.likes,
+    required this.dislikes,
+    required this.score,
+    required this.interactionCounts,
+    this.totalReplies,
+    this.replies,
+    this.userInteraction,
+  });
+
+  factory CommentModel.fromJson(Map<String, dynamic> json) => CommentModel(
+        id: json['id'] as String,
+        blogPost: json['blogPost'] as String,
+        user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
+        text: json['text'] as String,
+        replying: json['replying'] as String?,
+        postDate: DateTime.parse(json['postDate'] as String),
+        editDate: json['editDate'] == null
+            ? null
+            : DateTime.parse(json['editDate'] as String),
+        pinDate: json['pinDate'] == null
+            ? null
+            : DateTime.parse(json['pinDate'] as String),
+        editCount: (json['editCount'] as num).toInt(),
+        isEdited: json['isEdited'] as bool,
+        likes: (json['likes'] as num).toInt(),
+        dislikes: (json['dislikes'] as num).toInt(),
+        score: (json['score'] as num).toInt(),
+        interactionCounts: UserInteractionModel.fromJson(json['interactionCounts']),
+        totalReplies: (json['totalReplies'] as num?)?.toInt(),
+        replies: (json['replies'] as List<dynamic>?)
+            ?.map((e) => CommentModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        userInteraction: json['userInteraction'] == null
+            ? null
+            : UserInteractionModel.fromJson(json['userInteraction']),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'blogPost': blogPost,
+        'user': user.toJson(),
+        'text': text,
+        'replying': replying,
+        'postDate': postDate.toIso8601String(),
+        'editDate': editDate?.toIso8601String(),
+        'pinDate': pinDate?.toIso8601String(),
+        'editCount': editCount,
+        'isEdited': isEdited,
+        'likes': likes,
+        'dislikes': dislikes,
+        'score': score,
+        'interactionCounts': interactionCounts.toJson(),
+        'totalReplies': totalReplies,
+        'replies': replies?.map((e) => e.toJson()).toList(),
+        'userInteraction': userInteraction?.toJson(),
+      };
+}
+
+@JsonSerializable()
+class UserInteractionModel {
+  final int? like;
+  final int? dislike;
+  final String? value;
+
+  const UserInteractionModel({
+    this.like,
+    this.dislike,
+    this.value,
+  });
+
+  factory UserInteractionModel.fromJson(dynamic json) {
+    if (json is String) {
+      return UserInteractionModel(value: json);
+    } else if (json is Map<String, dynamic>) {
+      return UserInteractionModel(
+        like: (json['like'] as num?)?.toInt(),
+        dislike: (json['dislike'] as num?)?.toInt(),
+      );
+    }
+    throw FormatException('Invalid JSON format for UserInteractionModel');
+  }
+
+  Map<String, dynamic> toJson() {
+    if (value != null) {
+      return {'value': value};
+    }
+    return {
+      'like': like,
+      'dislike': dislike,
+    };
+  }
+
+  static const likeValue = UserInteractionModel(value: 'like');
+  static const dislikeValue = UserInteractionModel(value: 'dislike');
+}
+
+@JsonSerializable()
+class UserModel {
+  final String id;
+  final String username;
+  final ImageModel profileImage;
+
+  UserModel({
+    required this.id,
+    required this.username,
+    required this.profileImage,
+  });
+
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UserModelToJson(this);
+}

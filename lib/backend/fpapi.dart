@@ -58,6 +58,36 @@ class FPApiRequests {
     }
   }
 
+  Future<String> postData(String apiUrl, Map<String, dynamic>? body,
+      [Map<String, dynamic>? queryParams]) async {
+    final url = Uri.parse('$baseUrl/$apiUrl').replace(
+      queryParameters: queryParams != null && queryParams.isNotEmpty
+          ? {
+              ...queryParams
+                  .map((key, value) => MapEntry(key, value.toString()))
+            }
+          : null,
+    );
+
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'User-Agent': userAgent,
+      'Cookie': await settings.getKey('token'),
+    };
+
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: body != null ? jsonEncode(body) : null,
+    );
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      return 'ded';
+    }
+  }
+
   Future fetchDataWithEtag(String apiUrl,
       [Map<String, dynamic>? queryParams]) async {
     final url = Uri.parse('$baseUrl/$apiUrl').replace(
@@ -97,6 +127,31 @@ class FPApiRequests {
     }
   }
 
+  Future fetchData(String apiUrl, [Map<String, dynamic>? queryParams]) async {
+    final url = Uri.parse('$baseUrl/$apiUrl').replace(
+      queryParameters: queryParams != null && queryParams.isNotEmpty
+          ? {
+              ...queryParams
+                  .map((key, value) => MapEntry(key, value.toString()))
+            }
+          : null,
+    );
+
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'User-Agent': userAgent,
+      'Cookie': await settings.getKey('token'),
+    };
+
+    final response = await http.get(url, headers: headers);
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      return 'ded';
+    }
+  }
+
   Future<void> purgeOldEtags() async {
     final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
@@ -128,7 +183,9 @@ class FPApiRequests {
       if (user != null && user.isNotEmpty) {
         yield UserSelfV3Response.fromJson(jsonDecode(user));
       }
-    } catch (e) {}
+    } catch (e) {
+      yield UserSelfV3Response();
+    }
   }
 
   Stream<List<CreatorModelV3>> getSubscribedCreators() async* {
@@ -216,7 +273,9 @@ class FPApiRequests {
             .toList();
         yield creatorIds;
       }
-    } catch (e) {}
+    } catch (e) {
+      yield [];
+    }
   }
 
   Future<ContentCreatorListV3Response> getMultiCreatorVideoFeed(
@@ -415,6 +474,196 @@ class FPApiRequests {
       return StatsModel(totalIncome: 0, totalSubcriberCount: 0);
     } catch (e) {
       return StatsModel(totalIncome: 0, totalSubcriberCount: 0);
+    }
+  }
+
+  Stream<ContentPostV3Response> getBlogPost(String blogPostId) async* {
+    try {
+      final apiUrl = 'v3/content/post?id=$blogPostId';
+      final cachedData = await getCachedResponse(apiUrl);
+      if (cachedData != null && cachedData.isNotEmpty) {
+        try {
+          final jsonData = jsonDecode(cachedData);
+          final parsed = ContentPostV3Response.fromJson(jsonData);
+          yield parsed;
+        } catch (e) {
+          yield ContentPostV3Response();
+        }
+      }
+      final response = await fetchDataWithEtag(apiUrl);
+      if (response != null && response.isNotEmpty) {
+        try {
+          final jsonData = jsonDecode(response);
+          final parsed = ContentPostV3Response.fromJson(jsonData);
+          yield parsed;
+        } catch (e) {
+          yield ContentPostV3Response();
+        }
+      } else {
+        yield ContentPostV3Response();
+      }
+    } catch (e) {
+      yield ContentPostV3Response();
+    }
+  }
+
+  Future<String> likeBlogPost(String blogPostId) async {
+    final response = await postData(
+        'v3/content/like', {'contentType': 'blogPost', 'id': blogPostId});
+    final decodedres = jsonDecode(response);
+    if (decodedres.contains('like')) {
+      return 'success';
+    } else if (response.toString() == '[]') {
+      return 'removed';
+    } else {
+      return 'fail';
+    }
+  }
+
+  Future<String> dislikeBlogPost(String blogPostId) async {
+    final response = await postData(
+        'v3/content/dislike', {'contentType': 'blogPost', 'id': blogPostId});
+    final decodedres = jsonDecode(response);
+    if (decodedres.contains('dislike')) {
+      return 'success';
+    } else if (response.toString() == '[]') {
+      return 'removed';
+    } else {
+      return 'fail';
+    }
+  }
+
+  Future<String> likeComment(String commentId, String blogPostId) async {
+    final response = await postData(
+        'v3/comment/like', {'comment': commentId, 'blogPost': blogPostId});
+    final decodedres = jsonDecode(response);
+    if (decodedres.contains('like')) {
+      return 'success';
+    } else if (response.toString() == '[]') {
+      return 'removed';
+    } else {
+      return 'fail';
+    }
+  }
+
+  Future<String> dislikeComment(String commentId, String blogPostId) async {
+    final response = await postData(
+        'v3/comment/dislike', {'comment': commentId, 'blogPost': blogPostId});
+    final decodedres = jsonDecode(response);
+    if (decodedres.contains('dislike')) {
+      return 'success';
+    } else if (response.toString() == '[]') {
+      return 'removed';
+    } else {
+      return 'fail';
+    }
+  }
+
+  Future<List<BlogPostModelV3>> getRecommended(String blogPostId) async {
+    try {
+      final response = await fetchData('v3/content/related?id=$blogPostId');
+      if (response != null && response.isNotEmpty) {
+        List<dynamic> decodedResponse = json.decode(response) as List<dynamic>;
+        return decodedResponse
+            .map((item) => BlogPostModelV3.fromJson(item))
+            .toList();
+      }
+      return [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  Future<List<CommentModel>> getComments(
+      String blogPostId, int limit, String sortBy, String sortOrder,
+      {String? fetchAfter}) async {
+    try {
+      dynamic response;
+      if (fetchAfter != null) {
+        response = await fetchData(
+            'v3/comment?blogPost=$blogPostId&limit=$limit&fetchAfter=$fetchAfter&sortBy=$sortBy&sortDirection=$sortOrder');
+      } else {
+        response = await fetchData(
+            'v3/comment?blogPost=$blogPostId&limit=$limit&sortBy=$sortBy&sortDirection=$sortOrder');
+      }
+
+      if (response != null && response.isNotEmpty) {
+        final List<dynamic> decodedData =
+            json.decode(response) as List<dynamic>;
+        return decodedData
+            .map((item) => CommentModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  Future<List<CommentModel>> getReplies(
+      String comment, String blogPost, int limit, String rid) async {
+    try {
+      final response = await fetchData(
+          'v3/comment/replies?comment=$comment&blogPost=$blogPost&limit=$limit&rid=$rid');
+
+      if (response != null && response.isNotEmpty) {
+        final List<dynamic> decodedData =
+            json.decode(response) as List<dynamic>;
+        return decodedData
+            .map((item) => CommentModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  Future<CommentModel?> comment(String blogPostId, String comment,
+      {String? replyto}) async {
+    try {
+      final response = await postData('v3/comment', {
+        'blogPost': blogPostId,
+        if (replyto != null) 'replyTo': replyto,
+        'text': comment
+      });
+      if (response.isNotEmpty) {
+        final decodedData = json.decode(response) as Map<String, dynamic>;
+        return CommentModel.fromJson(decodedData);
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  Future<String> deleteComment(String commentId) async {
+    final response = await postData('v3/comment/delete?comment=$commentId', {});
+    return response;
+  }
+
+  Future<String> editComment(String commentId, String text) async {
+    final response =
+        await postData('v3/comment/edit?comment=$commentId&text=$text', {});
+    return response;
+  }
+
+  Future<String> getDelivery(String scenario, String entityId) async {
+    try {
+      final res = await fetchData(
+          'v3/delivery/info?scenario=$scenario&entityId=$entityId&outputKind=hls.mpegts');
+      return res;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  Future<String> getContent(String type, String id) async {
+    try {
+      final res = await fetchData('v3/content/$type?id=$id');
+      return res;
+    } catch (e) {
+      return '';
     }
   }
 

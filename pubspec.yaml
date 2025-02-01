@@ -27,25 +27,52 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+
 dependencies:
   flutter:
     sdk: flutter
   http: ^1.2.2
   shared_preferences: ^2.3.2
+  shared_preferences_android: ^2.3.4
   go_router: ^14.3.0
-  intl: ^0.19.0
+  intl: ^0.20.1
   flutter_riverpod: ^2.6.1
   json_annotation: ^4.9.0
   cached_network_image: ^3.4.1
   infinite_scroll_pagination: ^4.0.0
-  timeago: ^3.7.0
   flutter_markdown: ^0.7.4+1
   font_awesome_flutter: ^10.8.0
   url_launcher: ^6.3.1
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  fwfh_url_launcher: ^0.9.1
+  flutter_widget_from_html_core: ^0.15.2
+  media_kit: ^1.1.11
+  media_kit_video: ^1.2.5               
+  media_kit_libs_video: ^1.0.5        
+  audio_service: ^0.18.15    
+  audio_service_mpris: ^0.2.0
+  audio_session: ^0.1.18               
+   
+  windows_single_instance: ^1.0.1
+  unix_single_instance: ^0.0.4         
+  smtc_windows: ^1.0.0
+  tray_manager: ^0.3.1                 
+  window_manager: ^0.4.3                
   cupertino_icons: ^1.0.8
+  logging: ^1.2.0
+
+dependency_overrides:
+  media_kit: 
+    git:
+      url: https://github.com/media-kit/media-kit
+      path: media_kit
+  media_kit_video: 
+    git:
+      url: https://github.com/media-kit/media-kit
+      path: media_kit_video
+  media_kit_libs_video: 
+    git:
+      url: https://github.com/media-kit/media-kit
+      path: libs/universal/media_kit_libs_video
 
 dev_dependencies:
   flutter_test:
@@ -58,7 +85,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^4.0.0
+  flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

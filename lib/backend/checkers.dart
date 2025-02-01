@@ -19,15 +19,17 @@ class Checkers {
         if (cookieParts.length > 1) {
           expiresPart = cookieParts[1];
         } else {
-          return false; //failsafe i guess 
+          return false; //failsafe i guess
         }
       }
       DateTime parsedDate;
       try {
-        DateFormat dateFormat = DateFormat("dd MMM yyyy HH:mm:ss 'GMT'", "en_US");
+        DateFormat dateFormat =
+            DateFormat("dd MMM yyyy HH:mm:ss 'GMT'", "en_US");
         parsedDate = dateFormat.parse(expiresPart, true);
       } catch (e) {
-        DateFormat dateFormat = DateFormat("dd MMM yyyy HH:mm:ss Z", "en_US"); //handle timezones maybe idk
+        DateFormat dateFormat = DateFormat(
+            "dd MMM yyyy HH:mm:ss Z", "en_US"); //handle timezones maybe idk
         parsedDate = dateFormat.parse(expiresPart);
       }
       DateTime now = DateTime.now().toUtc();

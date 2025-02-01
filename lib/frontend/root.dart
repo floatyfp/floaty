@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/backend/state_mgmt.dart';
@@ -25,6 +27,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
   Widget _appBarTitle = const Text('Floaty');
   List<Widget>? _appBarActions;
   Widget? _appBarLeading;
+  StreamSubscription? _creatorSubscription;
 
   @override
   void initState() {
@@ -32,29 +35,39 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     _loadsidebar();
   }
 
-  void _loadsidebar() {
-    setState(() {
-      isLoading = true;
-    });
-    FPApiRequests().getSubscribedCreators().listen((fetchedCreators) {
-      setState(() {
-        creators = fetchedCreators;
-      });
-      FPApiRequests().getUser().listen((fetchedUser) {
+  Future<void> _loadsidebar() async {
+    if (!mounted) return;
+    try {
+      _creatorSubscription =
+          FPApiRequests().getSubscribedCreators().listen((fetchedCreators) {
+        if (!mounted) return;
         setState(() {
-          user = fetchedUser;
-          isLoading = false;
+          creators = fetchedCreators;
+        });
+        FPApiRequests().getUser().listen((fetchedUser) {
+          if (!mounted) return;
+          setState(() {
+            user = fetchedUser;
+            isLoading = false;
+          });
+        }, onError: (error) {
+          if (!mounted) return;
+          setState(() {
+            isLoading = false;
+          });
         });
       }, onError: (error) {
+        if (!mounted) return;
         setState(() {
           isLoading = false;
         });
       });
-    }, onError: (error) {
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
-    });
+    }
   }
 
   void setAppBar(Widget title, {List<Widget>? actions, Widget? leading}) {
@@ -63,6 +76,12 @@ class _RootLayoutState extends ConsumerState<RootLayout>
       _appBarActions = actions;
       _appBarLeading = leading;
     });
+  }
+
+  @override
+  void dispose() {
+    _creatorSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -130,6 +149,12 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                     isSmallScreen: isSmallScreen,
                     showText: showText,
                   ),
+                  SidebarText(
+                    title: 'Your Subscriptions',
+                    isSidebarCollapsed: isSidebarCollapsed,
+                    isSmallScreen: isSmallScreen,
+                    showText: showText,
+                  ),
                   if (isLoading)
                     const CircularProgressIndicator()
                   else
@@ -181,15 +206,17 @@ class _RootLayoutState extends ConsumerState<RootLayout>
 
     Widget sidebar = isSmallScreen
         ? SafeArea(child: Drawer(child: buildSidebarContent()))
-        : AnimatedContainer(
-            width: isSidebarCollapsed ? 70 : 260,
-            duration: const Duration(milliseconds: 200),
-            child: Material(
-              color: const Color.fromARGB(255, 40, 40, 40),
-              elevation: 2,
-              child: buildSidebarContent(),
-            ),
-          );
+        : SafeArea(
+            bottom: false,
+            child: AnimatedContainer(
+              width: isSidebarCollapsed ? 70 : 260,
+              duration: const Duration(milliseconds: 200),
+              child: Material(
+                color: const Color.fromARGB(255, 40, 40, 40),
+                elevation: 2,
+                child: SafeArea(child: buildSidebarContent()),
+              ),
+            ));
 
     return Scaffold(
       key: scaffoldKey,
