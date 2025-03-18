@@ -1,0 +1,3 @@
+#include "Generated.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER=uk.bw86.floaty.dev
+APP_NAME=Floaty Dev

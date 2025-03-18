@@ -2,8 +2,11 @@
 
 import 'dart:io';
 import 'dart:async';
+import 'package:floaty/backend/fpapi.dart';
+import 'package:floaty/frontend/root.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:window_manager/window_manager.dart';
@@ -13,6 +16,7 @@ import 'audio_handler.dart';
 import 'windows_media_controls.dart';
 import 'video_quality.dart';
 import 'package:floaty/settings.dart';
+import 'package:simple_pip_mode/simple_pip.dart';
 
 enum MediaType {
   audio,
@@ -27,6 +31,10 @@ enum MediaPlayerState {
   pip,
 }
 
+final mediaPlayerServiceProvider =
+    StateNotifierProvider<MediaPlayerService, MediaPlayerState>(
+        (ref) => MediaPlayerService());
+
 class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   static final MediaPlayerService _instance = MediaPlayerService._internal();
 
@@ -37,6 +45,13 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   MediaPlayerService._internal() : super(MediaPlayerState.none) {
     _log = Logger('MediaPlayerService');
     globalPlayer = Player(); // Initialize player immediately
+    _subtitlesEnabled = false; // Default value until initialized
+    _initSettings(); // Initialize settings
+  }
+
+  Future<void> _initSettings() async {
+    _subtitlesEnabled = await Settings().getBool('subtitles_enabled');
+    state = state; // Notify listeners
   }
 
   static Player? globalPlayer;
@@ -53,10 +68,21 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   MediaType? _currentMediaType;
   String? _currentTitle;
   String? _currentArtist;
+  String? _currentThumbnailUrl;
+  String? _currentPostId;
+  late bool _live;
   dynamic _currentAttachment;
   VideoQuality? _currentQuality;
   List<VideoQuality> _availableQualities = [];
   VideoController? _videoController;
+  Duration? _lastReportedPosition;
+  List<Map<String, dynamic>>? _currentTextTracks;
+  bool _subtitlesEnabled = false;
+  int? _currentSubtitleTrackIndex;
+  bool _pip = false;
+  Size? _restoreSize;
+
+  late SimplePip _simplePip;
 
   // Getters
   VideoController? get videoController => _videoController;
@@ -66,12 +92,39 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   double get volumeLevel => _volume;
   VideoQuality? get currentQuality => _currentQuality;
   List<VideoQuality> get availableQualities => _availableQualities;
+  bool get subtitlesEnabled => _subtitlesEnabled;
+  List<Map<String, dynamic>>? get textTracks => _currentTextTracks;
+  int? get currentSubtitleTrackIndex => _currentSubtitleTrackIndex;
+  String? get currentTitle => _currentTitle;
+  String? get currentArtist => _currentArtist;
+  String? get currentThumbnailUrl => _currentThumbnailUrl;
+  String? get currentPostId => _currentPostId;
+  String? get currentAttachmentId => _currentAttachment?.id;
+  dynamic get currentAttachment => _currentAttachment;
+  String? get selectedMediaName => _currentMediaType?.name;
+  SimplePip get simplePip => _simplePip;
 
   void _setupPlayerListeners() {
+    _simplePip = SimplePip(
+      onPipExited: () =>
+          rootLayoutKey.currentContext?.go('/post/_currentPostId'),
+    );
     if (globalPlayer == null) return;
+
+    // if (_live == true) {
+    //   (globalPlayer!.platform as NativePlayer)
+    //       .setProperty('profile', 'low-latency');
+    // }
 
     player.stream.position.listen((position) {
       _position = position;
+      if (_lastReportedPosition == null ||
+          position.inMinutes > _lastReportedPosition!.inMinutes) {
+        _lastReportedPosition = position;
+
+        fpApiRequests.progress(_currentAttachment.id!, position.inSeconds,
+            _currentMediaType == MediaType.video ? 'video' : 'audio');
+      }
     });
 
     player.stream.duration.listen((duration) {
@@ -85,11 +138,25 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     player.stream.playing.listen((playing) {
       _isPlaying = playing;
     });
+
+    player.stream.completed.listen((completed) {
+      fpApiRequests.progress(_currentAttachment.id!, _duration.inSeconds,
+          _currentMediaType == MediaType.video ? 'video' : 'audio');
+    });
   }
 
   // Initialization state management
   bool _isInitialized = false;
   Completer<void>? _initializeCompleter;
+
+  Future pipfalse() async {
+    _pip = false;
+    windowManager.setSize(_restoreSize ?? Size(480, 270));
+    _restoreSize = null;
+    windowManager.setAlwaysOnTop(false);
+    windowManager.center();
+    windowManager.setTitleBarStyle(TitleBarStyle.normal);
+  }
 
   Future<void> _ensureInitialized() async {
     if (_isInitialized) return;
@@ -126,6 +193,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
           androidNotificationChannelId: 'uk.bw86.floaty.channel.audio',
           androidNotificationChannelName: 'Audio playback',
           androidNotificationOngoing: true,
+          androidNotificationIcon: 'mipmap/ic_notification',
         ),
       );
     }
@@ -141,14 +209,17 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
 
   Future<void> setSource(
     String url,
-    MediaType type, {
+    MediaType type,
+    bool live, {
     String? title,
     String? artist,
+    String? postId,
     String? thumbnailUrl,
     dynamic attachment,
     List<VideoQuality>? qualities,
     Map<String, String>? headers,
     Duration start = Duration.zero,
+    List<Map<String, dynamic>>? textTracks,
   }) async {
     _log.info('Setting source: $url');
     await _ensureInitialized();
@@ -161,11 +232,16 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
 
     try {
       _log.info('Updating media source...');
+      _live = live;
       _currentMediaUrl = url;
       _currentMediaType = type;
       _currentTitle = title;
       _currentArtist = artist;
+      _currentPostId = postId;
+      _currentThumbnailUrl = thumbnailUrl;
       _currentAttachment = attachment;
+      _currentTextTracks = textTracks;
+      _currentSubtitleTrackIndex = textTracks?.isNotEmpty == true ? 0 : null;
 
       if (qualities != null) {
         _availableQualities = qualities;
@@ -190,17 +266,51 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
 
       await player.stop();
 
+      _log.info(
+          'Setting up media with text tracks: ${textTracks?.length ?? 0}');
+
+      final subtitleList = textTracks
+              ?.map((track) => {
+                    'title': track['language'] ?? 'Unknown',
+                    'language': track['language'] ?? 'und',
+                    'url': track['src'],
+                    'selected': textTracks.indexOf(track) == 0,
+                  })
+              .toList() ??
+          [];
+
       final media = Media(
         url,
         httpHeaders: headers ??
             {
-              'User-Agent':
-                  'FloatyClient/1.0.0, CFNetwork', // Default User-Agent
+              'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
               'Cookie': await Settings().getKey('token'),
             },
         start: start,
+        extras: {
+          'subtitle': subtitleList,
+        },
       );
+
       await player.open(media);
+      _log.info('Media opened successfully');
+
+      // Initialize subtitle track if available
+      if (textTracks?.isNotEmpty == true && subtitlesEnabled) {
+        final defaultTrack = textTracks!.first;
+
+        await player.setSubtitleTrack(
+          SubtitleTrack.uri(
+            defaultTrack['src'],
+            title: defaultTrack['language'],
+            language: defaultTrack['language'],
+          ),
+        );
+        _currentSubtitleTrackIndex = 0;
+      } else {
+        _currentTextTracks = textTracks;
+        _currentSubtitleTrackIndex = 0;
+      }
 
       if (type == MediaType.video) {
         _videoController = VideoController(player);
@@ -255,6 +365,13 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     }
   }
 
+  Future<void> enterpip() async {
+    _simplePip.enterPipMode(aspectRatio: (
+      globalPlayer?.state.width ?? 16,
+      globalPlayer?.state.height ?? 9
+    ));
+  }
+
   Future<void> play() async {
     await _ensureInitialized();
     if (_currentMediaType == MediaType.audio ||
@@ -276,6 +393,18 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
         await audioHandler?.pause();
       }
       _isPlaying = false;
+    }
+  }
+
+  Future<void> playpause() async {
+    await _ensureInitialized();
+    if (_currentMediaType == MediaType.audio ||
+        _currentMediaType == MediaType.video) {
+      if (_isPlaying) {
+        await pause();
+      } else {
+        await play();
+      }
     }
   }
 
@@ -319,43 +448,117 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
           },
       start: position,
     );
+
+    _currentQuality = quality;
+    Settings().setKey('preferred_quality', quality.label);
+
     await player.open(media, play: play);
     _videoController = VideoController(player);
   }
 
   Future<void> changeState(MediaPlayerState newState) async {
-    if (state == newState) return;
+    if (state == newState) {
+      return;
+    }
+
+    if (globalPlayer == null) {
+      return;
+    }
+
+    state = newState;
 
     switch (newState) {
       case MediaPlayerState.pip:
         if (!Platform.isIOS) {
           if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-            await windowManager.setAlwaysOnTop(true);
-            await windowManager.setSize(const Size(320, 180));
+            _restoreSize = await windowManager.getSize();
+            _pip = true;
+            windowManager.setAlwaysOnTop(true);
+            windowManager.unmaximize();
+            windowManager.dock;
+            windowManager.setSize(Size(480, 270));
+            windowManager.setTitleBarStyle(TitleBarStyle.hidden);
           }
         }
         break;
       case MediaPlayerState.mini:
         if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-          await windowManager.setAlwaysOnTop(false);
+          if (!_pip) {
+            windowManager.setAlwaysOnTop(false);
+            windowManager.setTitleBarStyle(TitleBarStyle.normal);
+            if (_restoreSize != null) {
+              windowManager.setSize(_restoreSize ?? Size(480, 270));
+              _restoreSize = null;
+              windowManager.center();
+            }
+          }
         }
         break;
       case MediaPlayerState.main:
         if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-          await windowManager.setAlwaysOnTop(false);
-          // TODO: Store size and restore on switch
-          // await windowManager.setSize(const Size(1280, 720));
+          if (!_pip) {
+            if (_restoreSize != null) {
+              windowManager.setSize(_restoreSize ?? Size(480, 270));
+              _restoreSize = null;
+              windowManager.center();
+            }
+            windowManager.setAlwaysOnTop(false);
+            windowManager.setTitleBarStyle(TitleBarStyle.normal);
+          }
         }
         break;
       case MediaPlayerState.none:
+        await stop();
         break;
     }
-
-    state = newState;
   }
 
   Future<void> setSpeed(double speed) async {
     player.setRate(speed);
+  }
+
+  Future<void> toggleSubtitles() async {
+    _subtitlesEnabled = !_subtitlesEnabled;
+    await Settings().setBool('subtitles_enabled', _subtitlesEnabled);
+    _log.info('Toggling subtitles: ${_subtitlesEnabled ? 'on' : 'off'}');
+
+    if (!_subtitlesEnabled) {
+      await player.setSubtitleTrack(SubtitleTrack.no());
+    } else if (_currentSubtitleTrackIndex != null &&
+        _currentTextTracks != null) {
+      final track = _currentTextTracks![_currentSubtitleTrackIndex!];
+
+      await player.setSubtitleTrack(
+        SubtitleTrack.uri(
+          track['src'],
+          title: track['language'],
+          language: track['language'],
+        ),
+      );
+    }
+    state = state;
+  }
+
+  Future<void> setSubtitleTrack(int index) async {
+    if (_currentTextTracks == null || index >= _currentTextTracks!.length) {
+      _log.warning('Invalid subtitle track index: $index');
+      return;
+    }
+
+    _log.info('Setting subtitle track to index $index');
+    _currentSubtitleTrackIndex = index;
+    final track = _currentTextTracks![index];
+
+    Settings().setBool('subtitles_enabled', true);
+
+    await player.setSubtitleTrack(
+      SubtitleTrack.uri(
+        track['src'],
+        title: track['language'],
+        language: track['language'],
+      ),
+    );
+    state = state;
   }
 
   @override
@@ -379,8 +582,3 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     await windowsControls?.stop();
   }
 }
-
-final mediaPlayerServiceProvider =
-    StateNotifierProvider<MediaPlayerService, MediaPlayerState>((ref) {
-  return MediaPlayerService();
-});

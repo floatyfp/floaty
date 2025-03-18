@@ -1,15 +1,19 @@
 // ignore_for_file: use_super_parameters, library_private_types_in_public_api
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:floaty/providers/elements_provider.dart';
+
 import 'dart:math';
 
 import 'package:floaty/frontend/root.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:floaty/backend/state_mgmt.dart';
+import 'package:floaty/providers/root_provider.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:async';
 import 'package:floaty/backend/fpapi.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class SidebarSizeControl extends StatelessWidget {
   final String title;
@@ -147,16 +151,20 @@ class PictureSidebarItem extends StatelessWidget {
       selected: GoRouterState.of(context).uri.path == route,
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: CachedNetworkImage(
-          width: 24,
-          height: 24,
-          imageUrl: picture,
-        ),
+        child: picture.isEmpty
+            ? Icon(Icons.person)
+            : CachedNetworkImage(
+                width: 24,
+                height: 24,
+                imageUrl: picture,
+              ),
       ),
       title: isSidebarCollapsed
           ? null
           : showText || isSmallScreen
-              ? Text(title)
+              ? title.isEmpty
+                  ? Text('Error')
+                  : Text(title)
               : const SizedBox.shrink(),
       onTap: onTap ??
           () {
@@ -216,29 +224,33 @@ class StatColumn extends StatelessWidget {
   }
 }
 
-class SidebarChannelItem extends StatefulWidget {
+class SidebarChannelItem extends ConsumerStatefulWidget {
+  final String id;
   final CreatorModelV3 response;
   final bool isSidebarCollapsed;
   final bool isSmallScreen;
   final bool showText;
+  final VoidCallback? onTap;
 
   const SidebarChannelItem({
     Key? key,
+    required this.id,
     required this.response,
     required this.isSidebarCollapsed,
     required this.isSmallScreen,
     required this.showText,
+    this.onTap,
   }) : super(key: key);
 
   @override
-  _SidebarChannelItemState createState() => _SidebarChannelItemState();
+  ConsumerState<SidebarChannelItem> createState() => _SidebarChannelItemState();
 }
 
-class _SidebarChannelItemState extends State<SidebarChannelItem>
+class _SidebarChannelItemState extends ConsumerState<SidebarChannelItem>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  bool _isExpanded = false;
+  bool get isExpanded => ref.watch(channelExpansionProvider(widget.id));
 
   @override
   void initState() {
@@ -277,9 +289,8 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
   }
 
   void _toggleExpansion() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-    });
+    ref.read(channelExpansionProvider(widget.id).notifier).state =
+        !ref.read(channelExpansionProvider(widget.id));
   }
 
   List<ChannelModel> _sortedChannels(List<ChannelModel> channels) {
@@ -338,9 +349,9 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
               ? AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   child: IconButton(
-                    key: ValueKey<bool>(_isExpanded),
+                    key: ValueKey<bool>(isExpanded),
                     icon: Icon(
-                      _isExpanded ? Icons.expand_less : Icons.expand_more,
+                      isExpanded ? Icons.expand_less : Icons.expand_more,
                     ),
                     onPressed: _toggleExpansion,
                   ),
@@ -348,7 +359,7 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
               : null,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
         ),
-        if (hasSubChannels && _isExpanded)
+        if (hasSubChannels && isExpanded)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: _sortedChannels(widget.response.channels ?? [])
@@ -407,239 +418,264 @@ class _SidebarChannelItemState extends State<SidebarChannelItem>
 class BlogPostCard extends StatelessWidget {
   final BlogPostModelV3 blogPost;
   final GetProgressResponse? response;
+  final double computedValue;
+  final String formattedDuration;
+  final String mediaTypeLabel;
+  final String relativeTime;
 
-  const BlogPostCard(this.blogPost, {this.response, super.key});
+  BlogPostCard(this.blogPost, {this.response, super.key})
+      : computedValue = (response?.progress ?? 0) / 100,
+        formattedDuration = _formatDuration(blogPost),
+        mediaTypeLabel = _getMediaTypeLabel(blogPost),
+        relativeTime = _getRelativeTime(blogPost.releaseDate);
 
-  String formatDuration(int seconds) {
-    final duration = Duration(seconds: seconds);
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(duration.inHours);
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final secs = twoDigits(duration.inSeconds.remainder(60));
+  static String _formatDuration(BlogPostModelV3 blogPost) {
+    final duration = Duration(
+        seconds: (blogPost.metadata?.videoDuration ??
+                blogPost.metadata?.audioDuration ??
+                0)
+            .toInt());
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
 
-    return hours != "00" ? "$hours:$minutes:$secs" : "$minutes:$secs";
+    return hours > 0
+        ? '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}'
+        : '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  String getRelativeTime(DateTime? dateTime) {
-    if (dateTime == null) return 'Unknown date';
-
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays > 365) {
-      final years = (difference.inDays / 365).floor();
-      return '$years year${years > 1 ? 's' : ''} ago';
-    } else if (difference.inDays > 30) {
-      final months = (difference.inDays / 30).floor();
-      return '$months month${months > 1 ? 's' : ''} ago';
-    } else if (difference.inDays > 6) {
-      final weeks = (difference.inDays / 7).floor();
-      return '$weeks week${weeks > 1 ? 's' : ''} ago';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
-    } else {
-      return 'Just now';
-    }
+  static String _getMediaTypeLabel(BlogPostModelV3 blogPost) {
+    final meta = blogPost.metadata;
+    final typeHierarchy = [
+      if (meta?.hasVideo == true) 'Video',
+      if (meta?.hasAudio == true) 'Audio',
+      if (meta?.hasPicture == true) 'Image',
+      if (meta?.hasGallery == true) 'Gallery',
+      'Text'
+    ];
+    return typeHierarchy.first;
   }
+
+  static String _getRelativeTime(DateTime? dateTime) =>
+      dateTime?.relativeTime ?? 'Unknown date';
 
   @override
   Widget build(BuildContext context) {
-    var progressValue = 0;
-    var computedValue = 0.0;
-    if (response != null) {
-      progressValue = response?.progress ?? 0;
-      computedValue = (progressValue / 100).clamp(0.0, 1.0);
-    }
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.push('/post/${blogPost.id}'),
-        child: OverflowBox(
-          maxHeight: double.infinity,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final iconSize = constraints.maxWidth * 0.08;
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              image: blogPost.thumbnail?.path != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(
-                                          blogPost.thumbnail?.path ?? ''),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: blogPost.thumbnail?.path == null
-                                ? const ClipRRect(
-                                    borderRadius:
-                                        BorderRadius.all(Radius.circular(8)),
-                                    child: GradientPlaceholder(),
-                                  )
-                                : null,
-                          ),
-                          if (blogPost.metadata?.hasAudio != false ||
-                              blogPost.metadata?.hasVideo != false)
-                            Positioned(
-                              bottom: response != null ? 12 : 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.7),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  blogPost.metadata?.hasVideo == true
-                                      ? formatDuration(blogPost
-                                              .metadata?.videoDuration
-                                              ?.toInt() ??
-                                          0)
-                                      : formatDuration(blogPost
-                                              .metadata?.audioDuration
-                                              ?.toInt() ??
-                                          0),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: constraints.maxWidth * 0.04,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (response != null)
-                            Positioned(
-                              bottom: 2.5,
-                              left: 10,
-                              right: 10,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  backgroundColor:
-                                      Colors.black.withValues(alpha: 0.7),
-                                  color: Theme.of(context).colorScheme.primary,
-                                  minHeight: 5,
-                                  value: computedValue,
-                                ),
-                              ),
-                            ),
-                          Positioned(
-                            bottom: response != null ? 12 : 8,
-                            left: 8,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.7),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                blogPost.metadata?.hasVideo == true
-                                    ? 'Video'
-                                    : blogPost.metadata?.hasAudio == true
-                                        ? 'Audio'
-                                        : blogPost.metadata?.hasPicture == true
-                                            ? 'Image'
-                                            : blogPost.metadata?.hasGallery ==
-                                                    true
-                                                ? 'Gallery'
-                                                : 'Text',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: constraints.maxWidth * 0.04,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (blogPost.isAccessible == false)
-                            Center(
-                              child: Container(
-                                padding:
-                                    EdgeInsets.all(constraints.maxWidth * 0.06),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.7),
-                                  borderRadius: BorderRadius.circular(100),
-                                ),
-                                child: Icon(
-                                  Icons.lock,
-                                  size: constraints.maxWidth * 0.15,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: constraints.maxWidth * 0.3,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipOval(
-                              child: blogPost.channel is ChannelModel
-                                  ? CachedNetworkImage(
-                                      imageUrl:
-                                          blogPost.channel?.icon?.path ?? '',
-                                      width: iconSize,
-                                      height: iconSize,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    blogPost.title ?? '',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: constraints.maxWidth * 0.047,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${blogPost.channel is ChannelModel ? blogPost.channel?.title ?? '' : blogPost.creator.title ?? ''} • ${getRelativeTime(blogPost.releaseDate ?? DateTime.now())}',
-                                    style: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontSize: constraints.maxWidth * 0.04,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+        onTap: () => blogPost.isAccessible == true
+            ? context.push('/post/${blogPost.id}')
+            : null,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final iconSize = constraints.maxWidth * 0.08;
+            final fontSize = constraints.maxWidth * 0.04;
+
+            return Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildThumbnailSection(context, constraints, fontSize),
+                  const SizedBox(height: 8),
+                  _buildFooterSection(iconSize, fontSize),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnailSection(
+      BuildContext context, BoxConstraints constraints, double fontSize) {
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        children: [
+          // Thumbnail image
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              image: blogPost.thumbnail?.path != null
+                  ? DecorationImage(
+                      image: NetworkImage(blogPost.thumbnail?.path ?? ''),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+            ),
+            child: blogPost.thumbnail?.path == null
+                ? const ClipRRect(
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                    child: GradientPlaceholder(),
+                  )
+                : null,
           ),
+
+          // Duration label
+          if (blogPost.metadata?.hasAudio == true ||
+              blogPost.metadata?.hasVideo == true)
+            Positioned(
+              bottom: response != null ? 12 : 8,
+              right: 8,
+              child: _InfoBubble(
+                text: formattedDuration,
+                fontSize: fontSize,
+              ),
+            ),
+
+          // Progress indicator
+          if (response != null)
+            Positioned(
+              bottom: 2.5,
+              left: 10,
+              right: 10,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.black.withValues(alpha: 0.7),
+                  color: Theme.of(context).colorScheme.primary,
+                  minHeight: 5,
+                  value: computedValue,
+                ),
+              ),
+            ),
+
+          // Media type label
+          Positioned(
+            bottom: response != null ? 12 : 8,
+            left: 8,
+            child: _InfoBubble(
+              text: mediaTypeLabel,
+              fontSize: fontSize,
+            ),
+          ),
+
+          // Lock icon
+          if (blogPost.isAccessible == false)
+            Center(
+              child: Container(
+                padding: EdgeInsets.all(constraints.maxWidth * 0.06),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Icon(
+                  Icons.lock,
+                  size: constraints.maxWidth * 0.15,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterSection(double iconSize, double fontSize) {
+    return SizedBox(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Channel icon
+          if (blogPost.channel is ChannelModel)
+            ClipOval(
+              child: CachedNetworkImage(
+                imageUrl: blogPost.channel?.icon?.path ?? '',
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.cover,
+              ),
+            ),
+          const SizedBox(width: 8),
+
+          // Text content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AutoSizeText(
+                  blogPost.title ?? '',
+                  stepGranularity: 0.25,
+                  minFontSize: 10,
+                  maxFontSize: 13,
+                  textScaleFactor: 0.95,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: fontSize * 1.150, // 0.047 of constraints
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                AutoSizeText(
+                  '${blogPost.channel is ChannelModel ? blogPost.channel?.title ?? '' : blogPost.creator.title ?? ''} • $relativeTime',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: fontSize,
+                  ),
+                  stepGranularity: 0.25,
+                  minFontSize: 2,
+                  maxFontSize: 10,
+                  textScaleFactor: 0.95,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+extension TimeDifference on DateTime {
+  String get relativeTime {
+    final diff = DateTime.now().difference(this);
+    const thresholds = {
+      365 * 24 * 60: 'year',
+      30 * 24 * 60: 'month',
+      7 * 24 * 60: 'week',
+      24 * 60: 'day',
+      60: 'hour',
+      1: 'minute'
+    };
+
+    final minutes = diff.inMinutes;
+    final entry = thresholds.entries.firstWhere((e) => minutes >= e.key,
+        orElse: () => const MapEntry(0, 'just now'));
+
+    return entry.key == 0
+        ? 'Just now'
+        : '${(minutes / entry.key).floor()} ${entry.value}${(minutes ~/ entry.key) > 1 ? 's' : ''} ago';
+  }
+}
+
+class _InfoBubble extends StatelessWidget {
+  final String text;
+  final double fontSize;
+
+  const _InfoBubble({required this.text, required this.fontSize});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: fontSize,
         ),
       ),
     );
@@ -735,7 +771,7 @@ class _CreatorCardState extends State<CreatorCard> {
   }
 }
 
-class FilterPanel extends StatefulWidget {
+class FilterPanel extends ConsumerStatefulWidget {
   final Function(String, Set<String>, RangeValues, DateTime?, DateTime?, bool)
       onFilterChanged;
   final Set<String>? initialContentTypes;
@@ -761,10 +797,10 @@ class FilterPanel extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<FilterPanel> createState() => _FilterPanelState();
+  ConsumerState<FilterPanel> createState() => _FilterPanelState();
 }
 
-class _FilterPanelState extends State<FilterPanel>
+class _FilterPanelState extends ConsumerState<FilterPanel>
     with SingleTickerProviderStateMixin {
   DateTime? startDate;
   DateTime? endDate;
@@ -1424,7 +1460,7 @@ class _FilterPanelState extends State<FilterPanel>
   }
 }
 
-class ExpandableDescription extends StatefulWidget {
+class ExpandableDescription extends ConsumerStatefulWidget {
   final String description;
   final int initialLines;
 
@@ -1435,13 +1471,13 @@ class ExpandableDescription extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<ExpandableDescription> createState() => _ExpandableDescriptionState();
+  ConsumerState<ExpandableDescription> createState() =>
+      _ExpandableDescriptionState();
 }
 
-class _ExpandableDescriptionState extends State<ExpandableDescription> {
-  bool _expanded = false;
-  bool _needsExpansion = false;
+class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
   final _textKey = GlobalKey();
+  final String _uniqueId = UniqueKey().toString();
 
   @override
   void initState() {
@@ -1467,13 +1503,15 @@ class _ExpandableDescriptionState extends State<ExpandableDescription> {
       textDirection: TextDirection.ltr,
     )..layout(maxWidth: textBox.size.width);
 
-    setState(() {
-      _needsExpansion = painter.didExceedMaxLines;
-    });
+    ref
+        .read(expandableDescriptionProvider(_uniqueId).notifier)
+        .setNeedsExpansion(painter.didExceedMaxLines);
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(expandableDescriptionProvider(_uniqueId));
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Column(
@@ -1505,29 +1543,29 @@ class _ExpandableDescriptionState extends State<ExpandableDescription> {
                   fontSize: 14,
                 ),
               ),
-              crossFadeState: _expanded
+              crossFadeState: state.expanded
                   ? CrossFadeState.showSecond
                   : CrossFadeState.showFirst,
               duration: const Duration(milliseconds: 200),
             ),
-            if (_needsExpansion)
+            if (state.needsExpansion)
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    _expanded = !_expanded;
-                  });
+                  ref
+                      .read(expandableDescriptionProvider(_uniqueId).notifier)
+                      .setExpanded(!state.expanded);
                 },
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _expanded ? 'Show less' : 'Show more',
+                      state.expanded ? 'Show less' : 'Show more',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      state.expanded ? Icons.expand_less : Icons.expand_more,
                       color: Theme.of(context).colorScheme.primary,
                     ),
                   ],
@@ -1540,7 +1578,7 @@ class _ExpandableDescriptionState extends State<ExpandableDescription> {
   }
 }
 
-class CommentItem extends StatefulWidget {
+class CommentItem extends ConsumerStatefulWidget {
   final CommentModel comment;
   final ContentPostV3Response content;
   final Function(String)? onReply;
@@ -1553,10 +1591,10 @@ class CommentItem extends StatefulWidget {
   });
 
   @override
-  State<CommentItem> createState() => _CommentItemState();
+  ConsumerState<CommentItem> createState() => _CommentItemState();
 }
 
-class _CommentItemState extends State<CommentItem> {
+class _CommentItemState extends ConsumerState<CommentItem> {
   bool _isEditing = false;
   late TextEditingController _editController;
   late String _commentText;
@@ -1597,8 +1635,8 @@ class _CommentItemState extends State<CommentItem> {
     if (_editController.text.trim().length >= 3 &&
         _editController.text.trim().length <= 1500) {
       try {
-        final editedComment = await FPApiRequests()
-            .editComment(widget.comment.id, _editController.text.trim());
+        final editedComment = await fpApiRequests.editComment(
+            widget.comment.id, _editController.text.trim());
 
         if (editedComment == 'OK') {
           if (mounted) {
@@ -1711,7 +1749,9 @@ class _CommentItemState extends State<CommentItem> {
                 radius: 16,
                 backgroundColor: Colors.grey[800],
                 backgroundImage: CachedNetworkImageProvider(
-                    widget.comment.user.profileImage.path ?? ''),
+                    widget.comment.user.id != widget.content.creator?.owner
+                        ? widget.comment.user.profileImage.path ?? ''
+                        : widget.content.channel?.icon?.path ?? ''),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1822,7 +1862,7 @@ class _CommentItemState extends State<CommentItem> {
                                           ),
                                           TextButton(
                                             onPressed: () async {
-                                              var res = await FPApiRequests()
+                                              var res = await fpApiRequests
                                                   .deleteComment(
                                                       widget.comment.id);
 
@@ -1981,7 +2021,7 @@ class _CommentItemState extends State<CommentItem> {
                             child: Text('$_likeCount'),
                           ),
                           onPressed: () async {
-                            final res = await FPApiRequests().likeComment(
+                            final res = await fpApiRequests.likeComment(
                                 widget.comment.id, widget.content.id!);
                             if (res == 'success') {
                               setState(() {
@@ -2038,7 +2078,7 @@ class _CommentItemState extends State<CommentItem> {
                             child: Text('$_dislikeCount'),
                           ),
                           onPressed: () async {
-                            final res = await FPApiRequests().dislikeComment(
+                            final res = await fpApiRequests.dislikeComment(
                                 widget.comment.id, widget.content.id!);
                             if (res == 'success') {
                               setState(() {
@@ -2181,23 +2221,121 @@ class _CommentItemState extends State<CommentItem> {
   }
 }
 
-class CommentHolder extends StatefulWidget {
+class CommentHolder extends ConsumerStatefulWidget {
   final CommentModel comment;
   final ContentPostV3Response content;
-  final Function(String, String)? onReply;
 
   const CommentHolder({
     super.key,
     required this.comment,
     required this.content,
-    this.onReply,
   });
 
   @override
-  State<CommentHolder> createState() => _CommentHolderState();
+  ConsumerState<CommentHolder> createState() => _CommentHolderState();
 }
 
-class _CommentHolderState extends State<CommentHolder> {
+class ShowInfoCard extends StatelessWidget {
+  final String preshowtime;
+  final String mainshowtime;
+  final String preshowlength;
+  final String mainshowlength;
+  final String lateness;
+  final bool late;
+
+  const ShowInfoCard({
+    Key? key,
+    required this.preshowtime,
+    required this.mainshowtime,
+    required this.preshowlength,
+    required this.mainshowlength,
+    required this.lateness,
+    required this.late,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: late ? Colors.red : Colors.green),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AutoSizeText(
+              "Show Info from Whenplane",
+              textScaleFactor: 1.15,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 3),
+            Divider(color: Colors.grey),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 15,
+              children: [
+                _buildShowSection("Pre Show", preshowtime, preshowlength),
+                _buildShowSection("Main Show", mainshowtime, mainshowlength),
+              ],
+            ),
+            Divider(color: Colors.grey),
+            SizedBox(height: 3),
+            AutoSizeText(
+              late
+                  ? lateness
+                  : lateness == '0s'
+                      ? 'On time!'
+                      : '$lateness early',
+              textScaleFactor: 1.05,
+              style: TextStyle(
+                color: late ? Colors.red : Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShowSection(String title, String time, String duration) {
+    return Column(
+      children: [
+        AutoSizeText(
+          title,
+          textScaleFactor: 1.15,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        SizedBox(height: 4),
+        AutoSizeText(
+          time,
+          textScaleFactor: 1.02,
+          style: TextStyle(
+            color: Colors.grey,
+          ),
+        ),
+        SizedBox(height: 4),
+        AutoSizeText(
+          duration,
+          textScaleFactor: 1.02,
+          style: TextStyle(
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CommentHolderState extends ConsumerState<CommentHolder> {
   late List<CommentModel> _replies;
   bool _isLoadingMore = false;
 
@@ -2212,7 +2350,7 @@ class _CommentHolderState extends State<CommentHolder> {
       _isLoadingMore = true;
     });
 
-    await FPApiRequests()
+    await fpApiRequests
         .getReplies(
       widget.comment.id,
       widget.content.id!,
@@ -2229,11 +2367,30 @@ class _CommentHolderState extends State<CommentHolder> {
 
   Future<CommentModel> sendreply(
       String blogPost, String replyTo, String text) async {
-    final reply =
-        await FPApiRequests().comment(blogPost, text, replyto: replyTo);
+    final reply = await fpApiRequests.comment(blogPost, text, replyto: replyTo);
 
     setState(() {
-      _replies.insert(0, reply!);
+      _replies.insert(
+          0,
+          CommentModel(
+            id: reply!.id,
+            blogPost: reply.blogPost,
+            user: reply.user,
+            text: reply.text,
+            replying: reply.replying,
+            postDate: reply.postDate,
+            editDate: reply.editDate,
+            pinDate: reply.pinDate,
+            editCount: reply.editCount,
+            isEdited: reply.isEdited,
+            likes: reply.likes,
+            dislikes: reply.dislikes,
+            score: reply.score,
+            interactionCounts: reply.interactionCounts,
+            totalReplies: reply.totalReplies,
+            replies: reply.replies,
+            userInteraction: reply.userInteraction,
+          ));
     });
     return reply!;
   }
@@ -2257,6 +2414,7 @@ class _CommentHolderState extends State<CommentHolder> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ..._replies.map((reply) => CommentItem(
+                      key: ValueKey(reply.id),
                       comment: reply,
                       content: widget.content,
                       onReply: (text) {
@@ -2270,7 +2428,7 @@ class _CommentHolderState extends State<CommentHolder> {
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(),
                           )
                         : Text(
                             'Show ${min(5, (widget.comment.totalReplies ?? 0) - _replies.length)} more ${((widget.comment.totalReplies ?? 0) - _replies.length) == 1 ? 'reply' : 'replies'}',
@@ -2287,7 +2445,7 @@ class _CommentHolderState extends State<CommentHolder> {
 
 enum CardState { initial, expanded }
 
-class StateCard extends StatefulWidget {
+class StateCard extends ConsumerStatefulWidget {
   final String title;
   final String subtitle;
   final Widget thumbnail;
@@ -2312,10 +2470,10 @@ class StateCard extends StatefulWidget {
   });
 
   @override
-  State<StateCard> createState() => _StateCardState();
+  ConsumerState<StateCard> createState() => _StateCardState();
 }
 
-class _StateCardState extends State<StateCard>
+class _StateCardState extends ConsumerState<StateCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -2477,6 +2635,53 @@ class _StateCardState extends State<StateCard>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class ErrorScreen extends StatefulWidget {
+  final String? message;
+  const ErrorScreen({Key? key, this.message}) : super(key: key);
+
+  @override
+  State<ErrorScreen> createState() => _ErrorScreenState();
+}
+
+class _ErrorScreenState extends State<ErrorScreen> {
+  bool revealed = false;
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Image(
+            image: AssetImage('assets/error.png'),
+            width: 200,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Well this is embarrassing.',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+          const Text('An error has occurred.',
+              style: TextStyle(fontSize: 14, color: Colors.grey)),
+          if (widget.message != null) ...[
+            const SizedBox(height: 16),
+            if (!revealed)
+              TextButton(
+                  onPressed: () {
+                    setState(() => revealed = true);
+                  },
+                  child: const Text('More Details')),
+            if (revealed)
+              Text(
+                widget.message ?? '',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+          ]
+        ],
       ),
     );
   }

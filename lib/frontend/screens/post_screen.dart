@@ -1,5 +1,9 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:floaty/frontend/elements.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:floaty/providers/post_provider.dart';
 import 'package:floaty/frontend/root.dart';
 import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/backend/definitions.dart';
@@ -10,134 +14,150 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:fwfh_url_launcher/fwfh_url_launcher.dart';
 import 'dart:math';
-import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:floaty/frontend/widgets/media_player_widget.dart';
 import 'package:floaty/services/media/media_player_service.dart';
 import 'package:floaty/services/media/video_quality.dart';
 import 'dart:convert';
 import 'package:floaty/settings.dart';
+import 'package:background_downloader/background_downloader.dart';
+import 'package:floaty/backend/download_manager.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 enum ScreenLayout { small, medium, wide }
 
-class VideoDetailPage extends StatefulWidget {
+class VideoDetailPage extends ConsumerStatefulWidget {
   const VideoDetailPage({super.key, required this.postId});
   final String postId;
   @override
-  State<VideoDetailPage> createState() => _VideoDetailPageState();
+  ConsumerState<VideoDetailPage> createState() => _VideoDetailPageState();
 }
 
-class _VideoDetailPageState extends State<VideoDetailPage> {
+class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
   late String postId;
-  ContentPostV3Response? _post;
-  StreamSubscription<ContentPostV3Response>? _postSubscription;
-  bool isLoading = true;
-  bool _isLiked = false;
-  bool _isDisliked = false;
-  int _likeCount = 0;
-  int _dislikeCount = 0;
-  bool _isExpanded = false;
-  List<BlogPostModelV3> recommendedPosts = [];
-  Map<String, GetProgressResponse> progressMap = {};
-  final PagingController<int, CommentModel> _pagingController =
-      PagingController(firstPageKey: 0);
+  late MediaPlayerService _mediaService;
+  final _commentController = TextEditingController();
+  final _focusNode = FocusNode();
+  final _attachmentScrollController = ScrollController();
+  late Future<Widget> _mediaContentFuture;
+  int _currentLength = 0;
   final int _pageSize = 20;
   String fetchafter = '0';
   String sortBy = 'createdAt';
   String sortOrder = 'DESC';
-  final _commentController = TextEditingController();
-  final _focusNode = FocusNode();
-  int _currentLength = 0;
   String? _selectedAttachmentId;
-  final _attachmentScrollController = ScrollController();
-  late Future<Widget> _mediaContentFuture;
   bool text = false;
+  bool isWan = false;
+  String letsBeHonestItsLateTime = '';
+  bool hundredpercentlate = false;
+  String preShowRange = '';
+  String preShowDuration = '';
+  String mainShowRange = '';
+  String mainShowDuration = '';
+  String latenessString = '';
+  String? mediaUrl;
+  MediaType selectedMediaType = MediaType.video; // Default
+  late MediaPlayerService mediaService;
+  late MediaPlayerState mediaState;
+  late List<PopupMenuEntry<String>> menuItems;
+
+  final List<CommentModel> _comments = [];
+  bool _isLoadingComments = false;
+  bool _hasMoreComments = true;
 
   @override
   void initState() {
     super.initState();
     postId = widget.postId;
     _mediaContentFuture = Future(() async {
-      // Wait for post details to be loaded
-      await _getPostDetails();
+      // Wait for post to be loaded
+      if (postId.isEmpty) {
+        postId = mediaService.currentPostId ?? '';
+      }
+      while (ref
+          .read(postProvider(
+              postId.isEmpty ? mediaService.currentPostId ?? '' : postId))
+          .isLoading) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
       return _buildMediaContent();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      setAppTitle();
-    });
+
     _commentController.addListener(_updateCharCount);
 
-    _pagingController.addPageRequestListener((pageKey) {
-      _fetchComments(pageKey);
-    });
+    _loadComments();
   }
 
-  Future<void> _getPostDetails() async {
-    // Create a completer to wait for the post details
-    final completer = Completer<void>();
-    bool isCompleted = false;
+  //whenplane intergration
+  //100% not converted from the browser extension
+  String? extractShowDate(String title) {
+    final titleRegex = RegExp(
+        r" - WAN Show ((January|February|March|April|May|June|July|August|September|October|November|December) \d{1,2}, \d{4})");
+    final match = titleRegex.firstMatch(title);
 
-    _postSubscription = FPApiRequests().getBlogPost(postId).listen(
-      (post) {
-        if (!isCompleted) {
-          setState(() {
-            _post = post;
-            isLoading = false;
-            if (post.title != null) {
-              rootLayoutKey.currentState?.setAppBar(Text(post.title!));
-            }
-            _isLiked = post.userInteraction.contains("like");
-            _isDisliked = post.userInteraction.contains("dislike");
-            _likeCount = post.likes ?? 0;
-            _dislikeCount = post.dislikes ?? 0;
-            if (_post!.attachmentOrder.isNotEmpty) {
-              _selectedAttachmentId = _post!.attachmentOrder.first;
-            }
-          });
-          isCompleted = true;
-          completer.complete();
-          isLoading = false;
-        }
-      },
-      onError: (error) {
-        if (!isCompleted) {
-          setState(() {
-            isLoading = false;
-          });
-          isCompleted = true;
-          completer.completeError(error);
-        }
-      },
-    );
+    if (match != null) {
+      String dateString =
+          match.group(1)!; // Extracted date as "February 14, 2025"
 
-    await completer.future;
+      // Parse into DateTime object
+      DateTime parsedDate = DateFormat("MMMM d, yyyy").parse(dateString);
 
-    final dynamic recommended = await FPApiRequests().getRecommended(postId);
-    setState(() {
-      recommendedPosts = recommended;
-    });
-    final List<String> postIds = recommendedPosts
-        .where((post) => post.id != null)
-        .map((post) => post.id!)
-        .toList();
-    final dynamic progress = await FPApiRequests().getVideoProgress(postIds);
-    progressMap = {};
-    if (progress is List) {
-      for (var progress in progress) {
-        if (progress is GetProgressResponse && progress.id != null) {
-          progressMap[progress.id!] = progress;
-        }
-      }
+      // Convert to YYYY/MM/DD format
+      return DateFormat("yyyy/MM/dd").format(parsedDate);
+    }
+
+    return null;
+  }
+
+  String formatDate(String rawDate) {
+    final date = DateTime.parse(rawDate);
+    return "${date.year}/${addZero(date.month)}/${addZero(date.day)}";
+  }
+
+  String addZero(int n) => n > 9 ? "$n" : "0$n";
+
+  String convertTimeFormat(String date1, String date2, bool length) {
+    DateTime start = DateTime.parse(date1).toUtc();
+    DateTime end = DateTime.parse(date2).toUtc();
+
+    if (length) {
+      return formatDuration(end.difference(start));
+    } else {
+      return "${formatTime(start)} - ${formatTime(end)}";
     }
   }
 
-  void setAppTitle() {
-    rootLayoutKey.currentState?.setAppBar(const Text('Loading...'));
+  String formatTime(DateTime date) {
+    return "${addZero(date.hour)}:${addZero(date.minute)}";
+  }
+
+  String formatDuration(Duration duration) {
+    return [
+      if (duration.inHours > 0) "${duration.inHours}h",
+      if (duration.inMinutes.remainder(60) > 0)
+        "${duration.inMinutes.remainder(60)}m",
+      if (duration.inSeconds.remainder(60) > 0)
+        "${duration.inSeconds.remainder(60)}s"
+    ].join(" ");
   }
 
   @override
   void dispose() {
-    _postSubscription?.cancel();
-    _pagingController.dispose();
+    Future.microtask(() async {
+      if (mediaService.isPlaying) {
+        mediaService.changeState(MediaPlayerState.mini);
+      }
+    });
+
+    Future.microtask(() async {
+      if (selectedMediaType == MediaType.video ||
+          selectedMediaType == MediaType.audio) {
+        fpApiRequests.progress(
+          _selectedAttachmentId ?? '',
+          _mediaService.currentPosition.inSeconds,
+          selectedMediaType.name,
+        );
+      }
+    });
     _commentController.removeListener(_updateCharCount);
     _commentController.dispose();
     _focusNode.dispose();
@@ -150,11 +170,8 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
     super.didUpdateWidget(oldWidget);
     if (postId != widget.postId) {
       postId = widget.postId;
-      _getPostDetails();
       setState(() {
         _mediaContentFuture = Future(() async {
-          // Wait for post details to be loaded
-          await _getPostDetails();
           return _buildMediaContent();
         });
       });
@@ -169,10 +186,18 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return isLoading
+    _mediaService = ref.watch(mediaPlayerServiceProvider.notifier);
+    final postState = ref.watch(postProvider(widget.postId));
+    menuItems = ref.watch(menuItemsProvider);
+
+    return postState.isLoading
         ? const Center(child: CircularProgressIndicator())
         : Scaffold(
-            body: SingleChildScrollView(
+            body: RefreshIndicator(
+            onRefresh: () async {
+              _loadComments();
+            },
+            child: SingleChildScrollView(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isWide = constraints.maxWidth > 1000;
@@ -190,7 +215,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                               )
                             : 0,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade800,
+                          color: Colors.black,
                         ),
                         child: FutureBuilder<Widget>(
                           future: _mediaContentFuture,
@@ -198,12 +223,14 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return const Center(
-                                  child: CircularProgressIndicator());
+                                  child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ));
                             } else if (snapshot.hasError) {
                               return Center(
                                   child: Text('Error: ${snapshot.error}'));
                             } else {
-                              return snapshot.data!; // Return the built widget
+                              return snapshot.data!;
                             }
                           },
                         ),
@@ -241,213 +268,282 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                 },
               ),
             ),
-          );
+          ));
   }
 
   Future<Widget> _buildMediaContent() async {
-    if (_post == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    int progress = 0;
-
-    // If no attachments, show no content
-    if (_post!.attachmentOrder.isEmpty) {
-      text = true;
-      return const SizedBox.shrink();
-    }
-
-    // If no attachment found, default to first
-    _selectedAttachmentId ??= _post!.attachmentOrder.first;
-
-    // Find the selected attachment
-    dynamic selectedAttachment;
-    MediaType selectedMediaType = MediaType.video; // Default
-
-    // Search through video attachments
-    for (final video in _post!.videoAttachments) {
-      if (video.id == _selectedAttachmentId) {
-        selectedAttachment = video;
-        selectedMediaType = MediaType.video;
-        break;
+    mediaService = ref.read(mediaPlayerServiceProvider.notifier);
+    mediaState = ref.read(mediaPlayerServiceProvider);
+    List<Map<String, dynamic>> textTrack = [];
+    try {
+      final postState = ref.watch(postProvider(widget.postId));
+      final post = postState.post;
+      if (post == null) {
+        return const Center(
+            child: CircularProgressIndicator(
+          color: Colors.white,
+        ));
       }
-    }
 
-    // If not found, search through audio attachments
-    if (selectedAttachment == null) {
-      for (final audio in _post!.audioAttachments) {
-        if (audio.id == _selectedAttachmentId) {
-          selectedAttachment = audio;
-          selectedMediaType = MediaType.audio;
+      int progress = 0;
+
+      // If no attachments, show no content
+      if (post.attachmentOrder.isEmpty) {
+        text = true;
+        return const SizedBox.shrink();
+      }
+
+      // If no attachment found, default to first
+      _selectedAttachmentId ??= post.attachmentOrder.first;
+
+      // Find the selected attachment
+      dynamic selectedAttachment;
+
+      // Search through video attachments
+      for (final video
+          in ref.read(postProvider(widget.postId)).post!.videoAttachments) {
+        if (video.id == _selectedAttachmentId) {
+          selectedAttachment = video;
+          selectedMediaType = MediaType.video;
           break;
         }
       }
-    }
 
-    // If not found, search through picture attachments
-    if (selectedAttachment == null) {
-      for (final picture in _post!.pictureAttachments) {
-        if (picture.id == _selectedAttachmentId) {
-          selectedAttachment = picture;
-          selectedMediaType = MediaType.image;
-          break;
+      // If not found, search through audio attachments
+      if (selectedAttachment == null) {
+        for (final audio
+            in ref.read(postProvider(widget.postId)).post!.audioAttachments) {
+          if (audio.id == _selectedAttachmentId) {
+            selectedAttachment = audio;
+            selectedMediaType = MediaType.audio;
+            break;
+          }
         }
       }
-    }
 
-    // Determine media URL based on attachment type
-    String? mediaUrl;
-    List<VideoQuality>? qualities;
-    if (selectedAttachment != null) {
-      if (selectedAttachment is VideoAttachmentModel) {
-        final res = await FPApiRequests()
-            .getDelivery('onDemand', _selectedAttachmentId!);
-        final decoded = jsonDecode(res);
-        qualities = await fetchVideoQualities(decoded, true);
-
-        final prores =
-            await FPApiRequests().getContent('video', _selectedAttachmentId!);
-        final decodedpro = jsonDecode(prores);
-        if (decodedpro['progress'] != null) {
-          progress = decodedpro['progress'];
+      // If not found, search through picture attachments
+      if (selectedAttachment == null) {
+        for (final picture
+            in ref.read(postProvider(widget.postId)).post!.pictureAttachments) {
+          if (picture.id == _selectedAttachmentId) {
+            selectedAttachment = picture;
+            selectedMediaType = MediaType.image;
+            break;
+          }
         }
+      }
 
-        // Determine the default quality using the Settings class
-        String? preferredQuality = await Settings().getKey('preferred_quality');
-        if (preferredQuality.isNotEmpty) {
-          VideoQuality? selectedQuality = qualities.firstWhere(
-            (quality) => quality.label == preferredQuality,
-            orElse: () => qualities!.first, // Fallback to the first quality
-          );
-          mediaUrl = selectedQuality.url; // Just use the URL directly
-        } else {
-          // Check for 1080p quality
-          VideoQuality? defaultQuality = qualities.firstWhere(
-            (quality) => quality.label == '1080p',
-            orElse: () => qualities!
-                .first, // Fallback to the first quality if 1080p doesn't exist
-          );
-          mediaUrl = defaultQuality.url;
-        }
-      } else if (selectedAttachment is AudioAttachmentModel) {
-        final res = await FPApiRequests()
-            .getDelivery('onDemand', _selectedAttachmentId!);
-        final decoded = jsonDecode(res);
-        qualities = await fetchVideoQualities(decoded, false);
+      // Determine media URL based on attachment type
+      List<VideoQuality>? qualities;
+      if (selectedAttachment != null) {
+        if (selectedAttachment is VideoAttachmentModel) {
+          final res = await fpApiRequests.getDelivery(
+              'onDemand', _selectedAttachmentId!);
+          final decoded = jsonDecode(res);
+          qualities = await fetchVideoQualities(decoded, true);
 
-        final prores =
-            await FPApiRequests().getContent('audio', _selectedAttachmentId!);
-        final decodedpro = jsonDecode(prores);
-        if (decodedpro['progress'] != null) {
-          progress = decodedpro['progress'];
-        }
+          final prores =
+              await fpApiRequests.getContent('video', _selectedAttachmentId!);
+          final decodedpro = jsonDecode(prores);
+          if (decodedpro['progress'] != null) {
+            progress = decodedpro['progress'];
+          }
 
-        // Determine the default quality using the Settings class
-        String? preferredQuality = await Settings().getKey('preferred_quality');
-        if (preferredQuality.isNotEmpty) {
-          VideoQuality? selectedQuality = qualities.firstWhere(
-            (quality) => quality.label == preferredQuality,
-            orElse: () => qualities!.first, // Fallback to the first quality
-          );
-          mediaUrl = selectedQuality.url; // Just use the URL directly
-        } else {
-          // Check for 1080p quality
-          VideoQuality? defaultQuality = qualities.firstWhere(
+          textTrack = (decodedpro['textTracks'] as List?)
+                  ?.cast<Map<String, dynamic>>() ??
+              [];
+
+          // Determine the default quality using the Settings class
+          String? preferredQuality =
+              await Settings().getKey('preferred_quality');
+          if (preferredQuality.isNotEmpty) {
+            VideoQuality? selectedQuality = qualities.firstWhere(
+              (quality) => quality.label == preferredQuality,
+              orElse: () => qualities!.first, // Fallback to the first quality
+            );
+            mediaUrl = selectedQuality.url; // Just use the URL directly
+          } else {
+            // Check for 1080p quality
+            VideoQuality? defaultQuality = qualities.firstWhere(
               (quality) => quality.label == '1080p',
               orElse: () => qualities!
-                  .first // Fallback to the first quality if 1080p doesn't exist
-              );
-          mediaUrl = defaultQuality.url;
+                  .first, // Fallback to the first quality if 1080p doesn't exist
+            );
+            mediaUrl = defaultQuality.url;
+          }
+        } else if (selectedAttachment is AudioAttachmentModel) {
+          final res = await fpApiRequests.getDelivery(
+              'onDemand', _selectedAttachmentId!);
+          final decoded = jsonDecode(res);
+          qualities = await fetchVideoQualities(decoded, false);
+
+          final prores =
+              await fpApiRequests.getContent('audio', _selectedAttachmentId!);
+          final decodedpro = jsonDecode(prores);
+          if (decodedpro['progress'] != null) {
+            progress = decodedpro['progress'];
+
+            textTrack = (decodedpro['textTracks'] as List?)
+                    ?.cast<Map<String, dynamic>>() ??
+                [];
+          }
+
+          // Determine the default quality using the Settings class
+          String? preferredQuality =
+              await Settings().getKey('preferred_quality');
+          if (preferredQuality.isNotEmpty) {
+            VideoQuality? selectedQuality = qualities.firstWhere(
+              (quality) => quality.label == preferredQuality,
+              orElse: () => qualities!.first, // Fallback to the first quality
+            );
+            mediaUrl = selectedQuality.url; // Just use the URL directly
+          } else {
+            // Check for 1080p quality
+            VideoQuality? defaultQuality = qualities.firstWhere(
+                (quality) => quality.label == '1080p',
+                orElse: () => qualities!
+                    .first // Fallback to the first quality if 1080p doesn't exist
+                );
+            mediaUrl = defaultQuality.url;
+          }
+        } else if (selectedAttachment is PictureAttachmentModel) {
+          final res =
+              await fpApiRequests.getContent('picture', _selectedAttachmentId!);
+          final decoded = jsonDecode(res);
+          mediaUrl = decoded['imageFiles'][0]['path'];
         }
-      } else if (selectedAttachment is PictureAttachmentModel) {
-        final res =
-            await FPApiRequests().getContent('picture', _selectedAttachmentId!);
-        final decoded = jsonDecode(res);
-        mediaUrl = decoded['imageFiles'][0]['path'];
       }
-    }
 
-    // If multiple attachments, add navigation
-    if (_post!.attachmentOrder.length > 1) {
-      return Stack(
-        children: [
-          MediaPlayerWidget(
-            mediaUrl: mediaUrl!,
-            mediaType: selectedMediaType,
-            attachment: selectedAttachment,
-            qualities: selectedMediaType == MediaType.image ? null : qualities,
-            initialState: MediaPlayerState.main,
-            startFrom: progress,
-            title: _post?.title ?? 'Unknown Title',
-            artist: _post?.channel?.title ?? 'Unknown Creator',
-            artworkUrl: _post!.thumbnail?.path ?? '',
-          ),
-          // Left navigation arrow
-          Positioned(
-            left: 16,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: IconButton(
-                icon: const Icon(Icons.chevron_left,
-                    color: Colors.white, size: 32),
-                onPressed: () {
-                  final currentIndex =
-                      _post!.attachmentOrder.indexOf(_selectedAttachmentId!);
-                  final prevIndex =
-                      (currentIndex - 1 + _post!.attachmentOrder.length) %
-                          _post!.attachmentOrder.length;
-                  setState(() {
-                    _selectedAttachmentId = _post!.attachmentOrder[prevIndex];
-                    _mediaContentFuture =
-                        _buildMediaContent(); // Rebuild media content
-                  });
-                },
+      // If multiple attachments, add navigation
+      if (ref.read(postProvider(widget.postId)).post!.attachmentOrder.length >
+          1) {
+        return Stack(
+          children: [
+            MediaPlayerWidget(
+              contextBuild: context,
+              mediaUrl: mediaUrl!,
+              mediaType: selectedMediaType,
+              attachment: selectedAttachment,
+              qualities:
+                  selectedMediaType == MediaType.image ? null : qualities,
+              initialState: MediaPlayerState.main,
+              startFrom: progress,
+              textTracks: textTrack.isEmpty ? null : textTrack,
+              live: false,
+              title: ref.read(postProvider(widget.postId)).post?.title ??
+                  'Unknown Title',
+              artist:
+                  ref.read(postProvider(widget.postId)).post?.channel?.title ??
+                      'Unknown Creator',
+              postId: widget.postId,
+              artworkUrl:
+                  ref.read(postProvider(widget.postId)).post!.thumbnail?.path ??
+                      '',
+            ),
+            // Left navigation arrow
+            Positioned(
+              left: 16,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: IconButton(
+                  icon: const Icon(Icons.chevron_left,
+                      color: Colors.white, size: 32),
+                  onPressed: () {
+                    final currentIndex = ref
+                        .read(postProvider(widget.postId))
+                        .post!
+                        .attachmentOrder
+                        .indexOf(_selectedAttachmentId!);
+                    final prevIndex = (currentIndex -
+                            1 +
+                            ref
+                                .read(postProvider(widget.postId))
+                                .post!
+                                .attachmentOrder
+                                .length) %
+                        ref
+                            .read(postProvider(widget.postId))
+                            .post!
+                            .attachmentOrder
+                            .length;
+                    setState(() {
+                      _selectedAttachmentId = ref
+                          .read(postProvider(widget.postId))
+                          .post!
+                          .attachmentOrder[prevIndex];
+                      _mediaContentFuture =
+                          _buildMediaContent(); // Rebuild media content
+                    });
+                  },
+                ),
               ),
             ),
-          ),
-          // Right navigation arrow
-          Positioned(
-            right: 16,
-            top: 0,
-            bottom: 0,
-            child: Center(
-              child: IconButton(
-                icon: const Icon(Icons.chevron_right,
-                    color: Colors.white, size: 32),
-                onPressed: () {
-                  final currentIndex =
-                      _post!.attachmentOrder.indexOf(_selectedAttachmentId!);
-                  final nextIndex =
-                      (currentIndex + 1) % _post!.attachmentOrder.length;
-                  setState(() {
-                    _selectedAttachmentId = _post!.attachmentOrder[nextIndex];
-                    _mediaContentFuture =
-                        _buildMediaContent(); // Rebuild media content
-                  });
-                },
+            // Right navigation arrow
+            Positioned(
+              right: 16,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: IconButton(
+                  icon: const Icon(Icons.chevron_right,
+                      color: Colors.white, size: 32),
+                  onPressed: () {
+                    final currentIndex = ref
+                        .read(postProvider(widget.postId))
+                        .post!
+                        .attachmentOrder
+                        .indexOf(_selectedAttachmentId!);
+                    final nextIndex = (currentIndex + 1) %
+                        ref
+                            .read(postProvider(widget.postId))
+                            .post!
+                            .attachmentOrder
+                            .length;
+                    setState(() {
+                      _selectedAttachmentId = ref
+                          .read(postProvider(widget.postId))
+                          .post!
+                          .attachmentOrder[nextIndex];
+                      _mediaContentFuture =
+                          _buildMediaContent(); // Rebuild media content
+                    });
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        );
+      }
+
+      // If only one attachment
+      return MediaPlayerWidget(
+        contextBuild: context,
+        mediaUrl: mediaUrl!,
+        live: false,
+        mediaType: selectedMediaType,
+        attachment: selectedAttachment,
+        qualities:
+            selectedMediaType == MediaType.video && selectedAttachment != null
+                ? qualities
+                : null,
+        initialState: MediaPlayerState.main,
+        startFrom: progress,
+        textTracks: textTrack.isEmpty ? null : textTrack,
+        title: ref.read(postProvider(widget.postId)).post?.title ??
+            'Unknown Title',
+        artist: ref.read(postProvider(widget.postId)).post?.channel?.title ??
+            'Unknown Creator',
+        postId: widget.postId,
+        artworkUrl:
+            ref.read(postProvider(widget.postId)).post!.thumbnail?.path ?? '',
       );
+    } catch (e) {
+      return const Center(
+          child: CircularProgressIndicator(
+        color: Colors.white,
+      ));
     }
-
-    // If only one attachment
-    return MediaPlayerWidget(
-      mediaUrl: mediaUrl!,
-      mediaType: selectedMediaType,
-      attachment: selectedAttachment,
-      qualities:
-          selectedMediaType == MediaType.video && selectedAttachment != null
-              ? qualities
-              : null,
-      initialState: MediaPlayerState.main,
-      startFrom: progress,
-      title: _post?.title ?? 'Unknown Title',
-      artist: _post?.channel?.title ?? 'Unknown Creator',
-      artworkUrl: _post!.thumbnail?.path ?? '',
-    );
   }
 
   Future<List<VideoQuality>> fetchVideoQualities(
@@ -496,12 +592,173 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
     }
   }
 
+// here you see wasted time because floatplane download api v3 doesnt actually work even if
+// you fix the urls not matching because the token v3 generates is invalid
+
+  // String convertV3ToV2(String v3Url) {  //   Uri uri = Uri.parse(v3Url);
+  //   String? token = uri.queryParameters['token'];
+  //   String? expires = uri.queryParameters['expires'];
+  //   String basePath =
+  //       uri.pathSegments.take(uri.pathSegments.length - 1).join('/');
+  //   String fileName = uri.pathSegments[uri.pathSegments.length - 2];
+  //   String v2Url =
+  //       '${uri.scheme}://${uri.host}/$basePath/$fileName.mp4?token=$token&expires=$expires';
+  //   return v2Url;
+  // }
+
   List<Widget> _buildInteractionButtons() {
+    final postState = ref.watch(postProvider(widget.postId));
+    final post = postState.post;
+    final downloadNotifier = ref.read(downloadOptionsProvider.notifier);
+
+    // Show download button if there's a media attachment
+    final hasMediaAttachment = post != null &&
+        (post.videoAttachments.isNotEmpty ||
+            post.audioAttachments.isNotEmpty ||
+            post.pictureAttachments.isNotEmpty);
+
+    Future<void> showDownloadDialog() async {
+      downloadNotifier.reset();
+      if (selectedMediaType == MediaType.image) {
+        downloadNotifier.setOptions([
+          DownloadOption(url: mediaUrl!, label: 'PNG'),
+        ]);
+      } else {
+        downloadNotifier.setLoading();
+        final data = await fpApiRequests.getDeliveryv2(
+            'download', _selectedAttachmentId ?? '');
+
+        if (data != 'Response StatusCode: 429, Body: error code: 1015') {
+          final dedata = jsonDecode(data);
+          final options = <DownloadOption>[];
+          String baseUrl = dedata['cdn'];
+
+          for (var quality in dedata['resource']['data']['qualityLevels']) {
+            String qualityName = quality['name'];
+            String qualityLabel = quality['label'];
+
+            String videoFile = dedata['resource']['data']['qualityLevelParams']
+                [qualityName]['1'];
+            String token = dedata['resource']['data']['qualityLevelParams']
+                [qualityName]['2'];
+
+            String resourceUri = dedata['resource']['uri']
+                .replaceFirst('{qualityLevelParams.1}', videoFile)
+                .replaceFirst('{qualityLevelParams.2}', token);
+            String curl = '$baseUrl$resourceUri';
+
+            options.add(DownloadOption(url: curl, label: qualityLabel));
+          }
+          downloadNotifier.setOptions(options);
+        } else {
+          downloadNotifier.setError('Rate limit exceeded');
+        }
+      }
+
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Download Options'),
+          content: SizedBox(
+            width: 300,
+            child: Consumer(
+              builder: (context, ref, _) {
+                final state = ref.watch(downloadOptionsProvider);
+
+                if (state.isLoading) {
+                  return const SizedBox(
+                    height: 100,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (state.error != null) {
+                  return ErrorScreen(message: state.error!);
+                }
+
+                return SizedBox(
+                  height: 200,
+                  child: ListView.builder(
+                    itemCount: state.options.length,
+                    itemBuilder: (context, index) {
+                      final option = state.options[index];
+                      return ListTile(
+                        dense: true,
+                        title: Text(option.label),
+                        onTap: () async {
+                          Navigator.of(context).pop();
+
+                          // Check permissions before starting download
+                          final hasPermissions = await DownloadManager()
+                              .checkAndRequestPermissions();
+                          if (!hasPermissions) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Permission denied for downloads')),
+                              );
+                            }
+                            return;
+                          }
+
+                          final task = DownloadTask(
+                            url: option.url,
+                            filename:
+                                '${mediaService.currentAttachment.title} (${option.label})${mediaService.currentAttachment is VideoAttachmentModel ? '.mp4' : mediaService.currentAttachment is AudioAttachmentModel ? '.mp3' : '.png'}',
+                            baseDirectory: BaseDirectory.applicationDocuments,
+                            updates: Updates.statusAndProgress,
+                            requiresWiFi: true,
+                            headers: {
+                              'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
+                            },
+                          );
+
+                          try {
+                            await FileDownloader().enqueue(task);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        'Started downloading ${option.label}')),
+                              );
+                            }
+                            // Move file to downloads after completion
+                            await DownloadManager().moveToDownloads(task);
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Failed to start download')),
+                              );
+                            }
+                          }
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return [
-      IconButton(
-        icon: const Icon(Icons.download, color: Colors.white),
-        onPressed: () {},
-      ),
+      if (hasMediaAttachment)
+        IconButton(
+          icon: const Icon(Icons.download, color: Colors.white),
+          onPressed: showDownloadDialog,
+        ),
       const SizedBox(width: 5),
       TextButton.icon(
         style: TextButton.styleFrom(
@@ -511,7 +768,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
         icon: AnimatedTheme(
           data: Theme.of(context).copyWith(
             iconTheme: IconThemeData(
-              color: _isLiked
+              color: postState.isLiked
                   ? Theme.of(context).colorScheme.primary
                   : Colors.white,
             ),
@@ -522,35 +779,15 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
         label: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 200),
           style: TextStyle(
-            color:
-                _isLiked ? Theme.of(context).colorScheme.primary : Colors.white,
+            color: postState.isLiked
+                ? Theme.of(context).colorScheme.primary
+                : Colors.white,
             fontWeight: FontWeight.bold,
           ),
-          child: Text('$_likeCount'),
+          child: Text('${postState.likeCount}'),
         ),
-        onPressed: () async {
-          final res = await FPApiRequests().likeBlogPost(_post!.id!);
-          if (res == 'success') {
-            setState(() {
-              if (_isLiked) {
-                _likeCount--;
-                _isLiked = false;
-              } else {
-                _likeCount++;
-                if (_isDisliked) {
-                  _dislikeCount--;
-                  _isDisliked = false;
-                }
-                _isLiked = true;
-              }
-            });
-          } else if (res == 'removed') {
-            setState(() {
-              _likeCount--;
-              _isLiked = false;
-            });
-          }
-        },
+        onPressed: () =>
+            ref.read(postProvider(widget.postId).notifier).toggleLike(),
       ),
       const SizedBox(width: 5),
       TextButton.icon(
@@ -561,7 +798,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
         icon: AnimatedTheme(
           data: Theme.of(context).copyWith(
             iconTheme: IconThemeData(
-              color: _isDisliked
+              color: postState.isDisliked
                   ? Theme.of(context).colorScheme.primary
                   : Colors.white,
             ),
@@ -572,41 +809,26 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
         label: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 200),
           style: TextStyle(
-            color: _isDisliked
+            color: postState.isDisliked
                 ? Theme.of(context).colorScheme.primary
                 : Colors.white,
             fontWeight: FontWeight.bold,
           ),
-          child: Text('$_dislikeCount'),
+          child: Text('${postState.dislikeCount}'),
         ),
-        onPressed: () async {
-          final res = await FPApiRequests().dislikeBlogPost(_post!.id!);
-          if (res == 'success') {
-            setState(() {
-              if (_isDisliked) {
-                _dislikeCount--;
-                _isDisliked = false;
-              } else {
-                _dislikeCount++;
-                if (_isLiked) {
-                  _likeCount--;
-                  _isLiked = false;
-                }
-                _isDisliked = true;
-              }
-            });
-          } else if (res == 'removed') {
-            setState(() {
-              _dislikeCount--;
-              _isDisliked = false;
-            });
-          }
-        },
+        onPressed: () =>
+            ref.read(postProvider(widget.postId).notifier).toggleDislike(),
       ),
     ];
   }
 
   Widget _buildMainContent(BoxConstraints constraints) {
+    final postState = ref.watch(postProvider(widget.postId));
+    final post = postState.post;
+    if (post == null) return const SizedBox.shrink();
+
+    Future(() => rootLayoutKey.currentState?.setAppBar(Text(post.title ?? '')));
+
     final isSmall = constraints.maxWidth <= 700;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -616,19 +838,21 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _post?.title ?? 'Unknown Title',
+              AutoSizeText(
+                post.title ?? 'Unknown Title',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
+                stepGranularity: 0.25,
+                textScaleFactor: 0.75,
               ),
-              _post?.tags.isNotEmpty == true
+              post.tags.isNotEmpty == true
                   ? Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _post!.tags
+                      children: post.tags
                           .map((tag) => Text(
                                 '#$tag',
                                 style: TextStyle(
@@ -655,18 +879,18 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _post?.title ?? 'Unknown Title',
+                      post.title ?? 'Unknown Title',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
                     ),
-                    if (_post?.tags.isNotEmpty == true)
+                    if (post.tags.isNotEmpty == true)
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: _post!.tags
+                        children: post.tags
                             .map((tag) => Text(
                                   '#$tag',
                                   style: TextStyle(
@@ -689,18 +913,18 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
         const SizedBox(height: 16),
         GestureDetector(
           onTap: () {
-            if (_post?.creator?.urlname == _post?.channel?.urlname) {
-              context.go('/channel/${_post?.creator?.urlname}');
+            if (post.creator?.urlname == post.channel?.urlname) {
+              context.go('/channel/${post.creator?.urlname}');
             } else {
               context.go(
-                  '/channel/${_post?.creator?.urlname}/${_post?.channel?.urlname}');
+                  '/channel/${post.creator?.urlname}/${post.channel?.urlname}');
             }
           },
           child: Row(
             children: [
               CircleAvatar(
-                backgroundImage: CachedNetworkImageProvider(
-                    _post?.channel?.icon?.path ?? ''),
+                backgroundImage:
+                    CachedNetworkImageProvider(post.channel?.icon?.path ?? ''),
                 radius: 20,
               ),
               const SizedBox(width: 12),
@@ -709,7 +933,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _post?.channel?.title ?? 'Unknown Creator',
+                      post.channel?.title ?? 'Unknown Creator',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -717,8 +941,8 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                       ),
                     ),
                     Text(
-                      _post?.releaseDate != null
-                          ? 'Posted ${DateFormat('MMMM dd, yyyy').format(_post!.releaseDate!)}'
+                      post.releaseDate != null
+                          ? 'Posted ${DateFormat('MMMM dd, yyyy').format(post.releaseDate!)}'
                           : '',
                       style: TextStyle(
                         color: Colors.grey[400],
@@ -731,7 +955,8 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
             ],
           ),
         ),
-        if (_post != null && (_post!.attachmentOrder.length) > 1) ...[
+        // ignore: unnecessary_null_comparison
+        if (post != null && (post.attachmentOrder.length) > 1) ...[
           const SizedBox(height: 16),
           ConstrainedBox(
             constraints:
@@ -739,7 +964,6 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
             child: Scrollbar(
               controller: _attachmentScrollController,
               thumbVisibility: true,
-              thickness: 5, // Slightly thicker
               radius: const Radius.circular(5),
               interactive: true, // Allow interactive scrollbar
               child: Padding(
@@ -754,13 +978,12 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                         const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                     child: Row(
                       children: [
-                        ...List.generate(_post!.attachmentOrder.length,
-                            (index) {
-                          final id = _post!.attachmentOrder[index];
+                        ...List.generate(post.attachmentOrder.length, (index) {
+                          final id = post.attachmentOrder[index];
                           Widget? attachmentWidget;
 
                           // Find the attachment by ID
-                          for (final video in _post!.videoAttachments) {
+                          for (final video in post.videoAttachments) {
                             if (video.id == id) {
                               attachmentWidget = StateCard(
                                 title: video.title,
@@ -788,7 +1011,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                             }
                           }
 
-                          for (final audio in _post!.audioAttachments) {
+                          for (final audio in post.audioAttachments) {
                             if (audio.id == id) {
                               attachmentWidget = StateCard(
                                 title: audio.title,
@@ -822,7 +1045,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                             }
                           }
 
-                          for (final picture in _post!.pictureAttachments) {
+                          for (final picture in post.pictureAttachments) {
                             if (picture.id == id) {
                               attachmentWidget = StateCard(
                                 title: picture.title,
@@ -850,7 +1073,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                             }
                           }
 
-                          for (final gallery in _post!.galleryAttachments) {
+                          for (final gallery in post.galleryAttachments) {
                             if (gallery.id == id) {
                               attachmentWidget = StateCard(
                                 title: gallery.title,
@@ -884,7 +1107,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
 
                           return Padding(
                             padding: EdgeInsets.only(
-                              right: index == _post!.attachmentOrder.length - 1
+                              right: index == post.attachmentOrder.length - 1
                                   ? 0
                                   : 16,
                             ),
@@ -900,7 +1123,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
           ),
         ],
         const SizedBox(height: 16),
-        if (_post?.text != null && _post!.text!.isNotEmpty)
+        if (post.text != null && post.text!.isNotEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -908,15 +1131,15 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                 children: [
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxHeight: _isExpanded ? double.infinity : 48.0,
+                      maxHeight: postState.isExpanded ? double.infinity : 48.0,
                     ),
                     child: ClipRect(
                       child: SingleChildScrollView(
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
                           child: HtmlWidget(
-                            _post?.text ?? '',
+                            post.text ?? '',
                             key: UniqueKey(),
                             factoryBuilder: () => _PostWidgetFactory(),
                           ),
@@ -924,7 +1147,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                       ),
                     ),
                   ),
-                  if (!_isExpanded)
+                  if (!postState.isExpanded)
                     Positioned(
                       left: 0,
                       right: 0,
@@ -938,7 +1161,7 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                             colors: [
                               Theme.of(context)
                                   .scaffoldBackgroundColor
-                                  .withValues(alpha: 0.0),
+                                  .withAlpha(0),
                               Theme.of(context).scaffoldBackgroundColor,
                             ],
                           ),
@@ -947,25 +1170,23 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                     ),
                 ],
               ),
-              if (_post?.text?.length != null && _post!.text!.length > 25)
+              if (post.text?.length != null && post.text!.length > 25)
                 Center(
                   child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _isExpanded = !_isExpanded;
-                      });
-                    },
+                    onPressed: () => ref
+                        .read(postProvider(widget.postId).notifier)
+                        .toggleExpanded(),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _isExpanded ? 'Show Less' : 'Show More',
+                          postState.isExpanded ? 'Show Less' : 'Show More',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                         Icon(
-                          _isExpanded
+                          postState.isExpanded
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
                           color: Theme.of(context).colorScheme.primary,
@@ -976,90 +1197,35 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                 ),
             ],
           ),
+        if (postState.isWan)
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 325),
+                child: ShowInfoCard(
+                    preshowtime: postState.preShowRange ?? '',
+                    mainshowtime: postState.mainShowRange ?? '',
+                    preshowlength: postState.preShowDuration ?? '',
+                    mainshowlength: postState.mainShowDuration ?? '',
+                    lateness: postState.hundredpercentlate
+                        ? '${postState.letsBeHonestItsLateTime} ${postState.latenessString}'
+                        : postState.letsBeHonestItsLateTime ?? '',
+                    late: postState.hundredpercentlate),
+              ),
+            ),
+          ),
         Divider(color: Colors.grey[800]),
         Row(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(
-              '${_post?.comments ?? 0} Comments',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+            if (rootLayoutKey.currentState?.user?.profileImage?.path != null)
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: Colors.grey[800],
+                backgroundImage: NetworkImage(
+                  rootLayoutKey.currentState?.user?.profileImage?.path ?? '',
+                ),
               ),
-            ),
-            SizedBox(width: 6),
-            DropdownButton<String>(
-              value: _getSortDisplayText(),
-              hint: const Text('Sort Comments',
-                  style: TextStyle(color: Colors.white)),
-              dropdownColor: Colors.grey[800],
-              icon: const Icon(Icons.sort, color: Colors.white),
-              underline: Container(),
-              style: const TextStyle(color: Colors.white),
-              items: [
-                DropdownMenuItem(
-                  value: 'newest',
-                  child: const Text('Newest First'),
-                  onTap: () {
-                    setState(() {
-                      sortBy = 'createdAt';
-                      sortOrder = 'DESC';
-                      fetchafter = '0';
-                      _pagingController.refresh();
-                    });
-                  },
-                ),
-                DropdownMenuItem(
-                  value: 'oldest',
-                  child: const Text('Oldest First'),
-                  onTap: () {
-                    setState(() {
-                      sortBy = 'createdAt';
-                      sortOrder = 'ASC';
-                      fetchafter = '0';
-                      _pagingController.refresh();
-                    });
-                  },
-                ),
-                DropdownMenuItem(
-                  value: 'highest_rated',
-                  child: const Text('Highest Rated'),
-                  onTap: () {
-                    setState(() {
-                      sortBy = 'score';
-                      sortOrder = 'DESC';
-                      fetchafter = '0';
-                      _pagingController.refresh();
-                    });
-                  },
-                ),
-                DropdownMenuItem(
-                  value: 'lowest_rated',
-                  child: const Text('Lowest Rated'),
-                  onTap: () {
-                    setState(() {
-                      sortBy = 'score';
-                      sortOrder = 'ASC';
-                      fetchafter = '0';
-                      _pagingController.refresh();
-                    });
-                  },
-                ),
-              ],
-              onChanged: (String? value) {},
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey[800],
-              backgroundImage: NetworkImage(
-                rootLayoutKey.currentState?.user!.profileImage?.path ?? '',
-              ),
-            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1124,15 +1290,11 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
                                     ? () async {
                                         final text = _commentController.text;
                                         _commentController.clear();
-                                        final comment = await FPApiRequests()
-                                            .comment(_post!.id ?? '', text);
+                                        final comment = await fpApiRequests
+                                            .comment(post.id ?? '', text);
                                         if (comment != null) {
                                           setState(() {
-                                            // research at somepoint this adds the comment to the list and moves the old one down but doesnt move the like stats replies or anything else down.
-                                            //_pagingController.itemList
-                                            //    ?.insert(0, comment);
-                                            fetchafter = '0';
-                                            _pagingController.refresh();
+                                            _comments.insert(0, comment);
                                           });
                                         }
                                       }
@@ -1165,53 +1327,201 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
             ),
           ],
         ),
-        PagedListView<int, CommentModel>(
-          pagingController: _pagingController,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          builderDelegate: PagedChildBuilderDelegate<CommentModel>(
-            itemBuilder: (context, comment, index) {
-              return CommentHolder(
-                  comment: comment,
-                  content: _post ?? ContentPostV3Response(),
-                  onReply: (commentId, text) {
-                    // Handle reply submission
-                  });
-            },
-            noItemsFoundIndicatorBuilder: (context) => const Center(
-              child: Text("No comments found."),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              '${post.comments ?? 0} Comments',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
+            SizedBox(width: 6),
+            DropdownButton<String>(
+              value: _getSortDisplayText(),
+              hint: const Text('Sort Comments',
+                  style: TextStyle(color: Colors.white)),
+              dropdownColor: Colors.grey[800],
+              icon: const Icon(Icons.sort, color: Colors.white),
+              underline: Container(),
+              style: const TextStyle(color: Colors.white),
+              items: [
+                DropdownMenuItem(
+                  value: 'newest',
+                  child: const Text('Newest First'),
+                  onTap: () {
+                    sortBy = 'createdAt';
+                    sortOrder = 'DESC';
+                    fetchafter = '0';
+                    _loadComments();
+                  },
+                ),
+                DropdownMenuItem(
+                  value: 'oldest',
+                  child: const Text('Oldest First'),
+                  onTap: () {
+                    sortBy = 'createdAt';
+                    sortOrder = 'ASC';
+                    fetchafter = '0';
+                    _loadComments();
+                  },
+                ),
+                DropdownMenuItem(
+                  value: 'highest_rated',
+                  child: const Text('Highest Rated'),
+                  onTap: () {
+                    sortBy = 'score';
+                    sortOrder = 'DESC';
+                    fetchafter = '0';
+                    _loadComments();
+                  },
+                ),
+                DropdownMenuItem(
+                  value: 'lowest_rated',
+                  child: const Text('Lowest Rated'),
+                  onTap: () {
+                    sortBy = 'score';
+                    sortOrder = 'ASC';
+                    fetchafter = '0';
+                    _loadComments();
+                  },
+                ),
+              ],
+              onChanged: (String? value) {},
+            ),
+          ],
+        ),
+        Column(
+          children: [
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _comments.length,
+              itemBuilder: (context, index) {
+                return CommentHolder(
+                  key: ValueKey(_comments[index].id),
+                  comment: _comments[index],
+                  content: post,
+                );
+              },
+            ),
+            if (_comments.isEmpty)
+              const Center(
+                child: Text("No comments found."),
+              ),
+            if (_hasMoreComments)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: ElevatedButton(
+                  onPressed: _isLoadingComments
+                      ? null
+                      : () async {
+                          setState(() {
+                            _isLoadingComments = true;
+                          });
+                          try {
+                            dynamic items;
+                            if (fetchafter != '0') {
+                              items = await fpApiRequests.getComments(
+                                widget.postId,
+                                _pageSize,
+                                sortBy,
+                                sortOrder,
+                                fetchAfter: fetchafter,
+                              );
+                            } else {
+                              items = await fpApiRequests.getComments(
+                                widget.postId,
+                                _pageSize,
+                                sortBy,
+                                sortOrder,
+                              );
+                            }
+                            if (!mounted) return;
+
+                            setState(() {
+                              _comments.addAll(items);
+                              _hasMoreComments = items.length >= _pageSize;
+                              if (items.isNotEmpty) {
+                                fetchafter = items.last.id;
+                              }
+                              _isLoadingComments = false;
+                            });
+                          } catch (error) {
+                            if (mounted) {
+                              setState(() {
+                                _isLoadingComments = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'An error occurred loading comments'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  child: _isLoadingComments
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Load More Comments'),
+                ),
+              ),
+          ],
         ),
       ],
     );
   }
 
-  Future<void> _fetchComments(int pageKey) async {
+  Future<void> _loadComments() async {
+    setState(() {
+      _comments.clear();
+      _hasMoreComments = true;
+      fetchafter = '0';
+    });
     try {
       dynamic items;
       if (fetchafter != '0') {
-        items = await FPApiRequests().getComments(
-            widget.postId, _pageSize, sortBy, sortOrder,
-            fetchAfter: fetchafter);
+        items = await fpApiRequests.getComments(
+          widget.postId,
+          _pageSize,
+          sortBy,
+          sortOrder,
+          fetchAfter: fetchafter,
+        );
       } else {
-        items = await FPApiRequests()
-            .getComments(widget.postId, _pageSize, sortBy, sortOrder);
+        items = await fpApiRequests.getComments(
+          widget.postId,
+          _pageSize,
+          sortBy,
+          sortOrder,
+        );
       }
       if (!mounted) return;
 
-      final isLastPage = items.length < _pageSize;
-
       setState(() {
+        _comments.addAll(items);
+        _hasMoreComments = items.length >= _pageSize;
         if (items.isNotEmpty) {
           fetchafter = items.last.id;
         }
-
-        _pagingController.appendPage(items, isLastPage ? null : pageKey + 1);
       });
     } catch (error) {
       if (mounted) {
-        _pagingController.error = 'An error occurred loading comments';
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An error occurred loading comments'),
+          ),
+        );
       }
     }
   }
@@ -1248,12 +1558,17 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
               mainAxisSpacing: 4,
               childAspectRatio: childAspectRatio,
             ),
-            itemCount: recommendedPosts.length,
+            itemCount:
+                ref.read(postProvider(widget.postId)).recommendedPosts.length,
             itemBuilder: (context, index) {
-              final post = recommendedPosts[index];
+              final post =
+                  ref.read(postProvider(widget.postId)).recommendedPosts[index];
               return Padding(
                 padding: EdgeInsets.all(padding),
-                child: BlogPostCard(post, response: progressMap[post.id]),
+                child: BlogPostCard(post,
+                    response: ref
+                        .read(postProvider(widget.postId))
+                        .progressMap[post.id]),
               );
             },
           ),

@@ -1,0 +1,8 @@
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/beta_icon.png"
+  adaptive_icon_background: "#FFA500"
+  adaptive_icon_foreground: "assets/icon/app_foreground.png"
+
+  ios: true
+  image_path_ios: "assets/icon/beta_icon_apple.png"

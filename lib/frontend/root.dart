@@ -1,11 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:floaty/backend/state_mgmt.dart';
 import 'package:floaty/frontend/elements.dart';
 import 'package:floaty/backend/definitions.dart';
-import 'package:floaty/backend/fpapi.dart';
+import 'package:floaty/providers/root_provider.dart';
+import 'package:floaty/frontend/widgets/mini_player_widget.dart';
+import 'package:floaty/services/media/media_player_service.dart';
 
 // ignore: library_private_types_in_public_api
 final GlobalKey<_RootLayoutState> rootLayoutKey = GlobalKey<_RootLayoutState>();
@@ -20,104 +19,65 @@ class RootLayout extends ConsumerStatefulWidget {
 
 class _RootLayoutState extends ConsumerState<RootLayout>
     with SingleTickerProviderStateMixin {
-  bool showText = false;
-  List<CreatorModelV3> creators = [];
   UserSelfV3Response? user;
-  bool isLoading = true;
-  Widget _appBarTitle = const Text('Floaty');
-  List<Widget>? _appBarActions;
-  Widget? _appBarLeading;
-  StreamSubscription? _creatorSubscription;
-
   @override
   void initState() {
     super.initState();
-    _loadsidebar();
-  }
-
-  Future<void> _loadsidebar() async {
-    if (!mounted) return;
-    try {
-      _creatorSubscription =
-          FPApiRequests().getSubscribedCreators().listen((fetchedCreators) {
-        if (!mounted) return;
-        setState(() {
-          creators = fetchedCreators;
-        });
-        FPApiRequests().getUser().listen((fetchedUser) {
-          if (!mounted) return;
-          setState(() {
-            user = fetchedUser;
-            isLoading = false;
-          });
-        }, onError: (error) {
-          if (!mounted) return;
-          setState(() {
-            isLoading = false;
-          });
-        });
-      }, onError: (error) {
-        if (!mounted) return;
-        setState(() {
-          isLoading = false;
-        });
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        isLoading = false;
-      });
-    }
+    ref.read(rootProvider.notifier).loadsidebar();
   }
 
   void setAppBar(Widget title, {List<Widget>? actions, Widget? leading}) {
-    setState(() {
-      _appBarTitle = title;
-      _appBarActions = actions;
-      _appBarLeading = leading;
-    });
+    ref
+        .read(rootProvider.notifier)
+        .setAppBar(title, actions: actions, leading: leading);
   }
 
   @override
-  void dispose() {
-    _creatorSubscription?.cancel();
-    super.dispose();
+  void didUpdateWidget(RootLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    user = ref.watch(rootProvider).user;
   }
 
   @override
-  Widget build(BuildContext context) {
-    final sidebarState = ref.watch(sidebarStateProvider);
-    final sidebarNotifier = ref.read(sidebarStateProvider.notifier);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final rootNotifier = ref.read(rootProvider.notifier);
     final screenWidth = MediaQuery.of(context).size.width;
     final bool isSmallScreen = screenWidth < 600;
     final bool isLargeScreen = screenWidth >= 1024;
     final bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
 
-    final isSidebarCollapsed = isSmallScreen ? false : sidebarState.isCollapsed;
+    final isSidebarCollapsed =
+        isSmallScreen ? false : ref.watch(rootProvider).isCollapsed;
 
-    Future.microtask(() async {
-      if (isLargeScreen && isSidebarCollapsed) {
-        sidebarNotifier.setExpanded();
-      } else if (isMediumScreen && !isSidebarCollapsed) {
-        sidebarNotifier.setCollapsed();
+    if (isLargeScreen && isSidebarCollapsed) {
+      rootNotifier.setExpanded();
+    } else if (isMediumScreen && !isSidebarCollapsed) {
+      rootNotifier.setCollapsed();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rootState = ref.watch(rootProvider);
+    final rootNotifier = ref.read(rootProvider.notifier);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = screenWidth < 600;
+
+    final isSidebarCollapsed = isSmallScreen ? false : rootState.isCollapsed;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!isSidebarCollapsed) {
+        if (!rootState.showText) {
+          if (mounted) {
+            ref.read(rootProvider.notifier).setText(true);
+          }
+        }
+      } else {
+        ref.read(rootProvider.notifier).setText(false);
       }
     });
 
-    if (!isSidebarCollapsed) {
-      if (!showText) {
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) {
-            setState(() {
-              showText = true;
-            });
-          }
-        });
-      }
-    } else {
-      setState(() {
-        showText = false;
-      });
-    }
     Widget buildSidebarContent() {
       return Column(
         children: [
@@ -131,7 +91,15 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                     route: '/home',
                     isSidebarCollapsed: isSidebarCollapsed,
                     isSmallScreen: isSmallScreen,
-                    showText: showText,
+                    showText: rootState.showText,
+                  ),
+                  SidebarItem(
+                    icon: Icons.chat,
+                    title: 'Chat',
+                    route: '/live/linustechtips',
+                    isSidebarCollapsed: isSidebarCollapsed,
+                    isSmallScreen: isSmallScreen,
+                    showText: rootState.showText,
                   ),
                   SidebarItem(
                     icon: Icons.view_carousel,
@@ -139,7 +107,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                     route: '/browse',
                     isSidebarCollapsed: isSidebarCollapsed,
                     isSmallScreen: isSmallScreen,
-                    showText: showText,
+                    showText: rootState.showText,
                   ),
                   SidebarItem(
                     icon: Icons.history,
@@ -147,23 +115,25 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                     route: '/history',
                     isSidebarCollapsed: isSidebarCollapsed,
                     isSmallScreen: isSmallScreen,
-                    showText: showText,
+                    showText: rootState.showText,
                   ),
                   SidebarText(
                     title: 'Your Subscriptions',
                     isSidebarCollapsed: isSidebarCollapsed,
                     isSmallScreen: isSmallScreen,
-                    showText: showText,
+                    showText: rootState.showText,
                   ),
-                  if (isLoading)
+                  if (rootState.isLoading)
                     const CircularProgressIndicator()
                   else
-                    ...creators.map((creatorResponse) => SidebarChannelItem(
-                          response: creatorResponse,
-                          isSidebarCollapsed: isSidebarCollapsed,
-                          isSmallScreen: isSmallScreen,
-                          showText: showText,
-                        )),
+                    ...rootState.creators
+                        .map((creatorResponse) => SidebarChannelItem(
+                              id: creatorResponse.id ?? '',
+                              response: creatorResponse,
+                              isSidebarCollapsed: isSidebarCollapsed,
+                              isSmallScreen: isSmallScreen,
+                              showText: rootState.showText,
+                            )),
                 ],
               ),
             ),
@@ -176,18 +146,18 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                 route: '/settings',
                 isSidebarCollapsed: isSidebarCollapsed,
                 isSmallScreen: isSmallScreen,
-                showText: showText,
+                showText: rootState.showText,
               ),
-              if (isLoading)
+              if (rootState.isLoading)
                 const CircularProgressIndicator()
               else
                 PictureSidebarItem(
-                  picture: user?.profileImage!.path ?? '',
-                  title: user?.username ?? '',
+                  picture: rootState.user?.profileImage?.path ?? '',
+                  title: rootState.user?.username ?? '',
                   route: '/profile',
                   isSidebarCollapsed: isSidebarCollapsed,
                   isSmallScreen: isSmallScreen,
-                  showText: showText,
+                  showText: rootState.showText,
                 ),
               if (!isSmallScreen)
                 SidebarSizeControl(
@@ -195,8 +165,8 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                   route: '',
                   isSidebarCollapsed: isSidebarCollapsed,
                   isSmallScreen: isSmallScreen,
-                  showText: showText,
-                  onTap: () => sidebarNotifier.toggleCollapse(),
+                  showText: rootState.showText,
+                  onTap: () => rootNotifier.toggleCollapse(),
                 ),
             ],
           ),
@@ -208,14 +178,18 @@ class _RootLayoutState extends ConsumerState<RootLayout>
         ? SafeArea(child: Drawer(child: buildSidebarContent()))
         : SafeArea(
             bottom: false,
-            child: AnimatedContainer(
-              width: isSidebarCollapsed ? 70 : 260,
-              duration: const Duration(milliseconds: 200),
-              child: Material(
-                color: const Color.fromARGB(255, 40, 40, 40),
-                elevation: 2,
-                child: SafeArea(child: buildSidebarContent()),
-              ),
+            child: Consumer(
+              builder: (context, ref, _) {
+                return AnimatedContainer(
+                  width: isSidebarCollapsed ? 70 : 260,
+                  duration: const Duration(milliseconds: 200),
+                  child: Material(
+                    color: const Color.fromARGB(255, 40, 40, 40),
+                    elevation: 2,
+                    child: SafeArea(child: buildSidebarContent()),
+                  ),
+                );
+              },
             ));
 
     return Scaffold(
@@ -224,33 +198,54 @@ class _RootLayoutState extends ConsumerState<RootLayout>
         elevation: 0,
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         surfaceTintColor: Theme.of(context).appBarTheme.backgroundColor,
-        title: _appBarTitle,
-        actions: _appBarActions,
+        title: rootState.appBarTitle,
+        actions: rootState.appBarActions,
         leading: isSmallScreen
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Builder(
-                    builder: (BuildContext context) {
-                      return IconButton(
-                        icon: const Icon(Icons.menu),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      );
-                    },
-                  ),
-                  if (_appBarLeading != null) _appBarLeading!,
-                ],
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  scaffoldKey.currentState?.openDrawer();
+                },
               )
-            : _appBarLeading,
+            : null,
       ),
       drawer: isSmallScreen ? sidebar : null,
-      //i got u people who use gesture based navigation controls on android (im talking to myself this is literally for myself)
-      drawerEdgeDragWidth: 125,
-      body: Row(
-        children: [
-          if (!isSmallScreen) sidebar,
-          Expanded(child: widget.child),
-        ],
+      body: SafeArea(
+        child: Row(
+          children: [
+            if (!isSmallScreen) sidebar,
+            Expanded(
+              child: Stack(
+                children: [
+                  widget.child,
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final mediaService =
+                          ref.watch(mediaPlayerServiceProvider.notifier);
+                      final mediaState = ref.watch(mediaPlayerServiceProvider);
+
+                      if (mediaState == MediaPlayerState.mini) {
+                        return Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: MiniPlayerWidget(
+                            title: mediaService.currentTitle ?? '',
+                            artist: mediaService.currentArtist ?? '',
+                            postId: mediaService.currentPostId ?? '',
+                            thumbnailUrl: mediaService.currentThumbnailUrl,
+                            videoController: mediaService.videoController,
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

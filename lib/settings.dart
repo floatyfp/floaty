@@ -24,6 +24,16 @@ class Settings {
     await prefs.remove(key);
   }
 
+  Future<void> setDynamic(String key, dynamic value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, value.toString());
+  }
+
+  Future<dynamic> getDynamic(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(key) ?? '';
+  }
+
   Future<void> setBool(String key, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
@@ -43,5 +53,4 @@ class Settings {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey(key);
   }
-  
 }

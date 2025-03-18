@@ -6,29 +6,38 @@ import '../../services/media/video_quality.dart';
 import 'dart:io';
 import 'package:floaty/frontend/widgets/audio_controls.dart';
 import 'package:floaty/frontend/widgets/audio_controls_theme.dart';
+import 'package:go_router/go_router.dart';
 
 class MediaPlayerWidget extends ConsumerStatefulWidget {
   final String mediaUrl;
   final MediaType mediaType;
+  final bool live;
   final dynamic attachment;
-  final MediaPlayerState initialState;
   final List<VideoQuality>? qualities;
   final int startFrom;
-  final String title;
-  final String artist;
-  final String artworkUrl;
+  final BuildContext contextBuild;
+  final String? title;
+  final String? artist;
+  final String? postId;
+  final String? artworkUrl;
+  final MediaPlayerState initialState;
+  final List<Map<String, dynamic>>? textTracks;
 
   const MediaPlayerWidget({
     super.key,
     required this.mediaUrl,
     required this.mediaType,
     required this.attachment,
+    required this.contextBuild,
     this.qualities,
     this.initialState = MediaPlayerState.main,
     required this.startFrom,
     required this.title,
     required this.artist,
+    required this.postId,
     required this.artworkUrl,
+    required this.live,
+    this.textTracks,
   });
 
   @override
@@ -50,12 +59,15 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
     await _mediaService.setSource(
       widget.mediaUrl,
       widget.mediaType,
+      widget.live,
       attachment: widget.attachment,
       qualities: widget.qualities,
       start: Duration(seconds: widget.startFrom),
       title: widget.title,
       artist: widget.artist,
+      postId: widget.postId,
       thumbnailUrl: widget.artworkUrl,
+      textTracks: widget.textTracks,
     );
     await _mediaService.changeState(widget.initialState);
     if (mounted) {
@@ -74,13 +86,18 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
       case MediaType.video:
         final videoController = _mediaService.videoController;
         if (videoController == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+              child: CircularProgressIndicator(
+            color: Colors.white,
+          ));
         }
         if (!Platform.isAndroid && !Platform.isIOS) {
           return MaterialDesktopVideoControlsTheme(
             normal: MaterialDesktopVideoControlsThemeData(
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
+              seekBarThumbColor: Colors.white,
+              seekBarPositionColor: Theme.of(context).colorScheme.primary,
               topButtonBar: [
                 MaterialDesktopCustomButton(
                   icon: const Icon(Icons.close),
@@ -96,16 +113,60 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialDesktopSkipNextButton(),
                 MaterialDesktopVolumeButton(),
                 MaterialDesktopPositionIndicator(),
-                Spacer(),
+                const Spacer(),
+                if (widget.textTracks?.isNotEmpty == true)
+                  MaterialDesktopCustomButton(
+                    icon: Icon(
+                      Icons.closed_caption,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      _mediaService.toggleSubtitles();
+                    },
+                  ),
                 MaterialDesktopCustomButton(
                   icon: const Icon(Icons.picture_in_picture),
                   onPressed: () {
                     _mediaService.changeState(MediaPlayerState.pip);
+                    if (!mounted) return;
+                    widget.contextBuild.go('/pip', extra: {
+                      'controller': _mediaService.videoController,
+                      'postId': widget.postId,
+                    });
                   },
                 ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.settings),
                   itemBuilder: (context) => [
+                    if (widget.textTracks?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'subtitles',
+                        child: PopupMenuButton<int>(
+                          child: const Text('Subtitles'),
+                          itemBuilder: (context) =>
+                              widget.textTracks!.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final track = entry.value;
+                            return PopupMenuItem<int>(
+                              value: index,
+                              child: Row(
+                                children: [
+                                  Text(track['language'] ?? 'Unknown'),
+                                  if (index ==
+                                      _mediaService.currentSubtitleTrackIndex)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (index) {
+                            _mediaService.setSubtitleTrack(index);
+                          },
+                        ),
+                      ),
                     PopupMenuItem<String>(
                       value: 'quality',
                       child: PopupMenuButton<VideoQuality>(
@@ -244,31 +305,68 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
             fullscreen: MaterialDesktopVideoControlsThemeData(
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
-              topButtonBar: [
-                MaterialDesktopCustomButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _mediaService.stop();
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
+              seekBarThumbColor: Colors.white,
+              seekBarPositionColor: Theme.of(context).colorScheme.primary,
               bottomButtonBar: [
                 MaterialDesktopSkipPreviousButton(),
                 MaterialDesktopPlayOrPauseButton(),
                 MaterialDesktopSkipNextButton(),
                 MaterialDesktopVolumeButton(),
                 MaterialDesktopPositionIndicator(),
-                Spacer(),
+                const Spacer(),
+                if (widget.textTracks?.isNotEmpty == true)
+                  MaterialDesktopCustomButton(
+                    icon: Icon(
+                      Icons.closed_caption,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      _mediaService.toggleSubtitles();
+                    },
+                  ),
                 MaterialDesktopCustomButton(
                   icon: const Icon(Icons.picture_in_picture),
                   onPressed: () {
                     _mediaService.changeState(MediaPlayerState.pip);
+                    if (!mounted) return;
+                    widget.contextBuild.go('/pip', extra: {
+                      'controller': _mediaService.videoController,
+                      'postId': widget.postId,
+                    });
                   },
                 ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.settings),
                   itemBuilder: (context) => [
+                    if (widget.textTracks?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'subtitles',
+                        child: PopupMenuButton<int>(
+                          child: const Text('Subtitles'),
+                          itemBuilder: (context) =>
+                              widget.textTracks!.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final track = entry.value;
+                            return PopupMenuItem<int>(
+                              value: index,
+                              child: Row(
+                                children: [
+                                  Text(track['language'] ?? 'Unknown'),
+                                  if (index ==
+                                      _mediaService.currentSubtitleTrackIndex)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (index) {
+                            _mediaService.setSubtitleTrack(index);
+                          },
+                        ),
+                      ),
                     PopupMenuItem<String>(
                       value: 'quality',
                       child: PopupMenuButton<VideoQuality>(
@@ -420,6 +518,9 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
               seekOnDoubleTap: true,
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
+              seekBarThumbColor: Colors.white,
+              seekBarPositionColor: Theme.of(context).colorScheme.primary,
+              seekBarAlignment: Alignment.bottomCenter,
               topButtonBar: [
                 MaterialCustomButton(
                   icon: const Icon(Icons.close),
@@ -431,16 +532,62 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
               ],
               bottomButtonBar: [
                 MaterialPositionIndicator(),
-                Spacer(),
-                MaterialCustomButton(
-                  icon: const Icon(Icons.picture_in_picture),
-                  onPressed: () {
-                    _mediaService.changeState(MediaPlayerState.pip);
-                  },
-                ),
+                const Spacer(),
+                if (widget.textTracks?.isNotEmpty == true)
+                  MaterialCustomButton(
+                    icon: Icon(
+                      Icons.closed_caption,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      _mediaService.toggleSubtitles();
+                    },
+                  ),
+                if (!Platform.isIOS)
+                  MaterialCustomButton(
+                    icon: const Icon(Icons.picture_in_picture),
+                    onPressed: () {
+                      _mediaService.enterpip();
+                      _mediaService.changeState(MediaPlayerState.pip);
+                      if (!mounted) return;
+                      widget.contextBuild.go('/pip', extra: {
+                        'controller': _mediaService.videoController,
+                        'postId': widget.postId,
+                      });
+                    },
+                  ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.settings),
                   itemBuilder: (context) => [
+                    if (widget.textTracks?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'subtitles',
+                        child: PopupMenuButton<int>(
+                          child: const Text('Subtitles'),
+                          itemBuilder: (context) =>
+                              widget.textTracks!.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final track = entry.value;
+                            return PopupMenuItem<int>(
+                              value: index,
+                              child: Row(
+                                children: [
+                                  Text(track['language'] ?? 'Unknown'),
+                                  if (index ==
+                                      _mediaService.currentSubtitleTrackIndex)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (index) {
+                            _mediaService.setSubtitleTrack(index);
+                          },
+                        ),
+                      ),
                     PopupMenuItem<String>(
                       value: 'quality',
                       child: PopupMenuButton<VideoQuality>(
@@ -583,27 +730,67 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
               seekOnDoubleTap: true,
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
-              topButtonBar: [
-                MaterialCustomButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _mediaService.stop();
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
+              seekBarThumbColor: Colors.white,
+              seekBarPositionColor: Theme.of(context).colorScheme.primary,
+              seekBarAlignment: Alignment(0.0, -2.0),
               bottomButtonBar: [
                 MaterialPositionIndicator(),
-                Spacer(),
-                MaterialCustomButton(
-                  icon: const Icon(Icons.picture_in_picture),
-                  onPressed: () {
-                    _mediaService.changeState(MediaPlayerState.pip);
-                  },
-                ),
+                const Spacer(),
+                if (widget.textTracks?.isNotEmpty == true)
+                  MaterialCustomButton(
+                    icon: Icon(
+                      Icons.closed_caption,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      _mediaService.toggleSubtitles();
+                    },
+                  ),
+                if (!Platform.isIOS)
+                  MaterialCustomButton(
+                    icon: const Icon(Icons.picture_in_picture),
+                    onPressed: () {
+                      _mediaService.enterpip();
+                      _mediaService.changeState(MediaPlayerState.pip);
+                      if (!mounted) return;
+                      widget.contextBuild.go('/pip', extra: {
+                        'controller': _mediaService.videoController,
+                        'postId': widget.postId,
+                      });
+                    },
+                  ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.settings),
                   itemBuilder: (context) => [
+                    if (widget.textTracks?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'subtitles',
+                        child: PopupMenuButton<int>(
+                          child: const Text('Subtitles'),
+                          itemBuilder: (context) =>
+                              widget.textTracks!.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final track = entry.value;
+                            return PopupMenuItem<int>(
+                              value: index,
+                              child: Row(
+                                children: [
+                                  Text(track['language'] ?? 'Unknown'),
+                                  if (index ==
+                                      _mediaService.currentSubtitleTrackIndex)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (index) {
+                            _mediaService.setSubtitleTrack(index);
+                          },
+                        ),
+                      ),
                     PopupMenuItem<String>(
                       value: 'quality',
                       child: PopupMenuButton<VideoQuality>(
@@ -757,10 +944,10 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
           seekBarHoverHeight: 4.0,
           seekBarContainerHeight: 40.0,
           seekBarColor: const Color(0x3DFFFFFF),
-          seekBarPositionColor: const Color(0xFFFF0000),
+          seekBarThumbColor: Colors.white,
+          seekBarPositionColor: Theme.of(context).colorScheme.primary,
           seekBarBufferColor: const Color(0x3DFFFFFF),
           seekBarThumbSize: 12.0,
-          seekBarThumbColor: const Color(0xFFFF0000),
           buttonBarHeight: 48.0,
           buttonBarButtonSize: 32.0,
         );
@@ -795,8 +982,6 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
         return const SizedBox.shrink();
       case MediaPlayerState.main:
         return _buildMainPlayer();
-      case MediaPlayerState.pip:
-        return _buildPipPlayer();
       default:
         return const SizedBox.shrink();
     }
@@ -806,34 +991,6 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
     return Scaffold(
       body: Center(
         child: _buildMediaContent(),
-      ),
-    );
-  }
-
-  Widget _buildPipPlayer() {
-    return Align(
-      alignment: Alignment.bottomRight,
-      child: GestureDetector(
-        onTap: () => _mediaService.changeState(MediaPlayerState.main),
-        child: Container(
-          width: 320,
-          height: 180,
-          margin: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(20),
-                blurRadius: 10,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: _buildMediaContent(),
-          ),
-        ),
       ),
     );
   }
@@ -885,7 +1042,10 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+          child: CircularProgressIndicator(
+        color: Colors.white,
+      ));
     }
 
     return _buildMediaPlayer();
@@ -893,7 +1053,6 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
 
   @override
   void dispose() {
-    _mediaService.changeState(MediaPlayerState.none);
     super.dispose();
   }
 }

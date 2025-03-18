@@ -39,11 +39,11 @@ class SingleInstanceService {
 
   Future<bool> isFirstInstance() async {
     if (!_isInitialized) return true;
-    
+
     if (Platform.isLinux || Platform.isMacOS) {
       return _singleInstance ?? true;
     }
-    
+
     // For Windows, we already handle this in initialize()
     return true;
   }

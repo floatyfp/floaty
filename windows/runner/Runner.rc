@@ -54,7 +54,6 @@ END
 // remains consistent on all systems.
 IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
@@ -93,7 +92,7 @@ BEGIN
             VALUE "FileDescription", "floaty" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "Floaty" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 uk.bw86. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 uk.bw86. All rights reserved." "\0"
             VALUE "OriginalFilename", "floaty.exe" "\0"
             VALUE "ProductName", "Floaty" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

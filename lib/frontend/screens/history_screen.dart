@@ -2,37 +2,36 @@ import 'package:floaty/backend/definitions.dart';
 import 'package:flutter/material.dart';
 import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/frontend/elements.dart';
-import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:floaty/frontend/root.dart';
 import 'package:intl/intl.dart';
 
-class HistoryListItem {
-  final String? header;
-  final BlogPostCard? post;
+class DateSection {
+  final String header;
+  final List<BlogPostCard> posts;
 
-  HistoryListItem.header(this.header) : post = null;
-  HistoryListItem.post(this.post) : header = null;
+  DateSection(this.header, this.posts);
 }
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _HistoryScreenState createState() => _HistoryScreenState();
+  State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final PagingController<int, HistoryListItem> _pagingController =
-      PagingController(firstPageKey: 0);
-
+  final ScrollController _scrollController = ScrollController();
+  List<DateSection> _sections = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
+  String? _error;
   int _offset = 0;
-  static const _pageSize = 20;
 
   @override
   void initState() {
     super.initState();
-    _pagingController.addPageRequestListener(_fetchPage);
+    _loadHistory();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       rootLayoutKey.currentState?.setAppBar(const Text('History'));
     });
@@ -40,56 +39,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   void dispose() {
-    _pagingController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  List<HistoryListItem> _processHistoryItems(List<HistoryModelV3> items) {
-    List<HistoryListItem> processedItems = [];
-    DateTime? currentDate;
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
 
-    for (var item in items) {
-      final watchedDate = item.updatedAt ?? DateTime.now();
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    final viewportHeight = _scrollController.position.viewportDimension;
 
-      if (currentDate == null || !_isSameDay(currentDate, watchedDate)) {
-        final headerText = _getDateHeader(watchedDate);
-        processedItems.add(HistoryListItem.header(headerText));
-        currentDate = watchedDate;
-      }
-
-      processedItems.add(
-        HistoryListItem.post(
-          BlogPostCard(
-            item.blogPost,
-            response: GetProgressResponse(
-              id: item.contentId,
-              progress: item.progress,
-            ),
-          ),
-        ),
-      );
+    // Load more when we're 1 viewport height from the bottom
+    if (currentScroll >= (maxScroll - viewportHeight) &&
+        !_isLoading &&
+        _hasMore) {
+      _loadHistory();
     }
-
-    return processedItems;
   }
 
   String _getDateHeader(DateTime date) {
     final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfDate = DateTime(date.year, date.month, date.day);
+    final difference = startOfToday.difference(startOfDate).inDays;
 
-    if (_isSameDay(date, now)) {
+    if (difference == 0) {
       return 'Today';
     }
 
-    if (_isSameDay(date, now.subtract(const Duration(days: 1)))) {
+    if (difference == 1) {
       return 'Yesterday';
     }
 
-    final difference = now.difference(date).inDays;
-    if (difference < 7) {
-      return DateFormat.EEEE().format(date);
+    // Always use full date format for 7 days or more
+    if (difference >= 7) {
+      return DateFormat.yMMMMd().format(date);
     }
 
-    return DateFormat.yMMMMd().format(date);
+    // Use day name for less than 7 days
+    return DateFormat.EEEE().format(date);
   }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
@@ -98,77 +87,279 @@ class _HistoryScreenState extends State<HistoryScreen> {
         date1.day == date2.day;
   }
 
-  void _fetchPage(int pageKey) async {
+  DateTime _getDateFromHeader(String header) {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+
+    switch (header) {
+      case 'Today':
+        return startOfToday;
+      case 'Yesterday':
+        return startOfToday.subtract(const Duration(days: 1));
+      default:
+        // Try to parse as day name first
+        final weekdays = {
+          'Monday': 1,
+          'Tuesday': 2,
+          'Wednesday': 3,
+          'Thursday': 4,
+          'Friday': 5,
+          'Saturday': 6,
+          'Sunday': 7,
+        };
+
+        if (weekdays.containsKey(header)) {
+          // Find the most recent occurrence of this weekday that's less than 7 days ago
+          var date = startOfToday;
+          while (true) {
+            date = date.subtract(const Duration(days: 1));
+            if (DateFormat.EEEE().format(date) == header) {
+              // Only use weekday name if it's less than 7 days ago
+              final diff = startOfToday.difference(date).inDays;
+              if (diff < 7) {
+                return date;
+              }
+              break;
+            }
+          }
+        }
+
+        // Parse as full date if not a recent weekday
+        return DateFormat.yMMMMd().parse(header);
+    }
+  }
+
+  Future<void> _loadHistory([bool refresh = false]) async {
+    if (_isLoading || (!_hasMore && !refresh)) return;
+
+    final savedScrollPosition = _scrollController.hasClients
+        ? _scrollController.offset.toDouble()
+        : 0.0;
+
+    setState(() {
+      _isLoading = true;
+      if (refresh) {
+        _error = null;
+        _sections = [];
+        _offset = 0;
+        _hasMore = true;
+      }
+    });
+
     try {
-      final items = await FPApiRequests().getHistory(offset: _offset);
+      final items = await fpApiRequests.getHistory(offset: _offset);
+      final newSections = _processHistoryItems(items);
 
       if (!mounted) return;
 
-      final isLastPage = items.length < _pageSize;
-      final processedItems = _processHistoryItems(items);
+      setState(() {
+        if (refresh) {
+          _sections = newSections;
+        } else {
+          _mergeSections(newSections);
+          // Restore scroll position after merging sections
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients && !refresh) {
+              _scrollController.jumpTo(savedScrollPosition);
+            }
+          });
+        }
+        _hasMore = items.isNotEmpty; // Continue loading if we got any items
+        _offset += items.length;
+        _isLoading = false;
+        _error = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
 
       setState(() {
-        _offset += _pageSize;
+        _error = error.toString();
+        _isLoading = false;
+        if (refresh) {
+          _sections = [];
+        }
       });
+    }
+  }
 
-      _pagingController.appendPage(
-          processedItems, isLastPage ? null : pageKey + 1);
-    } catch (error) {
-      if (mounted) {
-        _pagingController.error = 'An error occurred loading history';
+  void _mergeSections(List<DateSection> newSections) {
+    // Create a map of existing sections for faster lookup
+    final existingSections = Map.fromEntries(
+      _sections.map((s) => MapEntry(_getDateFromHeader(s.header), s)),
+    );
+
+    for (var newSection in newSections) {
+      final date = _getDateFromHeader(newSection.header);
+      if (existingSections.containsKey(date)) {
+        // Merge with existing section
+        existingSections[date]!.posts.addAll(newSection.posts);
+      } else {
+        // Add new section
+        _sections.add(newSection);
       }
     }
+
+    // Re-sort sections after merging
+    _sections.sort((a, b) {
+      final dateA = _getDateFromHeader(a.header);
+      final dateB = _getDateFromHeader(b.header);
+      return dateB.compareTo(dateA); // Most recent first
+    });
+  }
+
+  List<DateSection> _processHistoryItems(List<HistoryModelV3> items) {
+    Map<String, List<BlogPostCard>> dateGroups = {};
+    DateTime? currentDate;
+
+    for (var item in items) {
+      final watchedDate = item.updatedAt ?? DateTime.now();
+
+      if (currentDate == null || !_isSameDay(currentDate, watchedDate)) {
+        currentDate = watchedDate;
+      }
+
+      final headerText = _getDateHeader(watchedDate);
+      dateGroups.putIfAbsent(headerText, () => []);
+      dateGroups[headerText]!.add(
+        BlogPostCard(
+          item.blogPost,
+          response: GetProgressResponse(
+            id: item.contentId,
+            progress: item.progress,
+          ),
+        ),
+      );
+    }
+
+    return dateGroups.entries.map((e) => DateSection(e.key, e.value)).toList()
+      ..sort((a, b) {
+        final dateA = _getDateFromHeader(a.header);
+        final dateB = _getDateFromHeader(b.header);
+        return dateB.compareTo(dateA); // Most recent first
+      });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: LayoutBuilder(builder: (context, constraints) {
-          return PagedGridView<int, HistoryListItem>(
-            pagingController: _pagingController,
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent:
-                  constraints.maxWidth <= 450 ? constraints.maxWidth : 300,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-              childAspectRatio: constraints.maxWidth <= 450 ? 1.2 : 1.175,
+    if (_sections.isEmpty && _isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null && _sections.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 32,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => _loadHistory(true),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_sections.isEmpty && !_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'No history found.',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
             ),
-            builderDelegate: PagedChildBuilderDelegate<HistoryListItem>(
-              animateTransitions: true,
-              itemBuilder: (context, item, index) {
-                if (item.header != null) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        item.header!,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: RefreshIndicator(
+        onRefresh: () => _loadHistory(true),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = 280.0;
+            final spacing = 12.0;
+            final horizontalPadding = 16.0;
+            final availableWidth =
+                constraints.maxWidth - (horizontalPadding * 2);
+            final columns = (availableWidth / (itemWidth + spacing)).floor();
+            final actualWidth =
+                (availableWidth - (spacing * (columns - 1))) / columns;
+
+            return ListView.builder(
+              controller: _scrollController,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              itemCount: _sections.length + (_hasMore || _isLoading ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _sections.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                       ),
                     ),
                   );
                 }
 
-                if (item.post != null) {
-                  return item.post ??
-                      Padding(
-                          padding: EdgeInsets.all(
-                              constraints.maxWidth <= 450 ? 4 : 2),
-                          child: item.post);
-                } else {
-                  return const SizedBox.shrink();
-                }
+                final section = _sections[index];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (index > 0) const SizedBox(height: 32),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16, left: 4),
+                      child: Text(
+                        section.header,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    Wrap(
+                      spacing: spacing,
+                      runSpacing: spacing,
+                      children: section.posts.map((post) {
+                        return SizedBox(
+                          width: actualWidth,
+                          child: post,
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                );
               },
-              noItemsFoundIndicatorBuilder: (context) => const Center(
-                child: Text("No items found."),
-              ),
-            ),
-          );
-        }),
+            );
+          },
+        ),
       ),
     );
   }

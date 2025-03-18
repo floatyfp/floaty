@@ -1,13 +1,13 @@
 import 'package:audio_service/audio_service.dart';
-import 'package:audio_session/audio_session.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:logging/logging.dart';
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:audio_session/audio_session.dart';
 
 class FloatyAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
   final Player _player;
+  AudioSession? session;
   MediaItem? _currentMedia;
   final _log = Logger('FloatyAudioHandler');
 
@@ -38,50 +38,6 @@ class FloatyAudioHandler extends BaseAudioHandler
         playing: false,
       ));
 
-      // Configure audio session
-      final session = await AudioSession.instance;
-      await session.configure(const AudioSessionConfiguration.music());
-
-      debugPrint('I HAVE BEEN PRINTED YOUR MASTER');
-      session.interruptionEventStream.listen((_) async {
-        debugPrint('I HAVE BEEN CALLED UPON YOUR MASTER');
-        await pause();
-      });
-
-      // TODO: add settings for these
-      // Handle audio interruptions
-      session.interruptionEventStream.listen((event) async {
-        if (event.begin) {
-          switch (event.type) {
-            case AudioInterruptionType.duck:
-              _player.setVolume(30);
-              debugPrint('DUCK');
-              break;
-            case AudioInterruptionType.pause:
-              await pause();
-              debugPrint('PAUSE');
-              break;
-            case AudioInterruptionType.unknown:
-              await pause();
-              debugPrint('UNKNOWN');
-              break;
-          }
-        } else {
-          switch (event.type) {
-            case AudioInterruptionType.duck:
-              _player.setVolume(100);
-              debugPrint('DUCKUP');
-              break;
-            case AudioInterruptionType.pause:
-              if (playbackState.value.playing) await play();
-              debugPrint('PAUSEUP');
-              break;
-            case AudioInterruptionType.unknown:
-              debugPrint('UNKNOWNUP');
-              break;
-          }
-        }
-      });
       _setupPlayerListeners();
       _log.info('FloatyAudioHandler initialized successfully');
     } catch (e, stack) {
@@ -119,9 +75,10 @@ class FloatyAudioHandler extends BaseAudioHandler
     ];
   }
 
-  void _setupPlayerListeners() {
+  void _setupPlayerListeners() async {
     _player.stream.playing.listen((playing) {
       _updatePlaybackState(playing);
+      session?.setActive(playing);
     });
 
     _player.stream.position.listen((position) {
@@ -147,6 +104,40 @@ class FloatyAudioHandler extends BaseAudioHandler
             processingState: AudioProcessingState.completed);
       }
     });
+    // Configure audio session
+    session = await AudioSession.instance;
+    await session?.configure(
+      const AudioSessionConfiguration.speech().copyWith(
+        androidWillPauseWhenDucked: true,
+      ),
+    );
+
+    session?.interruptionEventStream.listen((event) {
+      if (event.begin) {
+        switch (event.type) {
+          case AudioInterruptionType.duck:
+            _player.setVolume(30);
+            break;
+          case AudioInterruptionType.pause:
+            pause();
+            break;
+          case AudioInterruptionType.unknown:
+            pause();
+            break;
+        }
+      } else {
+        switch (event.type) {
+          case AudioInterruptionType.duck:
+            _player.setVolume(100);
+            break;
+          default:
+            break;
+        }
+      }
+    });
+    session?.becomingNoisyEventStream.listen((_) {
+      pause();
+    });
   }
 
   @override
@@ -155,6 +146,7 @@ class FloatyAudioHandler extends BaseAudioHandler
       _log.info('Playing audio: ${_currentMedia?.title}');
       await _player.play();
       _updatePlaybackState(true);
+      await session?.setActive(true);
     } catch (e, stack) {
       _log.severe('Error playing audio', e, stack);
       rethrow;
@@ -167,6 +159,7 @@ class FloatyAudioHandler extends BaseAudioHandler
       _log.info('Pausing audio: ${_currentMedia?.title}');
       await _player.pause();
       _updatePlaybackState(false);
+      await session?.setActive(false);
     } catch (e, stack) {
       _log.severe('Error pausing audio', e, stack);
       rethrow;
@@ -179,6 +172,7 @@ class FloatyAudioHandler extends BaseAudioHandler
       _log.info('Stopping audio: ${_currentMedia?.title}');
       await _player.stop();
       _updatePlaybackState(false, processingState: AudioProcessingState.idle);
+      await session?.setActive(false);
     } catch (e, stack) {
       _log.severe('Error stopping audio', e, stack);
       rethrow;

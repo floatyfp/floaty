@@ -21,8 +21,9 @@ class TrayService {
       trayManager.addListener(_TrayListener());
 
       // Load the app icon for the tray
-      final iconPath =
-          Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png';
+      final iconPath = Platform.isWindows
+          ? 'assets/icon/release_icon_win.ico'
+          : 'assets/app_foreground.png';
       await trayManager.setIcon(iconPath);
 
       // Create the tray menu

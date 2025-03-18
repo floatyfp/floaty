@@ -1,0 +1,4 @@
+#include "ephemeral/Flutter-Generated.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER = uk.bw86.floaty.dev
+APP_NAME = Floaty Dev
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDev

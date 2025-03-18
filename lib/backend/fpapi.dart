@@ -5,11 +5,71 @@ import 'package:floaty/backend/definitions.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:get_it/get_it.dart';
+
+final FPApiRequests fpApiRequests = GetIt.I<FPApiRequests>();
 
 class FPApiRequests {
   late final Settings settings = Settings();
   static const String baseUrl = 'https://www.floatplane.com/api';
   static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
+
+  void _handleTokenRotation(Map<String, String> headers) async {
+    String? date;
+    if (headers['set-cookie'] == null) return;
+    final currentToken = await settings.getKey('token');
+    if (currentToken.isEmpty) return;
+    final newCookieHeaders = headers['set-cookie']!.split(',');
+    final cookieMap = <String, String>{};
+    for (final header in headers.entries) {
+      if (header.key == 'set-cookie') {
+        final split = header.value.split(';');
+        final index = split.length - 3;
+        final unparseddate = split[index];
+        final values = unparseddate.split('=');
+        final dateparts = values.last.split(',');
+        date = dateparts.last.substring(1);
+      }
+    }
+    for (final cookieHeader in newCookieHeaders) {
+      final parts = cookieHeader.split(';');
+      if (parts.isEmpty) continue;
+      final mainPart = parts[0].trim();
+      if (!mainPart.contains('=')) continue;
+      final nameValue = mainPart.split('=');
+      if (nameValue.length != 2) continue;
+      final name = nameValue[0].trim();
+      final value = nameValue[1].trim();
+      if (name == 'sails.sid') {
+        cookieMap[name] =
+            '$name=$value; $date${parts.length > 1 ? '; ${parts.skip(1).join('; ')}' : ''}';
+      } else {
+        cookieMap[name] =
+            '$name=$value${parts.length > 1 ? '; ${parts.skip(1).join('; ')}' : ''}';
+      }
+    }
+    final currentParts = currentToken.split(';');
+    var i = 0;
+    while (i < currentParts.length) {
+      final part = currentParts[i].trim();
+      if (part.contains('=')) {
+        final nameValue = part.split('=');
+        final name = nameValue[0].trim();
+        if (!cookieMap.containsKey(name)) {
+          var fullCookie = part;
+          while (i + 1 < currentParts.length &&
+              !currentParts[i + 1].contains('=')) {
+            fullCookie += '; ${currentParts[i + 1].trim()}';
+            i++;
+          }
+          cookieMap[name] = fullCookie;
+        }
+      }
+      i++;
+    }
+    final updatedToken = cookieMap.values.join('; ');
+    await settings.setKey('token', updatedToken);
+  }
 
   Future<String> postDataWithEtag(String apiUrl, Map<String, dynamic>? body,
       [Map<String, dynamic>? queryParams]) async {
@@ -45,6 +105,8 @@ class FPApiRequests {
       body: body != null ? jsonEncode(body) : null,
     );
 
+    _handleTokenRotation(response.headers);
+
     if (response.statusCode == 200) {
       await prefs.setString(
           'etag_$url:$bodyKey', response.headers['etag'] ?? '');
@@ -54,7 +116,7 @@ class FPApiRequests {
     } else if (response.statusCode == 304 && cachedData != null) {
       return cachedData;
     } else {
-      return 'ded';
+      return 'Response StatusCode: ${response.statusCode}, Body: ${response.body}';
     }
   }
 
@@ -81,10 +143,12 @@ class FPApiRequests {
       body: body != null ? jsonEncode(body) : null,
     );
 
+    _handleTokenRotation(response.headers);
+
     if (response.statusCode == 200) {
       return response.body;
     } else {
-      return 'ded';
+      return 'Response StatusCode: ${response.statusCode}, Body: ${response.body}';
     }
   }
 
@@ -115,6 +179,8 @@ class FPApiRequests {
 
     final response = await http.get(url, headers: headers);
 
+    _handleTokenRotation(response.headers);
+
     if (response.statusCode == 200) {
       await prefs.setString('etag_$url', response.headers['etag'] ?? '');
       await prefs.setInt('etag_time_$url', currentTime);
@@ -123,7 +189,7 @@ class FPApiRequests {
     } else if (response.statusCode == 304 && cachedData != null) {
       return cachedData;
     } else {
-      return 'ded';
+      return {'statusCode': response.statusCode, 'body': response.body};
     }
   }
 
@@ -145,10 +211,12 @@ class FPApiRequests {
 
     final response = await http.get(url, headers: headers);
 
+    _handleTokenRotation(response.headers);
+
     if (response.statusCode == 200) {
       return response.body;
     } else {
-      return 'ded';
+      return {'statusCode': response.statusCode, 'body': response.body};
     }
   }
 
@@ -203,8 +271,8 @@ class FPApiRequests {
         List<CreatorModelV3> creators = [];
         for (String id in creatorIds) {
           try {
-            final creatorInfo = await FPApiRequests()
-                .fetchDataWithEtag('v3/creator/info?id=$id');
+            final creatorInfo =
+                await fpApiRequests.fetchDataWithEtag('v3/creator/info?id=$id');
             if (creatorInfo != null && creatorInfo.isNotEmpty) {
               Map<String, dynamic> creatorJson = jsonDecode(creatorInfo);
               creators.add(CreatorModelV3.fromJson(creatorJson));
@@ -229,8 +297,8 @@ class FPApiRequests {
         List<CreatorModelV3> creators = [];
         for (String id in creatorIds) {
           try {
-            final creatorInfo = await FPApiRequests()
-                .fetchDataWithEtag('v3/creator/info?id=$id');
+            final creatorInfo =
+                await fpApiRequests.fetchDataWithEtag('v3/creator/info?id=$id');
             if (creatorInfo != null && creatorInfo.isNotEmpty) {
               Map<String, dynamic> creatorJson = jsonDecode(creatorInfo);
               creators.add(CreatorModelV3.fromJson(creatorJson));
@@ -658,6 +726,15 @@ class FPApiRequests {
     }
   }
 
+  Future<String> getDeliveryv2(String type, String guid) async {
+    try {
+      final res = await fetchData('v2/cdn/delivery?type=$type&guid=$guid');
+      return res;
+    } catch (e) {
+      return '';
+    }
+  }
+
   Future<String> getContent(String type, String id) async {
     try {
       final res = await fetchData('v3/content/$type?id=$id');
@@ -682,5 +759,47 @@ class FPApiRequests {
     final cachedData = prefs.getString('data_$url');
 
     return cachedData;
+  }
+
+  Future<void> submitVote(String id, int vote) async {
+    await postData('v3/poll/votePoll', {
+      'pollId': id,
+      'optionIndex': vote,
+    });
+  }
+
+  //because of the dumb way i handle progress (i have 3 different things that can call progress) we debounce this to avoid spam and stale data.
+  Timer? _progressDebounceTimer;
+  final Map<String, Map<String, dynamic>> _pendingProgress = {};
+
+  Future<void> progress(String id, int progress, String contentType) async {
+    if (id.isEmpty) return;
+    _pendingProgress[id] = {
+      'progress': progress,
+      'contentType': contentType,
+    };
+    _progressDebounceTimer?.cancel();
+    _progressDebounceTimer = Timer(const Duration(seconds: 5), () async {
+      for (final entry in _pendingProgress.entries) {
+        final String entryId = entry.key;
+        final Map<String, dynamic> params = entry.value;
+
+        await postData('v3/content/progress', {
+          'id': entryId,
+          'contentType': params['contentType'],
+          'progress': params['progress'],
+        });
+      }
+      _pendingProgress.clear();
+    });
+  }
+
+  Future<void> iprogress(String id, int progress, String contentType) async {
+    if (id.isEmpty) return;
+    await postData('v3/content/progress', {
+      'id': id,
+      'contentType': contentType,
+      'progress': progress,
+    });
   }
 }

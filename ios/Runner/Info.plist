@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -52,5 +56,13 @@
 	</array>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>Floaty needs access to play media content</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need access to add downloaded media to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to save downloaded media to your photo library.</string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>

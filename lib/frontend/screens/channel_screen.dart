@@ -1,31 +1,60 @@
-import 'package:floaty/backend/fpapi.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/frontend/root.dart';
-import 'package:go_router/go_router.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:floaty/frontend/elements.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:go_router/go_router.dart';
+import 'package:floaty/providers/channel_provider.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 // ignore: must_be_immutable
-class ChannelScreen extends StatefulWidget {
+class ChannelScreen extends ConsumerWidget {
   const ChannelScreen({super.key, required this.channelName, this.subName});
   final String channelName;
   final String? subName;
 
   @override
-  // ignore: library_private_types_in_public_api
-  _ChannelScreenState createState() => _ChannelScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final channelScreenStateNotifier =
+        ref.watch(channelScreenProvider.notifier);
+
+    return ChannelScreenStateWrapper(
+      channelName: channelName,
+      subName: subName,
+      channelScreenStateNotifier: channelScreenStateNotifier,
+    );
+  }
 }
 
-class _ChannelScreenState extends State<ChannelScreen> {
+class ChannelScreenStateWrapper extends ConsumerStatefulWidget {
+  final String channelName;
+  final String? subName;
+  final ChannelScreenStateNotifier channelScreenStateNotifier;
+
+  const ChannelScreenStateWrapper({
+    super.key,
+    required this.channelName,
+    this.subName,
+    required this.channelScreenStateNotifier,
+  });
+
+  @override
+  // ignore: library_private_types_in_public_api
+  _ChannelScreenStateWrapperState createState() =>
+      _ChannelScreenStateWrapperState();
+}
+
+class _ChannelScreenStateWrapperState
+    extends ConsumerState<ChannelScreenStateWrapper> {
   bool isRootChannel = true;
   bool isLoading = true;
   dynamic channel;
   dynamic rootchannel;
-  int selectedIndex = 0;
   dynamic response;
   bool searchfieldvisible = false;
   // ignore: unused_field
@@ -41,29 +70,18 @@ class _ChannelScreenState extends State<ChannelScreen> {
   bool _showFloatingNav = false;
   double _scrollThreshold = 0;
 
-  String? _searchQuery;
-  Set<String> _selectedContentTypes = {};
-  RangeValues? _durationRange;
-  DateTime? _startDate;
-  DateTime? _endDate;
-  bool _isAscending = false;
-  bool firstPage = true;
   int pageloadint = 0;
 
   void _toggleSearch() {
-    if (!searchfieldvisible && selectedIndex == 0) {
+    if (!searchfieldvisible &&
+        ref.watch(channelScreenProvider.select((s) => s.selectedIndex)) == 0) {
       _scrollController.animateTo(
         0,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     }
-    setState(() {
-      searchfieldvisible = !searchfieldvisible;
-      if (!searchfieldvisible) {
-        _filterPanelHeight = 0;
-      }
-    });
+    widget.channelScreenStateNotifier.toggleSearch();
   }
 
   void _handleResize(Size size) {
@@ -82,17 +100,18 @@ class _ChannelScreenState extends State<ChannelScreen> {
     DateTime? endDate,
     bool isAscending,
   ) {
-    setState(() {
-      _searchQuery = searchQuery;
-      _selectedContentTypes = contentTypes;
-      _durationRange = durationRange;
-      _startDate = startDate;
-      _endDate = endDate;
-      _isAscending = isAscending;
+    // Update Riverpod state
+    ref.read(channelScreenProvider.notifier).updateFilters(
+          searchQuery: searchQuery,
+          contentTypes: contentTypes,
+          durationRange: durationRange,
+          startDate: startDate,
+          endDate: endDate,
+          isAscending: isAscending,
+        );
 
-      fetchafter = 0;
-      _pagingController.refresh();
-    });
+    fetchafter = 0;
+    _pagingController.refresh();
   }
 
   void _calculateScrollThreshold() {
@@ -130,17 +149,23 @@ class _ChannelScreenState extends State<ChannelScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _calculateScrollThreshold();
+    ref.listenManual<int>(
+      channelScreenProvider.select((state) => state.selectedIndex),
+      (previous, next) {
+        if (next == 2 && context.mounted) {
+          context.push('/live/${widget.channelName}');
+          ref.read(channelScreenProvider.notifier).resetSelectedIndex();
+        }
+      },
+    );
   }
 
   @override
-  void didUpdateWidget(ChannelScreen oldWidget) {
+  void didUpdateWidget(ChannelScreenStateWrapper oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.channelName != widget.channelName ||
         oldWidget.subName != widget.subName) {
-      setState(() {
-        isRootChannel = true;
-        isLoading = true;
-      });
+      ref.read(channelScreenProvider.notifier).resetState();
       load();
     }
   }
@@ -155,17 +180,18 @@ class _ChannelScreenState extends State<ChannelScreen> {
 
   Future<void> _fetchPage(int pageKey) async {
     try {
-      home = await FPApiRequests().getChannelVideoFeed(
+      final state = ref.read(channelScreenProvider);
+      home = await fpApiRequests.getChannelVideoFeed(
         rootchannel.id,
         _pageSize,
         fetchafter,
         channel: !isRootChannel ? channel.id : null,
-        searchQuery: _searchQuery,
-        durationRange: _durationRange,
-        fromDate: _startDate,
-        toDate: _endDate,
-        isAscending: _isAscending,
-        contentTypes: _selectedContentTypes,
+        searchQuery: state.searchQuery,
+        durationRange: state.durationRange,
+        fromDate: state.startDate,
+        toDate: state.endDate,
+        isAscending: state.isAscending,
+        contentTypes: state.selectedContentTypes,
       );
       fetchafter = fetchafter + 20;
 
@@ -178,7 +204,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
           .cast<String>()
           .toList();
       List<GetProgressResponse> progressResponses =
-          await FPApiRequests().getVideoProgress(blogPostIds);
+          await fpApiRequests.getVideoProgress(blogPostIds);
 
       Map<String, GetProgressResponse?> progressMap = {
         for (var progress in progressResponses) progress.id!: progress
@@ -196,7 +222,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
   }
 
   void getStats() async {
-    final stats = await FPApiRequests().getStats(rootchannel.id!);
+    final stats = await fpApiRequests.getStats(rootchannel.id!);
     if (mounted) {
       setState(() {
         response = stats;
@@ -211,7 +237,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
     if (widget.subName != null) {
       isRootChannel = false;
 
-      FPApiRequests().getCreator(urlname: widget.channelName).listen((creator) {
+      fpApiRequests.getCreator(urlname: widget.channelName).listen((creator) {
         setState(() {
           rootchannel = creator;
           channel = creator.channels?.firstWhere(
@@ -228,7 +254,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
     } else {
       isRootChannel = true;
 
-      FPApiRequests().getCreator(urlname: widget.channelName).listen((creator) {
+      fpApiRequests.getCreator(urlname: widget.channelName).listen((creator) {
         setState(() {
           channel = creator;
           rootchannel = creator;
@@ -241,13 +267,6 @@ class _ChannelScreenState extends State<ChannelScreen> {
         });
       });
     }
-
-    if (selectedIndex == 2) {
-      if (context.mounted) {
-        // ignore: use_build_context_synchronously
-        context.push('/channel/$widget.channelName/live');
-      }
-    }
   }
 
   @override
@@ -259,18 +278,28 @@ class _ChannelScreenState extends State<ChannelScreen> {
 
     _calculateScrollThreshold();
 
-    final showNav = selectedIndex == 0 &&
-        (_showFloatingNav &&
-            _scrollController.hasClients &&
-            _scrollController.offset > _scrollThreshold);
+    final showNav =
+        ref.watch(channelScreenProvider.select((s) => s.selectedIndex)) == 0 &&
+            (_showFloatingNav &&
+                _scrollController.hasClients &&
+                _scrollController.offset > _scrollThreshold);
 
     return isLoading
         ? const Center(child: CircularProgressIndicator())
         : Scaffold(
-            body: Stack(
+            body: RefreshIndicator(
+            onRefresh: () async {
+              fetchafter = 0;
+              _pagingController.refresh();
+            },
+            child: Stack(
               children: [
                 CustomScrollView(
-                  controller: selectedIndex == 0 ? _scrollController : null,
+                  controller: ref.watch(channelScreenProvider
+                              .select((s) => s.selectedIndex)) ==
+                          0
+                      ? _scrollController
+                      : null,
                   slivers: [
                     SliverToBoxAdapter(
                       child: Column(
@@ -342,13 +371,15 @@ class _ChannelScreenState extends State<ChannelScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(
+                                            AutoSizeText(
                                               channel?.title ?? 'Channel Name',
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: fontSize,
                                                 fontWeight: FontWeight.bold,
                                               ),
+                                              stepGranularity: 0.25,
+                                              textScaleFactor: 0.95,
                                             ),
                                             const Padding(
                                                 padding: EdgeInsets.symmetric(
@@ -422,10 +453,14 @@ class _ChannelScreenState extends State<ChannelScreen> {
                                         );
                                       },
                                       child: IconButton(
-                                        key: ValueKey(searchfieldvisible),
+                                        key: ValueKey(ref.watch(
+                                            channelScreenProvider.select(
+                                                (s) => s.searchFieldVisible))),
                                         onPressed: _toggleSearch,
                                         icon: Icon(
-                                          searchfieldvisible
+                                          ref.watch(channelScreenProvider
+                                                  .select((s) =>
+                                                      s.searchFieldVisible))
                                               ? Icons.close
                                               : Icons.search,
                                           color: Colors.grey.shade200,
@@ -442,7 +477,8 @@ class _ChannelScreenState extends State<ChannelScreen> {
                               child: AnimatedSize(
                                 duration: const Duration(milliseconds: 200),
                                 curve: Curves.easeInOut,
-                                child: searchfieldvisible
+                                child: ref.watch(channelScreenProvider
+                                        .select((s) => s.searchFieldVisible))
                                     ? LayoutBuilder(
                                         builder: (context, constraints) {
                                           WidgetsBinding.instance
@@ -457,14 +493,25 @@ class _ChannelScreenState extends State<ChannelScreen> {
                                               parentWidth: constraints.maxWidth,
                                               onFilterChanged:
                                                   _handleFilterChange,
-                                              initialContentTypes:
-                                                  _selectedContentTypes,
-                                              initialSearchQuery: _searchQuery,
-                                              initialDurationRange:
-                                                  _durationRange,
-                                              initialStartDate: _startDate,
-                                              initialEndDate: _endDate,
-                                              initialIsAscending: _isAscending,
+                                              initialContentTypes: ref.watch(
+                                                  channelScreenProvider.select(
+                                                      (s) => s
+                                                          .selectedContentTypes)),
+                                              initialSearchQuery: ref.watch(
+                                                  channelScreenProvider.select(
+                                                      (s) => s.searchQuery)),
+                                              initialDurationRange: ref.watch(
+                                                  channelScreenProvider.select(
+                                                      (s) => s.durationRange)),
+                                              initialStartDate: ref.watch(
+                                                  channelScreenProvider.select(
+                                                      (s) => s.startDate)),
+                                              initialEndDate: ref.watch(
+                                                  channelScreenProvider.select(
+                                                      (s) => s.endDate)),
+                                              initialIsAscending: ref.watch(
+                                                  channelScreenProvider.select(
+                                                      (s) => s.isAscending)),
                                             ),
                                           );
                                         },
@@ -480,53 +527,77 @@ class _ChannelScreenState extends State<ChannelScreen> {
                       const SliverFillRemaining(
                         child: Center(child: CircularProgressIndicator()),
                       )
-                    else if (selectedIndex == 0)
+                    else if (ref.watch(channelScreenProvider
+                            .select((s) => s.selectedIndex)) ==
+                        0)
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 4.0),
                         sliver: SliverLayoutBuilder(
-                            builder: (context, constraints) {
-                          return PagedSliverGrid<int, BlogPostCard>(
-                            pagingController: _pagingController,
-                            gridDelegate:
-                                SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent:
-                                  constraints.crossAxisExtent <= 450
-                                      ? constraints.crossAxisExtent
-                                      : 300,
-                              crossAxisSpacing: 4,
-                              mainAxisSpacing: 4,
-                              childAspectRatio:
-                                  constraints.crossAxisExtent <= 450
-                                      ? 1.2
-                                      : 1.175,
-                            ),
-                            builderDelegate:
-                                PagedChildBuilderDelegate<BlogPostCard>(
-                              animateTransitions: true,
-                              itemBuilder: (context, item, index) {
-                                return Padding(
-                                    padding: EdgeInsets.all(
-                                        constraints.crossAxisExtent <= 450
-                                            ? 4
-                                            : 2),
-                                    child: BlogPostCard(item.blogPost,
-                                        response: item.response));
-                              },
-                              noItemsFoundIndicatorBuilder: (context) =>
-                                  const Center(
-                                child: Text("No items found."),
-                              ),
-                            ),
-                          );
-                        }),
+                          builder: (context, constraints) {
+                            final useList = constraints.crossAxisExtent <= 450;
+                            return useList
+                                ? PagedSliverList<int, BlogPostCard>(
+                                    pagingController: _pagingController,
+                                    builderDelegate:
+                                        PagedChildBuilderDelegate<BlogPostCard>(
+                                      animateTransitions: true,
+                                      itemBuilder: (context, item, index) =>
+                                          Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 2,
+                                        ),
+                                        child: BlogPostCard(item.blogPost,
+                                            response: item.response),
+                                      ),
+                                      noItemsFoundIndicatorBuilder: (context) =>
+                                          const Center(
+                                        child: Text("No items found."),
+                                      ),
+                                    ),
+                                  )
+                                : PagedSliverGrid<int, BlogPostCard>(
+                                    pagingController: _pagingController,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 300,
+                                      crossAxisSpacing: 4,
+                                      mainAxisSpacing: 4,
+                                      childAspectRatio: 1.175,
+                                    ),
+                                    builderDelegate:
+                                        PagedChildBuilderDelegate<BlogPostCard>(
+                                      animateTransitions: true,
+                                      itemBuilder: (context, item, index) =>
+                                          Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: BlogPostCard(item.blogPost,
+                                            response: item.response),
+                                      ),
+                                      noItemsFoundIndicatorBuilder: (context) =>
+                                          const Center(
+                                        child: Text("No items found."),
+                                      ),
+                                    ),
+                                  );
+                          },
+                        ),
                       )
-                    else if (selectedIndex == 1)
+                    else if (ref.watch(channelScreenProvider
+                            .select((s) => s.selectedIndex)) ==
+                        1)
                       SliverToBoxAdapter(
                         child: AboutContent(
                           channel: channel,
                           rootchannel: rootchannel,
                           stats: response,
                         ),
+                      )
+                    else if (ref.watch(channelScreenProvider
+                            .select((s) => s.selectedIndex)) ==
+                        2)
+                      SliverToBoxAdapter(
+                        child: LiveContent(channel: channel),
                       )
                     else
                       const SliverFillRemaining(
@@ -573,24 +644,30 @@ class _ChannelScreenState extends State<ChannelScreen> {
                           _buildNavButton("Live", 2),
                         const SizedBox(width: 10),
                         _buildNavButton(
-                            searchfieldvisible ? "Close" : "Search", -1),
+                            ref.watch(channelScreenProvider
+                                    .select((s) => s.searchFieldVisible))
+                                ? "Close"
+                                : "Search",
+                            -1),
                       ],
                     ),
                   ),
                 ),
               ],
             ),
-          );
+          ));
   }
 
   Widget _buildNavButton(String title, int index) {
-    final bool isSelected = selectedIndex == index;
+    final bool isSelected =
+        ref.watch(channelScreenProvider.select((s) => s.selectedIndex)) ==
+            index;
     return GestureDetector(
       onTap: () {
         if (index == -1) {
           _toggleSearch();
         } else {
-          setState(() => selectedIndex = index);
+          widget.channelScreenStateNotifier.updateSelectedIndex(index);
         }
       },
       child: AnimatedContainer(
@@ -643,6 +720,7 @@ class AboutContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            //TODO: MIGRATE AWAY FROM FLUTTER_MARKDOWN
             MarkdownBody(
               data: channel.about ?? '',
               styleSheet:
@@ -944,6 +1022,6 @@ class LiveContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text("Live Content for Channel: ${channel?.title ?? 'Loading...'}");
+    return const Center(child: CircularProgressIndicator());
   }
 }

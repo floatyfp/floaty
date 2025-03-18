@@ -76,7 +76,7 @@ class LoginScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Image(
-                  image: AssetImage('assets/transparent.png'),
+                  image: AssetImage('assets/app_foreground.png'),
                   width: 60,
                 ),
                 const SizedBox(height: 30),
@@ -236,7 +236,7 @@ class TwoFaScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Image(
-                  image: AssetImage('assets/transparent.png'),
+                  image: AssetImage('assets/app_foreground.png'),
                   width: 60,
                 ),
                 const SizedBox(height: 30),

@@ -40,55 +40,43 @@ class _HomeScreenState extends State<HomeScreen> {
     rootLayoutKey.currentState?.setAppBar(const Text('Home'));
   }
 
-  Future<List<String>> _getCreatorIds() {
-    if (!mounted) return Future.value([]);
-    
-    Completer<List<String>> completer = Completer();
-
-    FPApiRequests().getSubscribedCreatorsIds().listen((ids) {
-      if (!mounted) {
-        if (!completer.isCompleted) {
-          completer.complete([]);
-        }
-        return;
-      }
-      setState(() {
-        creatorIds = ids;
-      });
-      if (!completer.isCompleted) {
-        completer.complete(ids);
-      }
-    }, onError: (error) {
-      if (!completer.isCompleted) {
-        completer.completeError(error);
-      }
-    });
-
-    return completer.future;
+  Future<List<String>> _getCreatorIds() async {
+    if (!mounted) return [];
+    if (creatorIds.isNotEmpty) return creatorIds;
+    try {
+      creatorIds = await fpApiRequests.getSubscribedCreatorsIds().first;
+    } catch (error) {
+      creatorIds = [];
+    }
+    return creatorIds;
   }
 
   Future<void> _fetchPage(int pageKey) async {
     if (!mounted) return;
-    
     try {
       creatorIds = await _getCreatorIds();
       if (!mounted) return;
+      if (creatorIds.isEmpty) {
+        if (!mounted) return;
+        newposts = [];
+        isLastPage = true;
+        return;
+      }
 
       ContentCreatorListV3Response? home;
       if (lastElements.isNotEmpty) {
-        home = await FPApiRequests().getMultiCreatorVideoFeed(
+        home = await fpApiRequests.getMultiCreatorVideoFeed(
             creatorIds, _pageSize,
             lastElements: lastElements);
       } else {
-        home = await FPApiRequests()
-            .getMultiCreatorVideoFeed(creatorIds, _pageSize);
+        home =
+            await fpApiRequests.getMultiCreatorVideoFeed(creatorIds, _pageSize);
       }
 
       if (!mounted) return;
 
       newposts = home.blogPosts ?? [];
       lastElements = home.lastElements ?? [];
-
       isLastPage =
           !lastElements.any((element) => element.moreFetchable ?? false);
 
@@ -98,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
           .cast<String>()
           .toList();
       List<GetProgressResponse> progressResponses =
-          await FPApiRequests().getVideoProgress(blogPostIds);
+          await fpApiRequests.getVideoProgress(blogPostIds);
 
       if (!mounted) return;
 
@@ -128,33 +116,56 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.only(left: 4, right: 4),
-        child: LayoutBuilder(builder: (context, constraints) {
-          return PagedGridView<int, BlogPostCard>(
-            pagingController: _pagingController,
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent:
-                  constraints.maxWidth <= 450 ? constraints.maxWidth : 300,
-              crossAxisSpacing: 4,
-              mainAxisSpacing: 4,
-              childAspectRatio: constraints.maxWidth <= 450 ? 1.2 : 1.175,
-            ),
-            builderDelegate: PagedChildBuilderDelegate<BlogPostCard>(
-              animateTransitions: true,
-              itemBuilder: (context, item, index) {
-                return Padding(
-                    padding:
-                        EdgeInsets.all(constraints.maxWidth <= 450 ? 4 : 2),
-                    child:
-                        BlogPostCard(item.blogPost, response: item.response));
-              },
-              noItemsFoundIndicatorBuilder: (context) => const Center(
-                child: Text("No items found."),
-              ),
-            ),
-          );
-        }),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          lastElements = [];
+          _pagingController.refresh();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: LayoutBuilder(builder: (context, constraints) {
+            final useList = constraints.maxWidth <= 450;
+            return useList
+                ? PagedListView<int, BlogPostCard>(
+                    pagingController: _pagingController,
+                    builderDelegate: PagedChildBuilderDelegate<BlogPostCard>(
+                      animateTransitions: true,
+                      itemBuilder: (context, item, index) => Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: BlogPostCard(item.blogPost,
+                            response: item.response),
+                      ),
+                      noItemsFoundIndicatorBuilder: (context) => const Center(
+                        child: Text("No items found."),
+                      ),
+                    ),
+                  )
+                : PagedGridView<int, BlogPostCard>(
+                    pagingController: _pagingController,
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 300,
+                      crossAxisSpacing: 4,
+                      mainAxisSpacing: 4,
+                      childAspectRatio: 1.175,
+                    ),
+                    builderDelegate: PagedChildBuilderDelegate<BlogPostCard>(
+                      animateTransitions: true,
+                      itemBuilder: (context, item, index) => Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: BlogPostCard(item.blogPost,
+                            response: item.response),
+                      ),
+                      noItemsFoundIndicatorBuilder: (context) => const Center(
+                        child: Text("No items found."),
+                      ),
+                    ),
+                  );
+          }),
+        ),
       ),
     );
   }

@@ -1,96 +1,38 @@
-import 'package:floaty/backend/definitions.dart';
 import 'package:flutter/material.dart';
-import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/frontend/elements.dart';
-import 'package:floaty/frontend/root.dart';
-import 'dart:async';
+import 'package:floaty/providers/browse_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class BrowseScreen extends StatefulWidget {
+class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
-  _BrowseScreenState createState() => _BrowseScreenState();
+  ConsumerState<BrowseScreen> createState() => _BrowseScreenState();
 }
 
-class _BrowseScreenState extends State<BrowseScreen> {
-  List<CreatorModelV3> creators = [];
-  Timer? _debounce;
-  bool isLoading = true;
-  final TextEditingController _searchController = TextEditingController();
-
+class _BrowseScreenState extends ConsumerState<BrowseScreen> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setAppTitle();
-      fetchCreators();
-    });
-  }
-
-  void setAppTitle() {
-    rootLayoutKey.currentState?.setAppBar(
-      TextField(
-        controller: _searchController,
-        onChanged: (value) {
-          //being kind to the floatplane api
-          if (_debounce?.isActive ?? false) _debounce!.cancel();
-          _debounce = Timer(const Duration(seconds: 1), () {
-            _performSearch(value);
-          });
-        },
-        decoration: const InputDecoration(
-          hintText: 'Search creators...',
-          border: InputBorder.none,
-          prefixIcon: Icon(Icons.search),
-        ),
-      ),
-    );
-  }
-
-  void _performSearch(String query) {
-    setState(() {
-      isLoading = true;
-    });
-    FPApiRequests().getCreators(query: query).listen((fetchedCreators) {
-      setState(() {
-        creators = fetchedCreators;
-        isLoading = false;
-      });
-    }, onError: (error) {
-      setState(() {
-        isLoading = false;
-      });
-    });
-  }
-
-  void fetchCreators() {
-    setState(() {
-      isLoading = true;
-    });
-    FPApiRequests().getCreators().listen((fetchedCreators) {
-      setState(() {
-        creators = fetchedCreators;
-        isLoading = false;
-      });
-    }, onError: (error) {
-      setState(() {
-        isLoading = false;
-      });
+      ref.read(browseProvider.notifier).setAppTitle();
+      ref.read(browseProvider.notifier).fetchCreators();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final browseState = ref.watch(browseProvider);
     return Scaffold(
       body: Center(
         child: Container(
           width:
               MediaQuery.of(context).size.width > 1000 ? 1000 : double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: isLoading
+          child: browseState.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : creators.isEmpty
+              : browseState.creators.isEmpty
                   ? const Center(child: Text("No items found."))
                   : SingleChildScrollView(
                       child: GridView.builder(
@@ -101,11 +43,11 @@ class _BrowseScreenState extends State<BrowseScreen> {
                           mainAxisSpacing: 8,
                           crossAxisSpacing: 8,
                         ),
-                        itemCount: creators.length,
+                        itemCount: browseState.creators.length,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemBuilder: (context, index) {
-                          return CreatorCard(creators[index]);
+                          return CreatorCard(browseState.creators[index]);
                         },
                       ),
                     ),

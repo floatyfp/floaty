@@ -1,0 +1,4 @@
+#include "ephemeral/Flutter-Generated.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER = uk.bw86.floaty.nightly
+APP_NAME = Floaty Nightly
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIconNightly
