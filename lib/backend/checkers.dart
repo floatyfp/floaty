@@ -10,12 +10,11 @@ class Checkers {
     try {
       var cookieParts = cookie.split(';').map((s) => s.trim()).toList();
       String expiresPart = '';
-      //TODO: refactor cookie handling
-      // for (var part in cookieParts) {
-      //   if (part.startsWith('Expires=')) {
-      //     expiresPart = part.substring('Expires='.length);
-      //   }
-      // }
+      for (var part in cookieParts) {
+        if (part.startsWith('Expires=')) {
+          expiresPart = part.substring('Expires='.length);
+        }
+      }
       if (expiresPart.isEmpty) {
         if (cookieParts.length > 1) {
           expiresPart = cookieParts[1];

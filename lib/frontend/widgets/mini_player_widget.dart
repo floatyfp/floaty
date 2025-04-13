@@ -18,6 +18,7 @@ class MiniPlayerWidget extends ConsumerWidget {
   final String artist;
   final String postId;
   final String? thumbnailUrl;
+  final bool live;
   final VideoController? videoController;
 
   const MiniPlayerWidget({
@@ -25,6 +26,7 @@ class MiniPlayerWidget extends ConsumerWidget {
     required this.title,
     required this.artist,
     required this.postId,
+    required this.live,
     this.thumbnailUrl,
     this.videoController,
   });
@@ -36,15 +38,22 @@ class MiniPlayerWidget extends ConsumerWidget {
 
     return Material(
       elevation: 8,
-      child: GestureDetector(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
         onTap: () {
           mediaService.changeState(MediaPlayerState.main);
-          fpApiRequests.iprogress(
-            mediaService.currentAttachmentId ?? '',
-            mediaService.currentPosition.inSeconds,
-            mediaService.selectedMediaName ?? '',
-          );
-          context.go('/post/$postId');
+          if (!live) {
+            fpApiRequests.iprogress(
+              mediaService.currentAttachmentId ?? '',
+              mediaService.currentPosition.inSeconds,
+              mediaService.selectedMediaName ?? '',
+            );
+          }
+          if (live) {
+            context.go('/live/$postId');
+          } else {
+            context.go('/post/$postId');
+          }
         },
         child: Container(
           height: 72,
@@ -110,6 +119,7 @@ class MiniPlayerWidget extends ConsumerWidget {
                       Row(
                         children: [
                           InkWell(
+                            borderRadius: BorderRadius.circular(8),
                             child: const Icon(
                               Icons.fast_rewind,
                               size: 18,
@@ -122,6 +132,7 @@ class MiniPlayerWidget extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
                               child: Icon(
                                 isPlaying.when(
                                   data: (playing) =>
@@ -155,11 +166,13 @@ class MiniPlayerWidget extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
                   child: const Icon(
                     Icons.close,
                     size: 16,
                   ),
                   onTap: () {
+                    mediaService.changeState(MediaPlayerState.none);
                     mediaService.stop();
                     mediaService.changeState(MediaPlayerState.none);
                   },

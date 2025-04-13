@@ -42,7 +42,7 @@ dependencies:
   json_annotation: ^4.9.0
   cached_network_image: ^3.4.1
   infinite_scroll_pagination: ^4.0.0
-  font_awesome_flutter: ^10.8.0
+  simple_icons: ^14.6.1
   url_launcher: ^6.3.1
   fwfh_url_launcher: ^0.9.1
   auto_size_text: ^3.0.0
@@ -51,7 +51,8 @@ dependencies:
   flutter_widget_from_html_core: ^0.15.2
 
   #channel page
-  flutter_markdown: ^0.7.4+1
+  markdown_widget: ^2.3.2+6
+  font_awesome_flutter: ^10.8.0
 
   #video stuff
   media_kit: ^1.1.11
@@ -74,9 +75,12 @@ dependencies:
   window_manager: ^0.4.3    
 
   #live chat/live page
-  flutter_resizable_container: ^4.0.1
+  resizable_widget: 
+    git:
+      url: https://github.com/floatyfp/resizable_widget
   sails_io: ^0.0.2 
   socket_io_client: ^1.0.1
+  web_socket_client: ^0.1.5
 
 dependency_overrides:
   media_kit: 
@@ -89,7 +93,7 @@ dependency_overrides:
       path: media_kit_video
   media_kit_libs_video: 
     git:
-      url: https://github.com/media-kit/media-kit
+      url: https://github.com/media-kit/media-kit 
       path: libs/universal/media_kit_libs_video
   socket_io_client:
     git:

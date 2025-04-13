@@ -294,22 +294,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.10"
-  decimal:
-    dependency: transitive
-    description:
-      name: decimal
-      sha256: "28239b8b929c1bd8618702e6dbc96e2618cf99770bbe9cb040d6cf56a11e4ec3"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.1"
-  equatable:
-    dependency: transitive
-    description:
-      name: equatable
-      sha256: "567c64b3cb4cf82397aac55f4f0cbd3ca20d77c6c03bedbc4ceaddc08904aef7"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.7"
   fake_async:
     dependency: transitive
     description:
@@ -355,6 +339,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.1"
+  flutter_highlight:
+    dependency: transitive
+    description:
+      name: flutter_highlight
+      sha256: "7b96333867aa07e122e245c033b8ad622e4e3a42a1a2372cbb098a2541d8782c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.0"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -371,22 +363,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
-  flutter_markdown:
-    dependency: "direct main"
-    description:
-      name: flutter_markdown
-      sha256: "255b00afa1a7bad19727da6a7780cf3db6c3c12e68d302d85e0ff1fdf173db9e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.4+3"
-  flutter_resizable_container:
-    dependency: "direct main"
-    description:
-      name: flutter_resizable_container
-      sha256: "3a7745ad0091ea9453cf2944817ddef207046b5ae637f1574d52292117ee83a1"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.1"
   flutter_riverpod:
     dependency: "direct main"
     description:
@@ -485,6 +461,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
+  highlight:
+    dependency: transitive
+    description:
+      name: highlight
+      sha256: "5353a83ffe3e3eca7df0abfb72dcf3fa66cc56b953728e7113ad4ad88497cf21"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.0"
   html:
     dependency: transitive
     description:
@@ -629,6 +613,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.2.2"
+  markdown_widget:
+    dependency: "direct main"
+    description:
+      name: markdown_widget
+      sha256: "216dced98962d7699a265344624bc280489d739654585ee881c95563a3252fac"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.2+6"
   matcher:
     dependency: transitive
     description:
@@ -928,14 +920,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.0"
-  rational:
-    dependency: transitive
+  resizable_widget:
+    dependency: "direct main"
     description:
-      name: rational
-      sha256: cb808fb6f1a839e6fc5f7d8cb3b0a10e1db48b3be102de73938c627f0b636336
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.3"
+      path: "."
+      ref: HEAD
+      resolved-ref: "45650059b74a4fd8fd27a5bee549f5bb72a1b1ee"
+      url: "https://github.com/floatyfp/resizable_widget"
+    source: git
+    version: "1.0.5"
   riverpod:
     dependency: transitive
     description:
@@ -1024,6 +1017,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.0"
+  scroll_to_index:
+    dependency: transitive
+    description:
+      name: scroll_to_index
+      sha256: b707546e7500d9f070d63e5acf74fd437ec7eeeb68d3412ef7b0afada0b4f176
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -1104,6 +1105,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.2"
+  simple_icons:
+    dependency: "direct main"
+    description:
+      name: simple_icons
+      sha256: "2ca3cd79c9f12e97a8588cae0f342609f19fd2e82315356cb09b5c4987ad0808"
+      url: "https://pub.dev"
+    source: hosted
+    version: "14.6.1"
   simple_pip_mode:
     dependency: "direct main"
     description:
@@ -1422,6 +1431,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.4"
+  visibility_detector:
+    dependency: transitive
+    description:
+      name: visibility_detector
+      sha256: dd5cc11e13494f432d15939c3aa8ae76844c42b723398643ce9addb88a5ed420
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0+2"
   vm_service:
     dependency: transitive
     description:
@@ -1486,6 +1503,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.1"
+  web_socket_client:
+    dependency: "direct main"
+    description:
+      name: web_socket_client
+      sha256: "0ec5230852349191188c013112e4d2be03e3fc83dbe80139ead9bf3a136e53b5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.5"
   win32:
     dependency: transitive
     description:

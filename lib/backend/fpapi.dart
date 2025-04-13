@@ -15,60 +15,14 @@ class FPApiRequests {
   static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
 
   void _handleTokenRotation(Map<String, String> headers) async {
-    String? date;
     if (headers['set-cookie'] == null) return;
-    final currentToken = await settings.getKey('token');
-    if (currentToken.isEmpty) return;
-    final newCookieHeaders = headers['set-cookie']!.split(',');
-    final cookieMap = <String, String>{};
-    for (final header in headers.entries) {
-      if (header.key == 'set-cookie') {
-        final split = header.value.split(';');
-        final index = split.length - 3;
-        final unparseddate = split[index];
-        final values = unparseddate.split('=');
-        final dateparts = values.last.split(',');
-        date = dateparts.last.substring(1);
-      }
-    }
+    final newCookieHeaders = headers['set-cookie']!.split(';');
     for (final cookieHeader in newCookieHeaders) {
-      final parts = cookieHeader.split(';');
-      if (parts.isEmpty) continue;
-      final mainPart = parts[0].trim();
-      if (!mainPart.contains('=')) continue;
-      final nameValue = mainPart.split('=');
-      if (nameValue.length != 2) continue;
-      final name = nameValue[0].trim();
-      final value = nameValue[1].trim();
-      if (name == 'sails.sid') {
-        cookieMap[name] =
-            '$name=$value; $date${parts.length > 1 ? '; ${parts.skip(1).join('; ')}' : ''}';
-      } else {
-        cookieMap[name] =
-            '$name=$value${parts.length > 1 ? '; ${parts.skip(1).join('; ')}' : ''}';
+      final parts = cookieHeader.split(',');
+      if (parts[0] == 'sails.sid') {
+        await settings.setKey('token', cookieHeader);
       }
     }
-    final currentParts = currentToken.split(';');
-    var i = 0;
-    while (i < currentParts.length) {
-      final part = currentParts[i].trim();
-      if (part.contains('=')) {
-        final nameValue = part.split('=');
-        final name = nameValue[0].trim();
-        if (!cookieMap.containsKey(name)) {
-          var fullCookie = part;
-          while (i + 1 < currentParts.length &&
-              !currentParts[i + 1].contains('=')) {
-            fullCookie += '; ${currentParts[i + 1].trim()}';
-            i++;
-          }
-          cookieMap[name] = fullCookie;
-        }
-      }
-      i++;
-    }
-    final updatedToken = cookieMap.values.join('; ');
-    await settings.setKey('token', updatedToken);
   }
 
   Future<String> postDataWithEtag(String apiUrl, Map<String, dynamic>? body,
@@ -542,6 +496,19 @@ class FPApiRequests {
       return StatsModel(totalIncome: 0, totalSubcriberCount: 0);
     } catch (e) {
       return StatsModel(totalIncome: 0, totalSubcriberCount: 0);
+    }
+  }
+
+  Future<Map<String, dynamic>> getStatsV3(String creatorId) async {
+    try {
+      final stats = await fetchDataWithEtag('v3/creator/stats?id=$creatorId');
+      if (stats != null && stats.isNotEmpty) {
+        dynamic statsJson = jsonDecode(stats);
+        return statsJson;
+      }
+      return {"error": true};
+    } catch (e) {
+      return {"error": true};
     }
   }
 

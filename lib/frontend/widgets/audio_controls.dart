@@ -164,6 +164,7 @@ class _AudioControlsState extends ConsumerState<AudioControls> {
                 onPressed: () {
                   final mediaService =
                       ref.read(mediaPlayerServiceProvider.notifier);
+                  mediaService.changeState(MediaPlayerState.none);
                   mediaService.stop();
                   Navigator.pop(context);
                 },

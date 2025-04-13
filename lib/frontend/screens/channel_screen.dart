@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/frontend/root.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:floaty/frontend/elements.dart';
 import 'package:floaty/backend/definitions.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:simple_icons/simple_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import 'package:floaty/providers/channel_provider.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:markdown_widget/markdown_widget.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 // ignore: must_be_immutable
 class ChannelScreen extends ConsumerWidget {
@@ -69,6 +72,7 @@ class _ChannelScreenStateWrapperState
   final ScrollController _scrollController = ScrollController();
   bool _showFloatingNav = false;
   double _scrollThreshold = 0;
+  bool legacy = false;
 
   int pageloadint = 0;
 
@@ -136,7 +140,9 @@ class _ChannelScreenStateWrapperState
   void initState() {
     super.initState();
     _pagingController.addPageRequestListener((pageKey) {
-      _fetchPage(pageKey);
+      if (mounted) {
+        _fetchPage(pageKey);
+      }
     });
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -153,7 +159,7 @@ class _ChannelScreenStateWrapperState
       channelScreenProvider.select((state) => state.selectedIndex),
       (previous, next) {
         if (next == 2 && context.mounted) {
-          context.push('/live/${widget.channelName}');
+          context.go('/live/${widget.channelName}');
           ref.read(channelScreenProvider.notifier).resetSelectedIndex();
         }
       },
@@ -217,12 +223,15 @@ class _ChannelScreenStateWrapperState
         isLastPage ? null : pageKey + 1,
       );
     } catch (error) {
-      _pagingController.error = error;
+      if (mounted) {
+        _pagingController.error = error;
+      }
     }
   }
 
   void getStats() async {
-    final stats = await fpApiRequests.getStats(rootchannel.id!);
+    late dynamic stats;
+    stats = await fpApiRequests.getStatsV3(rootchannel.id!);
     if (mounted) {
       setState(() {
         response = stats;
@@ -269,13 +278,414 @@ class _ChannelScreenStateWrapperState
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget channelHeader({bool smol = false}) {
+    final search = ref.watch(
+      channelScreenProvider.select((s) => s.searchFieldVisible),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomLeft,
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 250),
+                child: AspectRatio(
+                  aspectRatio: 3.827,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: CachedNetworkImageProvider(
+                          channel?.cover?.path ??
+                              'https://example.com/default-banner.jpg',
+                        ),
+                        fit: BoxFit.fitHeight,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        Container(
+          color: const Color.fromARGB(255, 40, 40, 40),
+          height: 110,
+          child: Padding(
+            padding: EdgeInsets.only(left: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          backgroundImage: CachedNetworkImageProvider(
+                            channel?.icon?.path ??
+                                'https://example.com/default-profile.jpg',
+                          ),
+                          radius: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              channel?.title ?? 'Channel Name',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              smol
+                                  ? isRootChannel
+                                      ? '${NumberFormat('#,###').format(response['posts'])} Posts'
+                                      : '${NumberFormat('#,###').format(response['channels'].firstWhere((postcount) => postcount['id'] == channel.id)['posts'])} Posts'
+                                  : '${response?['subscribers'] != null ? '${NumberFormat('#,###').format(response['subscribers'])} Subscribers ·' : ''} ${response?['totalIncome'] != null ? '\$${NumberFormat('#,###.00').format(response['totalIncome'])} Per Month ·' : ''} ${isRootChannel ? '${NumberFormat('#,###').format(response['posts'])} Posts' : '${NumberFormat('#,###').format(response['channels'].firstWhere((postcount) => postcount['id'] == channel.id)['posts'])} Posts'}',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildNavButton("Home", 0, smol: true),
+                        const SizedBox(width: 10),
+                        _buildNavButton("About", 1, smol: true),
+                        if (rootchannel?.liveStream != null)
+                          const SizedBox(width: 10),
+                        if (rootchannel?.liveStream != null)
+                          _buildNavButton("Live", 2, smol: true),
+                      ],
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: SizedBox(
+                    height: 50,
+                    width: 50,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 350),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                        final isSearchIcon = child.key == const ValueKey(false);
+                        return Stack(
+                          children: [
+                            FadeTransition(
+                              opacity: animation,
+                              child: RotationTransition(
+                                turns: isSearchIcon
+                                    ? Tween(begin: 0.5, end: 1.0).animate(
+                                        CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeInOut))
+                                    : Tween(begin: 1.5, end: 1.0).animate(
+                                        CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeInOut)),
+                                child: child,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      child: IconButton(
+                        iconSize: 13,
+                        key: ValueKey(ref.watch(channelScreenProvider
+                            .select((s) => s.searchFieldVisible))),
+                        onPressed: _toggleSearch,
+                        icon: Icon(
+                          ref.watch(channelScreenProvider
+                                  .select((s) => s.searchFieldVisible))
+                              ? Icons.close
+                              : Icons.search,
+                          color: Colors.grey.shade200,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: 16.0, vertical: search ? 8.0 : 0.0),
+          child: ClipRect(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: ref.watch(
+                      channelScreenProvider.select((s) => s.searchFieldVisible))
+                  ? LayoutBuilder(
+                      builder: (context, constraints) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _handleResize(Size(
+                              constraints.maxWidth, constraints.maxHeight));
+                        });
+                        return Center(
+                          child: FilterPanel(
+                            onSizeChanged: _handleResize,
+                            parentWidth: constraints.maxWidth,
+                            onFilterChanged: _handleFilterChange,
+                            initialContentTypes: ref.watch(channelScreenProvider
+                                .select((s) => s.selectedContentTypes)),
+                            initialSearchQuery: ref.watch(channelScreenProvider
+                                .select((s) => s.searchQuery)),
+                            initialDurationRange: ref.watch(
+                                channelScreenProvider
+                                    .select((s) => s.durationRange)),
+                            initialStartDate: ref.watch(channelScreenProvider
+                                .select((s) => s.startDate)),
+                            initialEndDate: ref.watch(
+                                channelScreenProvider.select((s) => s.endDate)),
+                            initialIsAscending: ref.watch(channelScreenProvider
+                                .select((s) => s.isAscending)),
+                          ),
+                        );
+                      },
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget legacyChannelHeader() {
+    legacy = true;
+    final search = ref.watch(
+      channelScreenProvider.select((s) => s.searchFieldVisible),
+    );
     double screenWidth = MediaQuery.of(context).size.width;
 
     double profileImageRadius = (screenWidth * 0.1).clamp(44.0, 52.0);
     double fontSize = (screenWidth * 0.06).clamp(4.0, 30.0);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomLeft,
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: AspectRatio(
+                  aspectRatio: 3.827,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: CachedNetworkImageProvider(
+                          channel?.cover?.path ??
+                              'https://example.com/default-banner.jpg',
+                        ),
+                        fit: BoxFit.fitHeight,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.4),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+                bottom: -profileImageRadius,
+                left: 12,
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: profileImageRadius,
+                        backgroundImage: CachedNetworkImageProvider(
+                          channel?.icon?.path ??
+                              'https://example.com/default-profile.jpg',
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 10,
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AutoSizeText(
+                            channel?.title ?? 'Channel Name',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            stepGranularity: 0.25,
+                            textScaleFactor: 0.95,
+                          ),
+                          const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 10)),
+                          const Padding(padding: EdgeInsets.only(bottom: 30)),
+                        ],
+                      ),
+                    ])),
+          ],
+        ),
+        SizedBox(
+            height: 60,
+            child: Row(children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(left: profileImageRadius * 2 + 20),
+                  ),
+                  _buildNavButton("Home", 0),
+                  const SizedBox(width: 10),
+                  _buildNavButton("About", 1),
+                  if (rootchannel?.liveStream != null)
+                    const SizedBox(width: 10),
+                  if (rootchannel?.liveStream != null)
+                    _buildNavButton("Live", 2),
+                ],
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SizedBox(
+                  height: 50,
+                  width: 50,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      final isSearchIcon = child.key == const ValueKey(false);
+                      return Stack(
+                        children: [
+                          FadeTransition(
+                            opacity: animation,
+                            child: RotationTransition(
+                              turns: isSearchIcon
+                                  ? Tween(begin: 0.5, end: 1.0).animate(
+                                      CurvedAnimation(
+                                          parent: animation,
+                                          curve: Curves.easeInOut))
+                                  : Tween(begin: 1.5, end: 1.0).animate(
+                                      CurvedAnimation(
+                                          parent: animation,
+                                          curve: Curves.easeInOut)),
+                              child: child,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                    child: IconButton(
+                      key: ValueKey(ref.watch(channelScreenProvider
+                          .select((s) => s.searchFieldVisible))),
+                      onPressed: _toggleSearch,
+                      icon: Icon(
+                        ref.watch(channelScreenProvider
+                                .select((s) => s.searchFieldVisible))
+                            ? Icons.close
+                            : Icons.search,
+                        color: Colors.grey.shade200,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ])),
+        Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: 16.0, vertical: search ? 8.0 : 0.0),
+          child: ClipRect(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: ref.watch(
+                      channelScreenProvider.select((s) => s.searchFieldVisible))
+                  ? LayoutBuilder(
+                      builder: (context, constraints) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _handleResize(Size(
+                              constraints.maxWidth, constraints.maxHeight));
+                        });
+                        return Center(
+                          child: FilterPanel(
+                            onSizeChanged: _handleResize,
+                            parentWidth: constraints.maxWidth,
+                            onFilterChanged: _handleFilterChange,
+                            initialContentTypes: ref.watch(channelScreenProvider
+                                .select((s) => s.selectedContentTypes)),
+                            initialSearchQuery: ref.watch(channelScreenProvider
+                                .select((s) => s.searchQuery)),
+                            initialDurationRange: ref.watch(
+                                channelScreenProvider
+                                    .select((s) => s.durationRange)),
+                            initialStartDate: ref.watch(channelScreenProvider
+                                .select((s) => s.startDate)),
+                            initialEndDate: ref.watch(
+                                channelScreenProvider.select((s) => s.endDate)),
+                            initialIsAscending: ref.watch(channelScreenProvider
+                                .select((s) => s.isAscending)),
+                          ),
+                        );
+                      },
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
+  @override
+  Widget build(BuildContext context) {
     _calculateScrollThreshold();
 
     final showNav =
@@ -286,383 +696,182 @@ class _ChannelScreenStateWrapperState
 
     return isLoading
         ? const Center(child: CircularProgressIndicator())
-        : Scaffold(
-            body: RefreshIndicator(
-            onRefresh: () async {
-              fetchafter = 0;
-              _pagingController.refresh();
-            },
-            child: Stack(
-              children: [
-                CustomScrollView(
-                  controller: ref.watch(channelScreenProvider
-                              .select((s) => s.selectedIndex)) ==
-                          0
-                      ? _scrollController
-                      : null,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Stack(
-                            clipBehavior: Clip.none,
-                            alignment: Alignment.bottomLeft,
-                            children: [
-                              Positioned.fill(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade800,
-                                  ),
-                                ),
-                              ),
-                              Center(
-                                child: ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxHeight: 300),
-                                  child: AspectRatio(
-                                    aspectRatio: 3.827,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        image: DecorationImage(
-                                          image: NetworkImage(
-                                            channel?.cover?.path ??
-                                                'https://example.com/default-banner.jpg',
-                                          ),
-                                          fit: BoxFit.fitHeight,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned.fill(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Colors.transparent,
-                                        Colors.black.withValues(alpha: 0.4),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                  bottom: -profileImageRadius,
-                                  left: 12,
-                                  child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        CircleAvatar(
-                                          radius: profileImageRadius,
-                                          backgroundImage: NetworkImage(
-                                            channel?.icon?.path ??
-                                                'https://example.com/default-profile.jpg',
-                                          ),
-                                        ),
-                                        const SizedBox(
-                                          width: 10,
-                                        ),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            AutoSizeText(
-                                              channel?.title ?? 'Channel Name',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: fontSize,
-                                                fontWeight: FontWeight.bold,
+        : LayoutBuilder(
+            builder: (context, constraints) {
+              final bool smol = constraints.maxWidth < 460;
+              return Scaffold(
+                body: RefreshIndicator(
+                  onRefresh: () async {
+                    fetchafter = 0;
+                    _pagingController.refresh();
+                  },
+                  child: Stack(
+                    children: [
+                      CustomScrollView(
+                        controller: ref.watch(channelScreenProvider
+                                    .select((s) => s.selectedIndex)) ==
+                                0
+                            ? _scrollController
+                            : null,
+                        slivers: [
+                          SliverToBoxAdapter(
+                            //TODO: setting
+                            child: channelHeader(
+                                smol: smol), //legacyChannelHeader(), :
+                          ),
+                          if (isLoading)
+                            const SliverFillRemaining(
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (ref.watch(channelScreenProvider
+                                  .select((s) => s.selectedIndex)) ==
+                              0)
+                            SliverPadding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
+                              sliver: SliverLayoutBuilder(
+                                builder: (context, constraints) {
+                                  final useList =
+                                      constraints.crossAxisExtent <= 450;
+                                  return useList
+                                      ? PagedSliverList<int, BlogPostCard>(
+                                          pagingController: _pagingController,
+                                          builderDelegate:
+                                              PagedChildBuilderDelegate<
+                                                  BlogPostCard>(
+                                            animateTransitions: true,
+                                            itemBuilder:
+                                                (context, item, index) =>
+                                                    Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 4,
+                                                vertical: 2,
                                               ),
-                                              stepGranularity: 0.25,
-                                              textScaleFactor: 0.95,
+                                              child: BlogPostCard(item.blogPost,
+                                                  response: item.response),
                                             ),
-                                            const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    vertical: 10)),
-                                            const Padding(
-                                                padding: EdgeInsets.only(
-                                                    bottom: 30)),
-                                          ],
-                                        ),
-                                      ])),
+                                            noItemsFoundIndicatorBuilder:
+                                                (context) => const Center(
+                                              child: Text("No items found."),
+                                            ),
+                                          ),
+                                        )
+                                      : PagedSliverGrid<int, BlogPostCard>(
+                                          pagingController: _pagingController,
+                                          gridDelegate:
+                                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                                            maxCrossAxisExtent: 300,
+                                            crossAxisSpacing: 4,
+                                            mainAxisSpacing: 4,
+                                            childAspectRatio: 1.175,
+                                          ),
+                                          builderDelegate:
+                                              PagedChildBuilderDelegate<
+                                                  BlogPostCard>(
+                                            animateTransitions: true,
+                                            itemBuilder:
+                                                (context, item, index) =>
+                                                    Padding(
+                                              padding: const EdgeInsets.all(4),
+                                              child: BlogPostCard(item.blogPost,
+                                                  response: item.response),
+                                            ),
+                                            noItemsFoundIndicatorBuilder:
+                                                (context) => const Center(
+                                              child: Text("No items found."),
+                                            ),
+                                          ),
+                                        );
+                                },
+                              ),
+                            )
+                          else if (ref.watch(channelScreenProvider
+                                  .select((s) => s.selectedIndex)) ==
+                              1)
+                            SliverToBoxAdapter(
+                              child: AboutContent(
+                                channel: channel,
+                                rootchannel: rootchannel,
+                                stats: response,
+                                smol: smol,
+                                legacy: false,
+                              ),
+                            )
+                          else if (ref.watch(channelScreenProvider
+                                  .select((s) => s.selectedIndex)) ==
+                              2)
+                            SliverToBoxAdapter(
+                              child: LiveContent(channel: channel),
+                            )
+                          else
+                            const SliverFillRemaining(
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                        ],
+                      ),
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        top: showNav ? 0 : -60,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Theme.of(context).scaffoldBackgroundColor,
+                                Theme.of(context)
+                                    .scaffoldBackgroundColor
+                                    .withValues(alpha: 0.9),
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
                             ],
                           ),
-                          SizedBox(
-                              height: 60,
-                              child: Row(children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                          left: profileImageRadius * 2 + 20),
-                                    ),
-                                    _buildNavButton("Home", 0),
-                                    const SizedBox(width: 10),
-                                    _buildNavButton("About", 1),
-                                    if (rootchannel?.liveStream != null)
-                                      const SizedBox(width: 10),
-                                    if (rootchannel?.liveStream != null)
-                                      _buildNavButton("Live", 2),
-                                  ],
-                                ),
-                                const Spacer(),
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: SizedBox(
-                                    height: 50,
-                                    width: 50,
-                                    child: AnimatedSwitcher(
-                                      duration:
-                                          const Duration(milliseconds: 350),
-                                      transitionBuilder: (Widget child,
-                                          Animation<double> animation) {
-                                        final isSearchIcon =
-                                            child.key == const ValueKey(false);
-                                        return Stack(
-                                          children: [
-                                            FadeTransition(
-                                              opacity: animation,
-                                              child: RotationTransition(
-                                                turns: isSearchIcon
-                                                    ? Tween(
-                                                            begin: 0.5,
-                                                            end: 1.0)
-                                                        .animate(
-                                                            CurvedAnimation(
-                                                                parent:
-                                                                    animation,
-                                                                curve: Curves
-                                                                    .easeInOut))
-                                                    : Tween(
-                                                            begin: 1.5,
-                                                            end: 1.0)
-                                                        .animate(CurvedAnimation(
-                                                            parent: animation,
-                                                            curve: Curves
-                                                                .easeInOut)),
-                                                child: child,
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                      child: IconButton(
-                                        key: ValueKey(ref.watch(
-                                            channelScreenProvider.select(
-                                                (s) => s.searchFieldVisible))),
-                                        onPressed: _toggleSearch,
-                                        icon: Icon(
-                                          ref.watch(channelScreenProvider
-                                                  .select((s) =>
-                                                      s.searchFieldVisible))
-                                              ? Icons.close
-                                              : Icons.search,
-                                          color: Colors.grey.shade200,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ])),
-                          Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: ClipRect(
-                              child: AnimatedSize(
-                                duration: const Duration(milliseconds: 200),
-                                curve: Curves.easeInOut,
-                                child: ref.watch(channelScreenProvider
-                                        .select((s) => s.searchFieldVisible))
-                                    ? LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          WidgetsBinding.instance
-                                              .addPostFrameCallback((_) {
-                                            _handleResize(Size(
-                                                constraints.maxWidth,
-                                                constraints.maxHeight));
-                                          });
-                                          return Center(
-                                            child: FilterPanel(
-                                              onSizeChanged: _handleResize,
-                                              parentWidth: constraints.maxWidth,
-                                              onFilterChanged:
-                                                  _handleFilterChange,
-                                              initialContentTypes: ref.watch(
-                                                  channelScreenProvider.select(
-                                                      (s) => s
-                                                          .selectedContentTypes)),
-                                              initialSearchQuery: ref.watch(
-                                                  channelScreenProvider.select(
-                                                      (s) => s.searchQuery)),
-                                              initialDurationRange: ref.watch(
-                                                  channelScreenProvider.select(
-                                                      (s) => s.durationRange)),
-                                              initialStartDate: ref.watch(
-                                                  channelScreenProvider.select(
-                                                      (s) => s.startDate)),
-                                              initialEndDate: ref.watch(
-                                                  channelScreenProvider.select(
-                                                      (s) => s.endDate)),
-                                              initialIsAscending: ref.watch(
-                                                  channelScreenProvider.select(
-                                                      (s) => s.isAscending)),
-                                            ),
-                                          );
-                                        },
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
-                            ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildNavButton("Home", 0),
+                              const SizedBox(width: 10),
+                              _buildNavButton("About", 1),
+                              if (rootchannel?.liveStream != null)
+                                const SizedBox(width: 10),
+                              if (rootchannel?.liveStream != null)
+                                _buildNavButton("Live", 2),
+                              const SizedBox(width: 10),
+                              _buildNavButton(
+                                  ref.watch(channelScreenProvider
+                                          .select((s) => s.searchFieldVisible))
+                                      ? "Close"
+                                      : "Search",
+                                  -1),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    if (isLoading)
-                      const SliverFillRemaining(
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (ref.watch(channelScreenProvider
-                            .select((s) => s.selectedIndex)) ==
-                        0)
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                        sliver: SliverLayoutBuilder(
-                          builder: (context, constraints) {
-                            final useList = constraints.crossAxisExtent <= 450;
-                            return useList
-                                ? PagedSliverList<int, BlogPostCard>(
-                                    pagingController: _pagingController,
-                                    builderDelegate:
-                                        PagedChildBuilderDelegate<BlogPostCard>(
-                                      animateTransitions: true,
-                                      itemBuilder: (context, item, index) =>
-                                          Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                          vertical: 2,
-                                        ),
-                                        child: BlogPostCard(item.blogPost,
-                                            response: item.response),
-                                      ),
-                                      noItemsFoundIndicatorBuilder: (context) =>
-                                          const Center(
-                                        child: Text("No items found."),
-                                      ),
-                                    ),
-                                  )
-                                : PagedSliverGrid<int, BlogPostCard>(
-                                    pagingController: _pagingController,
-                                    gridDelegate:
-                                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 300,
-                                      crossAxisSpacing: 4,
-                                      mainAxisSpacing: 4,
-                                      childAspectRatio: 1.175,
-                                    ),
-                                    builderDelegate:
-                                        PagedChildBuilderDelegate<BlogPostCard>(
-                                      animateTransitions: true,
-                                      itemBuilder: (context, item, index) =>
-                                          Padding(
-                                        padding: const EdgeInsets.all(4),
-                                        child: BlogPostCard(item.blogPost,
-                                            response: item.response),
-                                      ),
-                                      noItemsFoundIndicatorBuilder: (context) =>
-                                          const Center(
-                                        child: Text("No items found."),
-                                      ),
-                                    ),
-                                  );
-                          },
                         ),
-                      )
-                    else if (ref.watch(channelScreenProvider
-                            .select((s) => s.selectedIndex)) ==
-                        1)
-                      SliverToBoxAdapter(
-                        child: AboutContent(
-                          channel: channel,
-                          rootchannel: rootchannel,
-                          stats: response,
-                        ),
-                      )
-                    else if (ref.watch(channelScreenProvider
-                            .select((s) => s.selectedIndex)) ==
-                        2)
-                      SliverToBoxAdapter(
-                        child: LiveContent(channel: channel),
-                      )
-                    else
-                      const SliverFillRemaining(
-                        child: Center(child: CircularProgressIndicator()),
                       ),
-                  ],
-                ),
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  top: showNav ? 0 : -60,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 60,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Theme.of(context).scaffoldBackgroundColor,
-                          Theme.of(context)
-                              .scaffoldBackgroundColor
-                              .withValues(alpha: 0.9),
-                        ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildNavButton("Home", 0),
-                        const SizedBox(width: 10),
-                        _buildNavButton("About", 1),
-                        if (rootchannel?.liveStream != null)
-                          const SizedBox(width: 10),
-                        if (rootchannel?.liveStream != null)
-                          _buildNavButton("Live", 2),
-                        const SizedBox(width: 10),
-                        _buildNavButton(
-                            ref.watch(channelScreenProvider
-                                    .select((s) => s.searchFieldVisible))
-                                ? "Close"
-                                : "Search",
-                            -1),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ));
+              );
+            },
+          );
   }
 
-  Widget _buildNavButton(String title, int index) {
+  Widget _buildNavButton(String title, int index, {bool smol = false}) {
     final bool isSelected =
         ref.watch(channelScreenProvider.select((s) => s.selectedIndex)) ==
             index;
-    return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
       onTap: () {
         if (index == -1) {
           _toggleSearch();
@@ -676,15 +885,17 @@ class _ChannelScreenStateWrapperState
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.blue.withValues(alpha: 0.4)
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)
               : Colors.grey.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(smol ? 5 : 8),
         ),
         child: Text(
           title,
           style: TextStyle(
-            color: isSelected ? Colors.blue : Colors.white,
-            fontSize: 18,
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.white,
+            fontSize: smol ? 13 : 18,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -708,7 +919,15 @@ class AboutContent extends StatelessWidget {
   final dynamic channel;
   final dynamic rootchannel;
   final dynamic stats;
-  const AboutContent({super.key, this.channel, this.rootchannel, this.stats});
+  final bool smol;
+  final bool legacy;
+  const AboutContent(
+      {super.key,
+      this.channel,
+      this.rootchannel,
+      this.stats,
+      this.smol = false,
+      this.legacy = false});
 
   @override
   Widget build(BuildContext context) {
@@ -720,13 +939,9 @@ class AboutContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //TODO: MIGRATE AWAY FROM FLUTTER_MARKDOWN
-            MarkdownBody(
+            MarkdownWidget(
+              shrinkWrap: true,
               data: channel.about ?? '',
-              styleSheet:
-                  MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                p: const TextStyle(fontSize: 16.0),
-              ),
             ),
             const SizedBox(height: 12.0),
             const Divider(),
@@ -765,8 +980,8 @@ class AboutContent extends StatelessWidget {
                                     Uri.parse(channel.socialLinks.discord!));
                               },
                               child: Center(
-                                child: FaIcon(
-                                  FontAwesomeIcons.discord,
+                                child: Icon(
+                                  SimpleIcons.discord,
                                   size: iconSize,
                                   color: Colors.white,
                                 ),
@@ -816,8 +1031,8 @@ class AboutContent extends StatelessWidget {
                                     Uri.parse(channel.socialLinks.youtube!));
                               },
                               child: Center(
-                                child: FaIcon(
-                                  FontAwesomeIcons.youtube,
+                                child: Icon(
+                                  SimpleIcons.youtube,
                                   size: iconSize,
                                   color: Colors.white,
                                 ),
@@ -842,8 +1057,8 @@ class AboutContent extends StatelessWidget {
                                     Uri.parse(channel.socialLinks.facebook!));
                               },
                               child: Center(
-                                child: FaIcon(
-                                  FontAwesomeIcons.facebook,
+                                child: Icon(
+                                  SimpleIcons.facebook,
                                   size: iconSize,
                                   color: Colors.white,
                                 ),
@@ -868,8 +1083,8 @@ class AboutContent extends StatelessWidget {
                                     Uri.parse(channel.socialLinks.instagram!));
                               },
                               child: Center(
-                                child: FaIcon(
-                                  FontAwesomeIcons.instagram,
+                                child: Icon(
+                                  SimpleIcons.instagram,
                                   size: iconSize,
                                   color: Colors.white,
                                 ),
@@ -943,8 +1158,8 @@ class AboutContent extends StatelessWidget {
                               onPressed: () {
                                 launchUrl(Uri.parse(discordServer.inviteLink!));
                               },
-                              icon: const FaIcon(
-                                FontAwesomeIcons.discord,
+                              icon: const Icon(
+                                SimpleIcons.discord,
                                 size: iconSize,
                                 color: Colors.white,
                               ),
@@ -964,9 +1179,19 @@ class AboutContent extends StatelessWidget {
                 ),
               ),
             ),
-            if (stats.totalSubcriberCount != null || stats.totalIncome != null)
+            if (legacy &&
+                    (stats['subscribers'] != null ||
+                        legacy && stats['totalIncome'] != null) ||
+                smol &&
+                    (stats['subscribers'] != null ||
+                        smol && stats['totalIncome'] != null))
               const SizedBox(height: 16.0),
-            if (stats.totalSubcriberCount != null || stats.totalIncome != null)
+            if (legacy &&
+                    (stats['subscribers'] != null ||
+                        legacy && stats['totalIncome'] != null) ||
+                smol &&
+                    (stats['subscribers'] != null ||
+                        smol && stats['totalIncome'] != null))
               Center(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -986,20 +1211,19 @@ class AboutContent extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          if (stats.totalSubcriberCount != null)
+                          if (stats['subscribers'] != null)
                             Expanded(
                               child: StatColumn(
-                                value: stats.totalSubcriberCount.toString(),
+                                value: stats['subscribers'].toString(),
                                 label: 'Subscribers',
                               ),
                             ),
-                          if (stats.totalSubcriberCount != null &&
-                              stats.totalIncome != null)
+                          if (stats['totalIncome'] != null)
                             const SizedBox(width: 16.0),
-                          if (stats.totalIncome != null)
+                          if (stats['totalIncome'] != null)
                             Expanded(
                               child: StatColumn(
-                                value: '\$${stats.totalIncome.toString()}',
+                                value: '\$${stats['totalIncome'].toString()}',
                                 label: 'Per Month',
                               ),
                             ),

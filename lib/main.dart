@@ -1,3 +1,4 @@
+import 'package:floaty/frontend/screens/live_chat.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -210,11 +211,13 @@ class MyApp extends StatelessWidget {
                 state.extra as Map<String, dynamic>;
             final videoController = args['controller'] as VideoController;
             final postId = args['postId'] as String;
+            final live = args['live'] as bool;
             return MaterialPage(
               fullscreenDialog: true,
               child: PipPlayerWidget(
                 videoController: videoController,
                 postId: postId,
+                live: live,
               ),
             );
           },
@@ -245,6 +248,16 @@ class MyApp extends StatelessWidget {
                 return ChannelScreen(
                   channelName: channelName,
                   subName: subName,
+                );
+              },
+            ),
+            GoRoute(
+              path: '/liveold/:ChannelName',
+              builder: (context, state) {
+                final channelName =
+                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                return LiveChat(
+                  liveId: channelName,
                 );
               },
             ),

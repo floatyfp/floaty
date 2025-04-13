@@ -107,7 +107,7 @@ class RootNotifier extends StateNotifier<RootState> {
   Future<void> _loadSavedState() async {
     if (await Settings().containsKey('sidebarCollapsed')) {
       final savedState = await Settings().getBool('sidebarCollapsed');
-      if (savedState) {
+      if (savedState ?? false) {
         state = state.copyWith(isCollapsed: savedState);
       }
     }

@@ -50,7 +50,8 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   }
 
   Future<void> _initSettings() async {
-    _subtitlesEnabled = await Settings().getBool('subtitles_enabled');
+    _subtitlesEnabled =
+        (await Settings().getBool('subtitles_enabled')) ?? false;
     state = state; // Notify listeners
   }
 
@@ -70,7 +71,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   String? _currentArtist;
   String? _currentThumbnailUrl;
   String? _currentPostId;
-  late bool _live;
+  bool _live = false;
   dynamic _currentAttachment;
   VideoQuality? _currentQuality;
   List<VideoQuality> _availableQualities = [];
@@ -87,6 +88,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   // Getters
   VideoController? get videoController => _videoController;
   bool get isPlaying => _isPlaying;
+  bool get playing => globalPlayer?.state.playing ?? false;
   Duration get currentPosition => _position;
   Duration get audioDuration => _duration;
   double get volumeLevel => _volume;
@@ -99,10 +101,12 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   String? get currentArtist => _currentArtist;
   String? get currentThumbnailUrl => _currentThumbnailUrl;
   String? get currentPostId => _currentPostId;
+  bool get currentLive => _live;
   String? get currentAttachmentId => _currentAttachment?.id;
   dynamic get currentAttachment => _currentAttachment;
   String? get selectedMediaName => _currentMediaType?.name;
   SimplePip get simplePip => _simplePip;
+  MediaPlayerState get mediastate => state;
 
   void _setupPlayerListeners() {
     _simplePip = SimplePip(
@@ -111,19 +115,21 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     );
     if (globalPlayer == null) return;
 
-    // if (_live == true) {
-    //   (globalPlayer!.platform as NativePlayer)
-    //       .setProperty('profile', 'low-latency');
-    // }
+    if (_live == true) {
+      (globalPlayer!.platform as NativePlayer)
+          .setProperty('profile', 'low-latency');
+    }
 
     player.stream.position.listen((position) {
       _position = position;
-      if (_lastReportedPosition == null ||
-          position.inMinutes > _lastReportedPosition!.inMinutes) {
-        _lastReportedPosition = position;
+      if (_live != true) {
+        if (_lastReportedPosition == null ||
+            position.inMinutes > _lastReportedPosition!.inMinutes) {
+          _lastReportedPosition = position;
 
-        fpApiRequests.progress(_currentAttachment.id!, position.inSeconds,
-            _currentMediaType == MediaType.video ? 'video' : 'audio');
+          fpApiRequests.progress(_currentAttachment.id!, position.inSeconds,
+              _currentMediaType == MediaType.video ? 'video' : 'audio');
+        }
       }
     });
 
@@ -139,10 +145,12 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       _isPlaying = playing;
     });
 
-    player.stream.completed.listen((completed) {
-      fpApiRequests.progress(_currentAttachment.id!, _duration.inSeconds,
-          _currentMediaType == MediaType.video ? 'video' : 'audio');
-    });
+    if (_live != true) {
+      player.stream.completed.listen((completed) {
+        fpApiRequests.progress(_currentAttachment.id!, _duration.inSeconds,
+            _currentMediaType == MediaType.video ? 'video' : 'audio');
+      });
+    }
   }
 
   // Initialization state management

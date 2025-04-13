@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:simple_pip_mode/simple_pip.dart' show SimplePip;
 import '../../services/media/media_player_service.dart';
 import '../../services/media/video_quality.dart';
 import 'dart:io';
@@ -47,6 +48,7 @@ class MediaPlayerWidget extends ConsumerStatefulWidget {
 class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
   late MediaPlayerService _mediaService;
   bool _isInitialized = false;
+  late bool _pipAvailable;
 
   @override
   void initState() {
@@ -55,6 +57,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
   }
 
   Future<void> _initializePlayer() async {
+    if (Platform.isAndroid) _pipAvailable = await SimplePip.isPipAvailable;
     _mediaService = ref.read(mediaPlayerServiceProvider.notifier);
     await _mediaService.setSource(
       widget.mediaUrl,
@@ -102,6 +105,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialDesktopCustomButton(
                   icon: const Icon(Icons.close),
                   onPressed: () {
+                    _mediaService.changeState(MediaPlayerState.none);
                     _mediaService.stop();
                     Navigator.pop(context);
                   },
@@ -132,6 +136,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                     widget.contextBuild.go('/pip', extra: {
                       'controller': _mediaService.videoController,
                       'postId': widget.postId,
+                      'live': _mediaService.currentLive,
                     });
                   },
                 ),
@@ -167,31 +172,32 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                           },
                         ),
                       ),
-                    PopupMenuItem<String>(
-                      value: 'quality',
-                      child: PopupMenuButton<VideoQuality>(
-                        child: Text('Quality'),
-                        itemBuilder: (context) =>
-                            widget.qualities!.map((quality) {
-                          return PopupMenuItem<VideoQuality>(
-                            value: quality,
-                            child: Row(
-                              children: [
-                                Text(quality.label),
-                                if (quality == _mediaService.currentQuality)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 8.0),
-                                    child: Icon(Icons.check, size: 16),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onSelected: (quality) {
-                          _mediaService.changeQuality(quality);
-                        },
+                    if (widget.qualities?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'quality',
+                        child: PopupMenuButton<VideoQuality>(
+                          child: Text('Quality'),
+                          itemBuilder: (context) =>
+                              widget.qualities!.map((quality) {
+                            return PopupMenuItem<VideoQuality>(
+                              value: quality,
+                              child: Row(
+                                children: [
+                                  Text(quality.label),
+                                  if (quality == _mediaService.currentQuality)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (quality) {
+                            _mediaService.changeQuality(quality);
+                          },
+                        ),
                       ),
-                    ),
                     PopupMenuItem<String>(
                       value: 'playback_speed',
                       child: PopupMenuButton<double>(
@@ -332,6 +338,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                     widget.contextBuild.go('/pip', extra: {
                       'controller': _mediaService.videoController,
                       'postId': widget.postId,
+                      'live': _mediaService.currentLive,
                     });
                   },
                 ),
@@ -367,31 +374,32 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                           },
                         ),
                       ),
-                    PopupMenuItem<String>(
-                      value: 'quality',
-                      child: PopupMenuButton<VideoQuality>(
-                        child: Text('Quality'),
-                        itemBuilder: (context) =>
-                            widget.qualities!.map((quality) {
-                          return PopupMenuItem<VideoQuality>(
-                            value: quality,
-                            child: Row(
-                              children: [
-                                Text(quality.label),
-                                if (quality == _mediaService.currentQuality)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 8.0),
-                                    child: Icon(Icons.check, size: 16),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onSelected: (quality) {
-                          _mediaService.changeQuality(quality);
-                        },
+                    if (widget.qualities?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'quality',
+                        child: PopupMenuButton<VideoQuality>(
+                          child: Text('Quality'),
+                          itemBuilder: (context) =>
+                              widget.qualities!.map((quality) {
+                            return PopupMenuItem<VideoQuality>(
+                              value: quality,
+                              child: Row(
+                                children: [
+                                  Text(quality.label),
+                                  if (quality == _mediaService.currentQuality)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (quality) {
+                            _mediaService.changeQuality(quality);
+                          },
+                        ),
                       ),
-                    ),
                     PopupMenuItem<String>(
                       value: 'playback_speed',
                       child: PopupMenuButton<double>(
@@ -525,6 +533,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialCustomButton(
                   icon: const Icon(Icons.close),
                   onPressed: () {
+                    _mediaService.changeState(MediaPlayerState.none);
                     _mediaService.stop();
                     Navigator.pop(context);
                   },
@@ -543,7 +552,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                       _mediaService.toggleSubtitles();
                     },
                   ),
-                if (!Platform.isIOS)
+                if (!Platform.isIOS && _pipAvailable)
                   MaterialCustomButton(
                     icon: const Icon(Icons.picture_in_picture),
                     onPressed: () {
@@ -553,6 +562,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                       widget.contextBuild.go('/pip', extra: {
                         'controller': _mediaService.videoController,
                         'postId': widget.postId,
+                        'live': _mediaService.currentLive,
                       });
                     },
                   ),
@@ -588,31 +598,32 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                           },
                         ),
                       ),
-                    PopupMenuItem<String>(
-                      value: 'quality',
-                      child: PopupMenuButton<VideoQuality>(
-                        child: Text('Quality'),
-                        itemBuilder: (context) =>
-                            widget.qualities!.map((quality) {
-                          return PopupMenuItem<VideoQuality>(
-                            value: quality,
-                            child: Row(
-                              children: [
-                                Text(quality.label),
-                                if (quality == _mediaService.currentQuality)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 8.0),
-                                    child: Icon(Icons.check, size: 16),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onSelected: (quality) {
-                          _mediaService.changeQuality(quality);
-                        },
+                    if (widget.qualities?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'quality',
+                        child: PopupMenuButton<VideoQuality>(
+                          child: Text('Quality'),
+                          itemBuilder: (context) =>
+                              widget.qualities!.map((quality) {
+                            return PopupMenuItem<VideoQuality>(
+                              value: quality,
+                              child: Row(
+                                children: [
+                                  Text(quality.label),
+                                  if (quality == _mediaService.currentQuality)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (quality) {
+                            _mediaService.changeQuality(quality);
+                          },
+                        ),
                       ),
-                    ),
                     PopupMenuItem<String>(
                       value: 'playback_speed',
                       child: PopupMenuButton<double>(
@@ -746,7 +757,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                       _mediaService.toggleSubtitles();
                     },
                   ),
-                if (!Platform.isIOS)
+                if (!Platform.isIOS && _pipAvailable)
                   MaterialCustomButton(
                     icon: const Icon(Icons.picture_in_picture),
                     onPressed: () {
@@ -756,6 +767,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                       widget.contextBuild.go('/pip', extra: {
                         'controller': _mediaService.videoController,
                         'postId': widget.postId,
+                        'live': _mediaService.currentLive,
                       });
                     },
                   ),
@@ -791,31 +803,32 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                           },
                         ),
                       ),
-                    PopupMenuItem<String>(
-                      value: 'quality',
-                      child: PopupMenuButton<VideoQuality>(
-                        child: Text('Quality'),
-                        itemBuilder: (context) =>
-                            widget.qualities!.map((quality) {
-                          return PopupMenuItem<VideoQuality>(
-                            value: quality,
-                            child: Row(
-                              children: [
-                                Text(quality.label),
-                                if (quality == _mediaService.currentQuality)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 8.0),
-                                    child: Icon(Icons.check, size: 16),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onSelected: (quality) {
-                          _mediaService.changeQuality(quality);
-                        },
+                    if (widget.qualities?.isNotEmpty == true)
+                      PopupMenuItem<String>(
+                        value: 'quality',
+                        child: PopupMenuButton<VideoQuality>(
+                          child: Text('Quality'),
+                          itemBuilder: (context) =>
+                              widget.qualities!.map((quality) {
+                            return PopupMenuItem<VideoQuality>(
+                              value: quality,
+                              child: Row(
+                                children: [
+                                  Text(quality.label),
+                                  if (quality == _mediaService.currentQuality)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.check, size: 16),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onSelected: (quality) {
+                            _mediaService.changeQuality(quality);
+                          },
+                        ),
                       ),
-                    ),
                     PopupMenuItem<String>(
                       value: 'playback_speed',
                       child: PopupMenuButton<double>(

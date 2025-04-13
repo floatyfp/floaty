@@ -94,14 +94,6 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                     showText: rootState.showText,
                   ),
                   SidebarItem(
-                    icon: Icons.chat,
-                    title: 'Chat',
-                    route: '/live/linustechtips',
-                    isSidebarCollapsed: isSidebarCollapsed,
-                    isSmallScreen: isSmallScreen,
-                    showText: rootState.showText,
-                  ),
-                  SidebarItem(
                     icon: Icons.view_carousel,
                     title: 'Browse creators',
                     route: '/browse',
@@ -233,6 +225,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                             title: mediaService.currentTitle ?? '',
                             artist: mediaService.currentArtist ?? '',
                             postId: mediaService.currentPostId ?? '',
+                            live: mediaService.currentLive,
                             thumbnailUrl: mediaService.currentThumbnailUrl,
                             videoController: mediaService.videoController,
                           ),

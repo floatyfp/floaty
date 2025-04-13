@@ -11,9 +11,13 @@ import 'package:floaty/backend/fpapi.dart';
 class PipPlayerWidget extends ConsumerWidget {
   final VideoController videoController;
   final String postId;
+  final bool live;
 
   const PipPlayerWidget(
-      {super.key, required this.videoController, required this.postId});
+      {super.key,
+      required this.videoController,
+      required this.postId,
+      required this.live});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,13 +32,19 @@ class PipPlayerWidget extends ConsumerWidget {
                     icon: Icon(Icons.arrow_back),
                     onPressed: () {
                       mediaService.pipfalse();
-                      fpApiRequests.iprogress(
-                        mediaService.currentAttachmentId ?? '',
-                        mediaService.currentPosition.inSeconds,
-                        mediaService.selectedMediaName ?? '',
-                      );
+                      if (!live) {
+                        fpApiRequests.iprogress(
+                          mediaService.currentAttachmentId ?? '',
+                          mediaService.currentPosition.inSeconds,
+                          mediaService.selectedMediaName ?? '',
+                        );
+                      }
                       mediaService.changeState(MediaPlayerState.main);
-                      context.go('/post/$postId');
+                      if (live) {
+                        context.go('/live/$postId');
+                      } else {
+                        context.go('/post/$postId');
+                      }
                     },
                   ),
                   const Spacer(),
@@ -76,13 +86,19 @@ class PipPlayerWidget extends ConsumerWidget {
                     icon: Icon(Icons.arrow_back),
                     onPressed: () {
                       mediaService.pipfalse();
-                      fpApiRequests.iprogress(
-                        mediaService.currentAttachmentId ?? '',
-                        mediaService.currentPosition.inSeconds,
-                        mediaService.selectedMediaName ?? '',
-                      );
+                      if (!live) {
+                        fpApiRequests.iprogress(
+                          mediaService.currentAttachmentId ?? '',
+                          mediaService.currentPosition.inSeconds,
+                          mediaService.selectedMediaName ?? '',
+                        );
+                      }
                       mediaService.changeState(MediaPlayerState.main);
-                      context.go('/post/$postId');
+                      if (live) {
+                        context.go('/live/$postId');
+                      } else {
+                        context.go('/post/$postId');
+                      }
                     },
                   ),
                   const Spacer(),

@@ -71,8 +71,9 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
 
   Future<bool> joinLiveChat(String id, TextEditingController controller) async {
     this.controller = controller;
-    fpWebsockets.connect(ref);
+    await fpWebsockets.connect(ref);
     final res = await fpWebsockets.joinLiveChat(id);
+    await fpWebsockets.joinpoll(id);
     if (res['success'] == false) {
       ref.read(errorProvider.notifier).setError(res.toString());
       return false;
@@ -300,6 +301,10 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
     }
 
     return spans;
+  }
+
+  void reset(String id) async {
+    state = [];
   }
 }
 

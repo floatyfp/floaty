@@ -143,7 +143,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
   @override
   void dispose() {
     Future.microtask(() async {
-      if (mediaService.isPlaying) {
+      if (mediaService.playing &&
+          mediaService.mediastate == MediaPlayerState.main) {
         mediaService.changeState(MediaPlayerState.mini);
       }
     });
@@ -921,6 +922,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
             }
           },
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               CircleAvatar(
                 backgroundImage:

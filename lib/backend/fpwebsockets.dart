@@ -16,6 +16,9 @@ class FPWebsockets {
   String? liveid;
   bool autoReconnect = false;
 
+  bool get connected => io.socket.connected;
+  bool get pollConnected => fpio.socket.connected;
+
   @override
   FPWebsockets({required this.token}) {
     io = SailsIOClient(socket_io_client.io(
@@ -82,6 +85,13 @@ class FPWebsockets {
       return {'success': false};
     }
     return dedata;
+  }
+
+  Future<void> leaveLiveChat(String id) async {
+    io.post(
+        url: '/RadioMessage/leaveLivestreamRadioFrequency',
+        data: {'channel': '/live/$id', 'message': 'bye!'},
+        cb: (data, jwr) {});
   }
 
   Future<void> sendMessage(String id, String message) async {
@@ -161,9 +171,13 @@ class FPWebsockets {
     io.socket.onConnect(onConnectCallback);
     io.socket.onConnectError(onConnectErrorCallback);
     io.socket.onDisconnect(onDisconnectCallback);
+    fpio.socket.onConnect(onConnectCallback);
+    fpio.socket.onConnectError(onConnectErrorCallback);
+    fpio.socket.onDisconnect(onDisconnectCallback);
 
     // Initiate the socket connection
     io.socket.connect();
+    fpio.socket.connect();
 
     // Return the Future from the Completer
     return completer.future;
@@ -174,12 +188,4 @@ class FPWebsockets {
     io.socket.disconnect();
     fpio.socket.disconnect();
   }
-
-  // //Remove request
-  // Future removeRequest(String id) async {
-  //   print('rmrequest emitted for track:' + id);
-  //   if (!clubRoom.ifhost()) return;
-  //   datamgmt.removereq(id);
-  //   socket.emit('removeRequest', id.toString());
-  // }
 }

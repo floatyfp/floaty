@@ -1,3 +1,4 @@
+import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/backend/fpwebsockets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,10 +6,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/providers/live_chat_provider.dart';
 import 'package:floaty/frontend/elements.dart';
 import 'package:floaty/backend/chat_utils.dart';
+import 'package:floaty/settings.dart';
 
 class LiveChat extends ConsumerStatefulWidget {
-  const LiveChat({super.key, required this.liveid});
-  final String liveid;
+  const LiveChat(
+      {super.key,
+      required this.liveId,
+      this.infoless = false,
+      this.exit = false,
+      this.onExit});
+  final String liveId;
+  final bool infoless;
+  final bool exit;
+  final Function? onExit;
 
   @override
   ConsumerState<LiveChat> createState() => _LiveChatState();
@@ -17,6 +27,7 @@ class LiveChat extends ConsumerStatefulWidget {
 class _LiveChatState extends ConsumerState<LiveChat> {
   final TextEditingController _controller = TextEditingController();
   final _scrollController = ScrollController();
+  String? trueliveid;
   List<Emote> emotes = [];
   bool emotesLoaded = false;
   bool isChatterListOpen = false;
@@ -37,14 +48,40 @@ class _LiveChatState extends ConsumerState<LiveChat> {
   }
 
   void init() async {
+    if (!widget.infoless) {
+      afterInit();
+    } else {
+      final res = await fpApiRequests.getCreator(urlname: widget.liveId).first;
+      trueliveid = res.liveStream?.id;
+      if (trueliveid != null) {
+        afterInit();
+      } else {
+        ref.read(errorProvider.notifier).setError('Live ID fetch failed.');
+      }
+    }
+  }
+
+  void afterInit() async {
+    if (!widget.infoless) {
+      trueliveid = widget.liveId;
+    }
+    final storedLiveId = await Settings().getKey('liveid');
+    if (storedLiveId.isNotEmpty) {
+      if (trueliveid != storedLiveId) {
+        ref.read(chatProvider.notifier).reset(storedLiveId);
+      }
+    }
+    await Settings().setKey('liveid', trueliveid!);
     await ref
         .read(chatProvider.notifier)
-        //TODO: get live id from page
-        .joinLiveChat('5c13f3c006f1be15e08e05c0', _controller);
-    emotes = await ref.read(emotesProvider.future);
-    setState(() {
-      emotesLoaded = true;
-    });
+        .joinLiveChat(trueliveid!, _controller);
+
+    if (mounted) {
+      emotes = await ref.read(emotesProvider.future);
+      setState(() {
+        emotesLoaded = true;
+      });
+    }
   }
 
   @override
@@ -72,10 +109,6 @@ class _LiveChatState extends ConsumerState<LiveChat> {
       }
     });
 
-    // _scrollController.addListener
-
-    String id = '5c13f3c006f1be15e08e05c0';
-
     return SafeArea(
         child: Scaffold(
       appBar: AppBar(
@@ -83,7 +116,16 @@ class _LiveChatState extends ConsumerState<LiveChat> {
           toolbarHeight: 40,
           backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           surfaceTintColor: Theme.of(context).appBarTheme.backgroundColor,
+          leading: widget.exit
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    widget.onExit!();
+                  },
+                )
+              : null,
           actions: [
+            // TODO: debug setting
             // IconButton(
             //   onPressed: () {
             //     ref.read(pollDataProvider.notifier).testPoll();
@@ -92,7 +134,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
             // ),
             IconButton(
               onPressed: () async {
-                chatterdata = await fpWebsockets.chatterlist(id);
+                chatterdata = await fpWebsockets.chatterlist(trueliveid!);
                 if (chatterdata.isEmpty) {
                   ref
                       .read(errorProvider.notifier)
@@ -101,9 +143,22 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                     isChatterListOpen = !isChatterListOpen;
                   });
                 } else {
-                  setState(() {
-                    isChatterListOpen = !isChatterListOpen;
-                  });
+                  if (isChatterListOpen) {
+                    setState(() {
+                      isChatterListOpen = false;
+                    });
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (ref.watch(chatbroken) == false) {
+                        _scrollController.jumpTo(
+                          _scrollController.position.maxScrollExtent,
+                        );
+                      }
+                    });
+                  } else {
+                    setState(() {
+                      isChatterListOpen = true;
+                    });
+                  }
                 }
               },
               icon: isChatterListOpen ? Icon(Icons.chat) : Icon(Icons.list),
@@ -221,7 +276,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                       if (_controller.text.isNotEmpty) {
                         ref
                             .read(chatProvider.notifier)
-                            .sendMessage("User", _controller.text, id);
+                            .sendMessage("User", _controller.text, trueliveid!);
                         _controller.clear();
                       }
                       return KeyEventResult.handled;
@@ -231,7 +286,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                   child: Stack(children: [
                     Column(
                       children: [
-                        Expanded(
+                        Flexible(
                           child: ListView.builder(
                             controller: _scrollController,
                             itemCount: messages.length,
@@ -425,7 +480,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                                                   ),
                                                                   SizedBox(
                                                                       width: 8),
-                                                                  Expanded(
+                                                                  Flexible(
                                                                     child:
                                                                         Container(
                                                                       height:
@@ -546,6 +601,8 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                       itemBuilder: (context, index) {
                                         return Material(
                                             child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                           onTap: () {
                                             _controller.text +=
                                                 ':${emotes[index].name}:';
@@ -564,7 +621,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                         ),
                         Row(
                           children: [
-                            Expanded(
+                            Flexible(
                               child: TextField(
                                 maxLength: 500,
                                 maxLengthEnforcement:
@@ -574,7 +631,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                 controller: _controller,
                                 onSubmitted: (String value) {
                                   ref.read(chatProvider.notifier).sendMessage(
-                                      "User", _controller.text, id);
+                                      "User", _controller.text, trueliveid!);
                                   _controller.clear();
                                 },
                                 decoration: InputDecoration(
@@ -587,9 +644,8 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                             IconButton(
                               icon: Icon(Icons.send),
                               onPressed: () {
-                                ref
-                                    .read(chatProvider.notifier)
-                                    .sendMessage("User", _controller.text, id);
+                                ref.read(chatProvider.notifier).sendMessage(
+                                    "User", _controller.text, trueliveid!);
                                 _controller.clear();
                               },
                             ),

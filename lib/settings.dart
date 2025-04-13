@@ -39,9 +39,9 @@ class Settings {
     await prefs.setBool(key, value);
   }
 
-  Future<bool> getBool(String key) async {
+  Future<bool?> getBool(String key) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(key) ?? false;
+    return prefs.getBool(key);
   }
 
   Future<void> removeBool(String key) async {
