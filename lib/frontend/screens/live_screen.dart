@@ -78,7 +78,8 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
     mediaUrl =
         '${deliveryData['groups'][0]['origins'][0]['url']}${deliveryData['groups'][0]['variants'][0]['url']}';
     while (offline == true) {
-      final response = await Dio().get(mediaUrl!);
+      final response = await Dio(BaseOptions(validateStatus: (status) => true))
+          .get(mediaUrl!);
       if (response.statusCode == 200) {
         if (mounted) {
           realCreatorInfo = await fpApiRequests
@@ -98,7 +99,8 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
       await Future.delayed(const Duration(seconds: 5));
     }
     while (offline == false) {
-      final response = await Dio().get(mediaUrl!);
+      final response = await Dio(BaseOptions(validateStatus: (status) => true))
+          .get(mediaUrl!);
       if (response.statusCode == 404) {
         if (mounted) {
           if (isMrTechTips) {

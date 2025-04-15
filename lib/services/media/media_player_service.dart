@@ -292,7 +292,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
         httpHeaders: headers ??
             {
               'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
-              'Cookie': await Settings().getKey('token'),
+              'Cookie': await Settings().getAuthTokenFromCookieJar() ?? '',
             },
         start: start,
         extras: {
@@ -452,7 +452,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       httpHeaders: headers ??
           {
             'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
-            'Cookie': await Settings().getKey('token'),
+            'Cookie': await Settings().getAuthTokenFromCookieJar() ?? '',
           },
       start: position,
     );

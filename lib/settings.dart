@@ -1,4 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart';
 
 class Settings {
   static final Settings _instance = Settings._internal();
@@ -52,5 +54,25 @@ class Settings {
   Future<bool> containsKey(String key) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey(key);
+  }
+
+  Future<String?> getAuthTokenFromCookieJar() async {
+    final dir = await getApplicationSupportDirectory();
+    final cookieJar = PersistCookieJar(
+      storage: FileStorage('${dir.path}/.cookies/'),
+    );
+
+    final uri = Uri.parse('https://www.floatplane.com'); // Adjust if needed
+    final cookies = await cookieJar.loadForRequest(uri);
+
+    Cookie? authCookie;
+    try {
+      authCookie = cookies.firstWhere(
+        (c) => c.name == 'sails.sid',
+      );
+    } catch (_) {
+      authCookie = null;
+    }
+    return '${authCookie?.name}=${authCookie?.value}';
   }
 }

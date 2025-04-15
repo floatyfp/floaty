@@ -42,7 +42,7 @@ void main() async {
   await DownloadManager().initialize();
 
   getIt.registerSingleton<FPWebsockets>(
-    FPWebsockets(token: await Settings().getKey('token')),
+    FPWebsockets(token: (await Settings().getAuthTokenFromCookieJar()) ?? ''),
   );
 
   getIt.registerSingleton<FPApiRequests>(

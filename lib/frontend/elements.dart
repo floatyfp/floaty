@@ -2905,51 +2905,46 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
               child: CircularProgressIndicator(color: Colors.white),
             ),
           )
-        : Scaffold(
-            backgroundColor: widget.v ? Colors.black : null,
-            body: SingleChildScrollView(
-              child: SizedBox(
-                //ill be honest not my proudest work
-                height: widget.h != null && widget.h! > 390 ? widget.h : null,
-                width: MediaQuery.of(context).size.width,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (pjsonData['specialStream'] != false)
-                      _buildSpecialStreamCard(),
-                    const SizedBox(height: 12.0),
-                    if (!pjsonData['floatplane']?['isLive'] &&
-                        pjsonData['floatplane']?['isWAN'] &&
-                        ((dayIsCloseEnough &&
-                                (pjsonData['floatplane']?['isThumbnailNew'] ||
-                                    pjsonData['floatplane']?['thumbnailAge'] <
-                                        24 * 60 * 60e3)) &&
-                            !pjsonData['hasDone']))
-                      _buildShowMightStartSoonAlert(),
-                    const SizedBox(height: 12.0),
-                    _buildCountdownCard(),
-                    const SizedBox(height: 12.0),
-                    _buildPlatformStatusContainer(),
-                    const SizedBox(height: 12.0),
-                    _buildLatenessStats(),
-                    const SizedBox(height: 3.0),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () {
-                        launchUrl(Uri.parse('https://whenplane.com'));
-                      },
-                      child: Text('Data provided by Whenplane',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey)),
-                    ),
-                    const SizedBox(height: 12.0),
-                    if (pjsonData['isThereWan']['text'] != null)
-                      _buildSpecialAlert(),
-                    const SizedBox(height: 12.0),
-                    if (pjsonData['hasDone'] == false) _buildLatenessVoting(),
-                  ],
-                ),
+        : Container(
+            color: widget.v ? Colors.black : null,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (pjsonData['specialStream'] != false)
+                    _buildSpecialStreamCard(),
+                  const SizedBox(height: 12.0),
+                  if (!pjsonData['floatplane']?['isLive'] &&
+                      pjsonData['floatplane']?['isWAN'] &&
+                      ((dayIsCloseEnough &&
+                              (pjsonData['floatplane']?['isThumbnailNew'] ||
+                                  pjsonData['floatplane']?['thumbnailAge'] <
+                                      24 * 60 * 60e3)) &&
+                          !pjsonData['hasDone']))
+                    _buildShowMightStartSoonAlert(),
+                  const SizedBox(height: 12.0),
+                  _buildCountdownCard(),
+                  const SizedBox(height: 12.0),
+                  _buildPlatformStatusContainer(),
+                  const SizedBox(height: 12.0),
+                  _buildLatenessStats(),
+                  const SizedBox(height: 3.0),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () {
+                      launchUrl(Uri.parse('https://whenplane.com'));
+                    },
+                    child: Text('Data provided by Whenplane',
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ),
+                  const SizedBox(height: 12.0),
+                  if (pjsonData['isThereWan']['text'] != null)
+                    _buildSpecialAlert(),
+                  const SizedBox(height: 12.0),
+                  if (pjsonData['hasDone'] == false) _buildLatenessVoting(),
+                ],
               ),
             ),
           );

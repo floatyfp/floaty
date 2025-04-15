@@ -112,11 +112,6 @@ class FPApiRequests {
 
   Stream<UserSelfV3Response> getUser() async* {
     try {
-      final cachedData = await getCachedResponse('v3/user/self');
-      if (cachedData != null && cachedData.isNotEmpty) {
-        yield UserSelfV3Response.fromJson(jsonDecode(cachedData));
-      }
-
       final user = await fetchData('v3/user/self');
       if (user != null && user is String && user.isNotEmpty) {
         yield UserSelfV3Response.fromJson(jsonDecode(user));
@@ -144,33 +139,6 @@ class FPApiRequests {
 
   Stream<List<CreatorModelV3>> getSubscribedCreators() async* {
     try {
-      final cachedData =
-          await getCachedResponse('v3/user/subscriptions?active=true');
-      if (cachedData != null && cachedData.isNotEmpty) {
-        List<dynamic> subscriptions = jsonDecode(cachedData);
-        List<String> creatorIds = subscriptions
-            .where((subscription) =>
-                subscription is Map<String, dynamic> &&
-                subscription['creator'] is String)
-            .map((subscription) => subscription['creator'] as String)
-            .toList();
-        List<CreatorModelV3> creators = [];
-        for (String id in creatorIds) {
-          try {
-            final creatorInfo = await fetchData('v3/creator/info?id=$id');
-            if (creatorInfo != null &&
-                creatorInfo is String &&
-                creatorInfo.isNotEmpty) {
-              Map<String, dynamic> creatorJson = jsonDecode(creatorInfo);
-              creators.add(CreatorModelV3.fromJson(creatorJson));
-            }
-          } catch (e) {
-            continue;
-          }
-        }
-        yield creators;
-      }
-
       final subres = await fetchData('v3/user/subscriptions?active=true');
       if (subres != null && subres is String && subres.isNotEmpty) {
         List<dynamic> subscriptions = jsonDecode(subres);
@@ -203,19 +171,6 @@ class FPApiRequests {
 
   Stream<List<String>> getSubscribedCreatorsIds() async* {
     try {
-      final cachedData =
-          await getCachedResponse('v3/user/subscriptions?active=true');
-      if (cachedData != null && cachedData.isNotEmpty) {
-        List<dynamic> subscriptions = jsonDecode(cachedData);
-        List<String> creatorIds = subscriptions
-            .where((subscription) =>
-                subscription is Map<String, dynamic> &&
-                subscription['creator'] is String)
-            .map((subscription) => subscription['creator'] as String)
-            .toList();
-        yield creatorIds;
-      }
-
       final subres = await fetchData('v3/user/subscriptions?active=true');
       if (subres != null && subres.isNotEmpty) {
         List<dynamic> subscriptions = jsonDecode(subres);
@@ -346,11 +301,6 @@ class FPApiRequests {
     try {
       final apiUrl =
           query != null ? 'v3/creator/list?search=$query' : 'v3/creator/list';
-      final cachedData = await getCachedResponse(apiUrl);
-      if (cachedData != null && cachedData.isNotEmpty) {
-        List<dynamic> jsonList = jsonDecode(cachedData);
-        yield jsonList.map((json) => CreatorModelV3.fromJson(json)).toList();
-      }
 
       final subres = await fetchData(apiUrl);
       if (subres != null && subres.isNotEmpty) {
@@ -382,17 +332,6 @@ class FPApiRequests {
           ? 'v3/creator/named?creatorURL=$urlname'
           : 'v3/creator/info?id=$id';
 
-      final cachedData = await getCachedResponse(apiUrl);
-      CreatorModelV3? cachedCreator;
-      if (cachedData != null && cachedData.isNotEmpty) {
-        List<dynamic> creatorList = jsonDecode(cachedData);
-        if (creatorList.isNotEmpty) {
-          Map<String, dynamic> creatorJson = creatorList.first;
-          cachedCreator = CreatorModelV3.fromJson(creatorJson);
-          yield cachedCreator;
-        }
-      }
-
       final creatorInfo = await fetchData(apiUrl);
 
       if (creatorInfo != null && creatorInfo.isNotEmpty) {
@@ -400,9 +339,7 @@ class FPApiRequests {
         if (creatorList.isNotEmpty) {
           Map<String, dynamic> creatorJson = creatorList.first;
           final freshCreator = CreatorModelV3.fromJson(creatorJson);
-          if (freshCreator != cachedCreator) {
-            yield freshCreator;
-          }
+          yield freshCreator;
         }
       }
     } catch (e) {
@@ -442,16 +379,6 @@ class FPApiRequests {
   Stream<ContentPostV3Response> getBlogPost(String blogPostId) async* {
     try {
       final apiUrl = 'v3/content/post?id=$blogPostId';
-      final cachedData = await getCachedResponse(apiUrl);
-      if (cachedData != null && cachedData.isNotEmpty) {
-        try {
-          final jsonData = jsonDecode(cachedData);
-          final parsed = ContentPostV3Response.fromJson(jsonData);
-          yield parsed;
-        } catch (e) {
-          yield ContentPostV3Response();
-        }
-      }
       final response = await fetchData(apiUrl);
       if (response != null && response.isNotEmpty) {
         try {
@@ -636,22 +563,6 @@ class FPApiRequests {
     } catch (e) {
       return '';
     }
-  }
-
-  Future<String?> getCachedResponse(String apiUrl,
-      [Map<String, dynamic>? queryParams]) async {
-    final url = Uri.parse('$baseUrl/$apiUrl').replace(
-      queryParameters: queryParams != null && queryParams.isNotEmpty
-          ? {
-              ...queryParams
-                  .map((key, value) => MapEntry(key, value.toString()))
-            }
-          : null,
-    );
-
-    final cachedData = prefs.getString('data_$url');
-
-    return cachedData;
   }
 
   Future<void> submitVote(String id, int vote) async {
