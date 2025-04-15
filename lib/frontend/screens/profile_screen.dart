@@ -129,10 +129,12 @@ class _ProfileScreenStateWrapperState
     for (var dateModel in dates) {
       dateModel.comments.sort((a, b) => b.time.compareTo(a.time));
     }
-    setState(() {
-      parseddates = dates;
-      isActivityLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        parseddates = dates;
+        isActivityLoading = false;
+      });
+    }
   }
 
   Widget profileHeader({bool smol = false}) {

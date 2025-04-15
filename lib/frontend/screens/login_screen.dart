@@ -1,9 +1,6 @@
-import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:floaty/backend/login_api.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:cookie_jar/cookie_jar.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});

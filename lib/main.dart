@@ -325,12 +325,36 @@ class MyApp extends StatelessWidget {
             ),
             ShellRoute(
               builder: (context, state, child) {
-                return SettingsScreen(child);
+                final isWideScreen = MediaQuery.of(context).size.width >= 600;
+
+                // Only wrap with SettingsScreen if it's wide
+                return isWideScreen ? SettingsScreen(child: child) : child;
               },
               routes: [
                 GoRoute(
-                  path: '/settings/account',
-                  builder: (context, state) => const HomeScreen(),
+                  path: '/settings',
+                  builder: (context, state) {
+                    final isWideScreen =
+                        MediaQuery.of(context).size.width >= 600;
+                    if (isWideScreen) {
+                      // Redirect to default category
+                      return const AccountSettingsScreen();
+                    } else {
+                      return const SettingsListScreen(); // List of categories
+                    }
+                  },
+                  routes: [
+                    GoRoute(
+                      path: 'account',
+                      builder: (context, state) =>
+                          const AccountSettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'privacy',
+                      builder: (context, state) =>
+                          const PrivacySettingsScreen(),
+                    ),
+                  ],
                 ),
               ],
             ),
