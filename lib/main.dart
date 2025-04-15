@@ -1,4 +1,7 @@
+import 'package:floaty/backend/login_api.dart';
+import 'package:floaty/backend/whenplaneintergration.dart';
 import 'package:floaty/frontend/screens/live_chat.dart';
+import 'package:floaty/frontend/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,15 +18,14 @@ import 'package:floaty/frontend/screens/channel_screen.dart';
 import 'package:floaty/frontend/screens/post_screen.dart';
 import 'package:floaty/frontend/screens/live_screen.dart';
 import 'package:floaty/frontend/root.dart';
-import 'package:floaty/services/system/single_instance_service.dart';
 import 'package:floaty/services/system/tray_service.dart';
 import 'package:window_manager/window_manager.dart';
-import 'dart:io' show Platform, exit;
+import 'dart:io' show Platform;
 import 'package:media_kit/media_kit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:floaty/frontend/widgets/pip_player_widget.dart';
-import 'package:floaty/backend/download_manager.dart'; // Import DownloadManager
+import 'package:floaty/backend/download_manager.dart';
 
 GetIt getIt = GetIt.instance;
 late final Color? flavorPrimary;
@@ -47,6 +49,14 @@ void main() async {
     FPApiRequests(),
   );
 
+  getIt.registerSingleton<WhenPlaneIntegration>(
+    WhenPlaneIntegration(),
+  );
+
+  getIt.registerSingleton<LoginApi>(
+    LoginApi(),
+  );
+
   switch (flavor) {
     case 'release':
       flavorPrimary = Colors.blue.shade600;
@@ -66,18 +76,18 @@ void main() async {
   }
 
   if (!Platform.isAndroid && !Platform.isIOS) {
-    // Initialize single instance service
-    final singleInstanceService = await SingleInstanceService.getInstance();
-    await singleInstanceService.initialize();
+    // // Initialize single instance service
+    // final singleInstanceService = await SingleInstanceService.getInstance();
+    // await singleInstanceService.initialize();
 
-    // Only continue if this is the first instance
-    // Note: For Windows, this is handled in initialize()
-    if (!Platform.isWindows) {
-      final isFirstInstance = await singleInstanceService.isFirstInstance();
-      if (!isFirstInstance) {
-        exit(0);
-      }
-    }
+    // // Only continue if this is the first instance
+    // // Note: For Windows, this is handled in initialize()
+    // if (!Platform.isWindows) {
+    //   final isFirstInstance = await singleInstanceService.isFirstInstance();
+    //   if (!isFirstInstance) {
+    //     exit(0);
+    //   }
+    // }
 
     // Initialize tray service
     final trayService = await TrayService.getInstance();
@@ -303,6 +313,16 @@ class MyApp extends StatelessWidget {
                 );
               },
             ),
+            GoRoute(
+              path: '/profile/:UserName',
+              builder: (context, state) {
+                final userName =
+                    state.pathParameters['UserName'] ?? 'defaultChannel';
+                return ProfileScreen(
+                  userName: userName,
+                );
+              },
+            ),
             ShellRoute(
               builder: (context, state, child) {
                 return SettingsScreen(child);
@@ -324,29 +344,30 @@ class MyApp extends StatelessWidget {
 
         switch (currentPath) {
           case '/':
+            if (hasAccessTo2FA) return '/2fa';
             if (!isAuthenticated) return '/login';
             if (isAuthenticated && !hasAccessTo2FA) return '/home';
-            if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
             break;
 
           case '/login':
-            if (isAuthenticated) return '/home';
             if (hasAccessTo2FA) return '/2fa';
+            if (!hasAccessTo2FA && isAuthenticated) return '/home';
             return null;
 
           case '/2fa':
             if (hasAccessTo2FA) return null;
-            if (isAuthenticated) return '/home';
-            if (!isAuthenticated) return '/login';
+            if (!hasAccessTo2FA && isAuthenticated) return '/home';
+            if (!hasAccessTo2FA && !isAuthenticated) return '/login';
             return null;
 
           case '/home':
+            if (hasAccessTo2FA) return '/2fa';
             if (!isAuthenticated && !hasAccessTo2FA) return '/login';
-            if (!isAuthenticated && hasAccessTo2FA) return '/2fa';
             if (isAuthenticated) return null;
             return null;
 
           default:
+            if (hasAccessTo2FA) return '/2fa';
             if (isAuthenticated) return null;
             return '/';
         }

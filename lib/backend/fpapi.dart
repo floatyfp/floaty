@@ -1,4 +1,5 @@
-import 'package:http/http.dart' as http;
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
+import 'package:http_cache_hive_store/http_cache_hive_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:floaty/settings.dart';
 import 'package:floaty/backend/definitions.dart';
@@ -6,6 +7,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:get_it/get_it.dart';
+import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart';
 
 final FPApiRequests fpApiRequests = GetIt.I<FPApiRequests>();
 
@@ -13,169 +18,80 @@ class FPApiRequests {
   late final Settings settings = Settings();
   static const String baseUrl = 'https://www.floatplane.com/api';
   static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
+  late final SharedPreferences prefs;
 
-  void _handleTokenRotation(Map<String, String> headers) async {
-    if (headers['set-cookie'] == null) return;
-    final newCookieHeaders = headers['set-cookie']!.split(';');
-    for (final cookieHeader in newCookieHeaders) {
-      final parts = cookieHeader.split(',');
-      if (parts[0] == 'sails.sid') {
-        await settings.setKey('token', cookieHeader);
-      }
+  late final PersistCookieJar cookieJar;
+  late final Dio _dio;
+  late final CacheOptions _cacheOptions;
+
+  FPApiRequests() {
+    _init();
+  }
+
+  Future<void> _init() async {
+    prefs = await SharedPreferences.getInstance();
+    final dir = await getApplicationSupportDirectory();
+    cookieJar = PersistCookieJar(
+      storage: FileStorage('${dir.path}/.cookies/'),
+    );
+
+    _cacheOptions = CacheOptions(
+      store: HiveCacheStore('${dir.path}/.dio_cache'),
+      policy: CachePolicy
+          .request, // Only cache if server provides headers (like ETag)
+      hitCacheOnNetworkFailure: true,
+      priority: CachePriority.normal,
+      maxStale: const Duration(days: 7),
+    );
+
+    _dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      responseType: ResponseType.plain,
+      headers: {
+        'User-Agent': userAgent,
+      },
+      validateStatus: (_) => true,
+    ));
+
+    _dio.interceptors.add(CookieManager(cookieJar));
+    _dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions));
+  }
+
+  Future<String> postData(
+    String apiUrl,
+    Map<String, dynamic>? body, [
+    Map<String, dynamic>? queryParams,
+  ]) async {
+    try {
+      final response = await _dio.post(
+        '$baseUrl/$apiUrl',
+        data: body,
+        queryParameters: queryParams,
+      );
+
+      return response.data.toString();
+    } on DioException catch (e) {
+      return 'Error: ${e.response?.statusCode}, ${e.response?.data}';
     }
   }
 
-  Future<String> postDataWithEtag(String apiUrl, Map<String, dynamic>? body,
-      [Map<String, dynamic>? queryParams]) async {
-    final url = Uri.parse('$baseUrl/$apiUrl').replace(
-      queryParameters: queryParams != null && queryParams.isNotEmpty
-          ? {
-              ...queryParams
-                  .map((key, value) => MapEntry(key, value.toString()))
-            }
-          : null,
-    );
+  Future<dynamic> fetchData(
+    String apiUrl, [
+    Map<String, dynamic>? queryParams,
+  ]) async {
+    try {
+      final response = await _dio.get(
+        '$baseUrl/$apiUrl',
+        queryParameters: queryParams,
+      );
 
-    final prefs = await SharedPreferences.getInstance();
-    final currentTime = DateTime.now().millisecondsSinceEpoch;
-
-    final bodyKey = body != null ? jsonEncode(body) : '';
-    final cachedEtag = prefs.getString('etag_$url:$bodyKey');
-    final cachedData = prefs.getString('data_$url:$bodyKey');
-
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'User-Agent': userAgent,
-      'Cookie': await settings.getKey('token'),
-    };
-
-    if (cachedEtag != null) {
-      headers['If-None-Match'] = cachedEtag;
-    }
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: body != null ? jsonEncode(body) : null,
-    );
-
-    _handleTokenRotation(response.headers);
-
-    if (response.statusCode == 200) {
-      await prefs.setString(
-          'etag_$url:$bodyKey', response.headers['etag'] ?? '');
-      await prefs.setInt('etag_time_$url:$bodyKey', currentTime);
-      await prefs.setString('data_$url:$bodyKey', response.body);
-      return response.body;
-    } else if (response.statusCode == 304 && cachedData != null) {
-      return cachedData;
-    } else {
-      return 'Response StatusCode: ${response.statusCode}, Body: ${response.body}';
-    }
-  }
-
-  Future<String> postData(String apiUrl, Map<String, dynamic>? body,
-      [Map<String, dynamic>? queryParams]) async {
-    final url = Uri.parse('$baseUrl/$apiUrl').replace(
-      queryParameters: queryParams != null && queryParams.isNotEmpty
-          ? {
-              ...queryParams
-                  .map((key, value) => MapEntry(key, value.toString()))
-            }
-          : null,
-    );
-
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'User-Agent': userAgent,
-      'Cookie': await settings.getKey('token'),
-    };
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: body != null ? jsonEncode(body) : null,
-    );
-
-    _handleTokenRotation(response.headers);
-
-    if (response.statusCode == 200) {
-      return response.body;
-    } else {
-      return 'Response StatusCode: ${response.statusCode}, Body: ${response.body}';
-    }
-  }
-
-  Future fetchDataWithEtag(String apiUrl,
-      [Map<String, dynamic>? queryParams]) async {
-    final url = Uri.parse('$baseUrl/$apiUrl').replace(
-      queryParameters: queryParams != null && queryParams.isNotEmpty
-          ? {
-              ...queryParams
-                  .map((key, value) => MapEntry(key, value.toString()))
-            }
-          : null,
-    );
-
-    final prefs = await SharedPreferences.getInstance();
-    final currentTime = DateTime.now().millisecondsSinceEpoch;
-    final cachedEtag = prefs.getString('etag_$url');
-    final cachedData = prefs.getString('data_$url');
-
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'User-Agent': userAgent,
-      'Cookie': await settings.getKey('token'),
-    };
-    if (cachedEtag != null) {
-      headers['If-None-Match'] = cachedEtag;
-    }
-
-    final response = await http.get(url, headers: headers);
-
-    _handleTokenRotation(response.headers);
-
-    if (response.statusCode == 200) {
-      await prefs.setString('etag_$url', response.headers['etag'] ?? '');
-      await prefs.setInt('etag_time_$url', currentTime);
-      await prefs.setString('data_$url', response.body);
-      return response.body;
-    } else if (response.statusCode == 304 && cachedData != null) {
-      return cachedData;
-    } else {
-      return {'statusCode': response.statusCode, 'body': response.body};
-    }
-  }
-
-  Future fetchData(String apiUrl, [Map<String, dynamic>? queryParams]) async {
-    final url = Uri.parse('$baseUrl/$apiUrl').replace(
-      queryParameters: queryParams != null && queryParams.isNotEmpty
-          ? {
-              ...queryParams
-                  .map((key, value) => MapEntry(key, value.toString()))
-            }
-          : null,
-    );
-
-    final Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'User-Agent': userAgent,
-      'Cookie': await settings.getKey('token'),
-    };
-
-    final response = await http.get(url, headers: headers);
-
-    _handleTokenRotation(response.headers);
-
-    if (response.statusCode == 200) {
-      return response.body;
-    } else {
-      return {'statusCode': response.statusCode, 'body': response.body};
+      return response.data;
+    } on DioException catch (e) {
+      return {'statusCode': e.response?.statusCode ?? 500, 'body': e.message};
     }
   }
 
   Future<void> purgeOldEtags() async {
-    final prefs = await SharedPreferences.getInstance();
     final keys = prefs.getKeys();
     final currentTime = DateTime.now().millisecondsSinceEpoch;
     const expiryTime = 30 * 24 * 60 * 60 * 1000;
@@ -201,13 +117,29 @@ class FPApiRequests {
         yield UserSelfV3Response.fromJson(jsonDecode(cachedData));
       }
 
-      final user = await fetchDataWithEtag('v3/user/self');
-      if (user != null && user.isNotEmpty) {
+      final user = await fetchData('v3/user/self');
+      if (user != null && user is String && user.isNotEmpty) {
         yield UserSelfV3Response.fromJson(jsonDecode(user));
       }
     } catch (e) {
       yield UserSelfV3Response();
     }
+  }
+
+  Future<List<dynamic>> getNamedUser(String username) async {
+    final user = await fetchData('v3/user/named?username[0]=$username');
+    if (user != null && user.isNotEmpty) {
+      return jsonDecode(user);
+    }
+    return [];
+  }
+
+  Future<dynamic> getActivity(String userId) async {
+    final activity = await fetchData('v3/user/activity?id=$userId');
+    if (activity != null && activity.isNotEmpty) {
+      return activity;
+    }
+    return [];
   }
 
   Stream<List<CreatorModelV3>> getSubscribedCreators() async* {
@@ -225,9 +157,10 @@ class FPApiRequests {
         List<CreatorModelV3> creators = [];
         for (String id in creatorIds) {
           try {
-            final creatorInfo =
-                await fpApiRequests.fetchDataWithEtag('v3/creator/info?id=$id');
-            if (creatorInfo != null && creatorInfo.isNotEmpty) {
+            final creatorInfo = await fetchData('v3/creator/info?id=$id');
+            if (creatorInfo != null &&
+                creatorInfo is String &&
+                creatorInfo.isNotEmpty) {
               Map<String, dynamic> creatorJson = jsonDecode(creatorInfo);
               creators.add(CreatorModelV3.fromJson(creatorJson));
             }
@@ -238,9 +171,8 @@ class FPApiRequests {
         yield creators;
       }
 
-      final subres =
-          await fetchDataWithEtag('v3/user/subscriptions?active=true');
-      if (subres != null && subres.isNotEmpty) {
+      final subres = await fetchData('v3/user/subscriptions?active=true');
+      if (subres != null && subres is String && subres.isNotEmpty) {
         List<dynamic> subscriptions = jsonDecode(subres);
         List<String> creatorIds = subscriptions
             .where((subscription) =>
@@ -251,9 +183,10 @@ class FPApiRequests {
         List<CreatorModelV3> creators = [];
         for (String id in creatorIds) {
           try {
-            final creatorInfo =
-                await fpApiRequests.fetchDataWithEtag('v3/creator/info?id=$id');
-            if (creatorInfo != null && creatorInfo.isNotEmpty) {
+            final creatorInfo = await fetchData('v3/creator/info?id=$id');
+            if (creatorInfo != null &&
+                creatorInfo is String &&
+                creatorInfo.isNotEmpty) {
               Map<String, dynamic> creatorJson = jsonDecode(creatorInfo);
               creators.add(CreatorModelV3.fromJson(creatorJson));
             }
@@ -283,8 +216,7 @@ class FPApiRequests {
         yield creatorIds;
       }
 
-      final subres =
-          await fetchDataWithEtag('v3/user/subscriptions?active=true');
+      final subres = await fetchData('v3/user/subscriptions?active=true');
       if (subres != null && subres.isNotEmpty) {
         List<dynamic> subscriptions = jsonDecode(subres);
         List<String> creatorIds = subscriptions
@@ -323,8 +255,7 @@ class FPApiRequests {
         }
       }
 
-      final response =
-          await fetchDataWithEtag('v3/content/creator/list', queryParams);
+      final response = await fetchData('v3/content/creator/list', queryParams);
       if (response != null && response.isNotEmpty) {
         return ContentCreatorListV3Response.fromJson(jsonDecode(response));
       }
@@ -355,7 +286,7 @@ class FPApiRequests {
       final Map<String, dynamic> queryParams = {
         'id': creator,
         'limit': limit.toString(),
-        'fetchAfter': fetchAfter,
+        'fetchAfter': fetchAfter.toString(),
         if (channel != null) 'channel': channel,
         if (fromDate != null) 'fromDate': fromDate.toUtc().toIso8601String(),
         if (toDate != null) 'toDate': toDate.toUtc().toIso8601String(),
@@ -376,10 +307,9 @@ class FPApiRequests {
           'search': searchQuery,
       };
 
-      final response =
-          await fetchDataWithEtag('v3/content/creator', queryParams);
+      final response = await fetchData('v3/content/creator', queryParams);
       if (response != null && response.isNotEmpty) {
-        List<dynamic> decodedResponse = json.decode(response) as List<dynamic>;
+        List<dynamic> decodedResponse = jsonDecode(response);
         return decodedResponse
             .map((item) => BlogPostModelV3.fromJson(item))
             .toList();
@@ -398,8 +328,7 @@ class FPApiRequests {
     };
 
     try {
-      final response =
-          await postDataWithEtag('v3/content/get/progress', requestBody);
+      final response = await postData('v3/content/get/progress', requestBody);
       // ignore: unnecessary_null_comparison
       if (response != null && response.isNotEmpty) {
         final List<dynamic> jsonResponse = jsonDecode(response);
@@ -423,7 +352,7 @@ class FPApiRequests {
         yield jsonList.map((json) => CreatorModelV3.fromJson(json)).toList();
       }
 
-      final subres = await fetchDataWithEtag(apiUrl);
+      final subres = await fetchData(apiUrl);
       if (subres != null && subres.isNotEmpty) {
         List<dynamic> jsonList = jsonDecode(subres);
         yield jsonList.map((json) => CreatorModelV3.fromJson(json)).toList();
@@ -436,8 +365,7 @@ class FPApiRequests {
   Future<List<HistoryModelV3>> getHistory({int? offset}) async {
     try {
       int offsetInt = offset ?? 0;
-      final response =
-          await fetchDataWithEtag('v3/content/history?offset=$offsetInt');
+      final response = await fetchData('v3/content/history?offset=$offsetInt');
       if (response != null && response.isNotEmpty) {
         List<dynamic> jsonList = jsonDecode(response);
         return jsonList.map((json) => HistoryModelV3.fromJson(json)).toList();
@@ -465,7 +393,7 @@ class FPApiRequests {
         }
       }
 
-      final creatorInfo = await fetchDataWithEtag(apiUrl);
+      final creatorInfo = await fetchData(apiUrl);
 
       if (creatorInfo != null && creatorInfo.isNotEmpty) {
         List<dynamic> creatorList = jsonDecode(creatorInfo);
@@ -484,8 +412,7 @@ class FPApiRequests {
 
   Future<StatsModel> getStats(String creatorId) async {
     try {
-      final stats =
-          await fetchDataWithEtag('v2/plan/info?creatorId=$creatorId');
+      final stats = await fetchData('v2/plan/info?creatorId=$creatorId');
       if (stats != null && stats.isNotEmpty) {
         dynamic statsJson = jsonDecode(stats);
         return StatsModel(
@@ -501,7 +428,7 @@ class FPApiRequests {
 
   Future<Map<String, dynamic>> getStatsV3(String creatorId) async {
     try {
-      final stats = await fetchDataWithEtag('v3/creator/stats?id=$creatorId');
+      final stats = await fetchData('v3/creator/stats?id=$creatorId');
       if (stats != null && stats.isNotEmpty) {
         dynamic statsJson = jsonDecode(stats);
         return statsJson;
@@ -525,7 +452,7 @@ class FPApiRequests {
           yield ContentPostV3Response();
         }
       }
-      final response = await fetchDataWithEtag(apiUrl);
+      final response = await fetchData(apiUrl);
       if (response != null && response.isNotEmpty) {
         try {
           final jsonData = jsonDecode(response);
@@ -722,7 +649,6 @@ class FPApiRequests {
           : null,
     );
 
-    final prefs = await SharedPreferences.getInstance();
     final cachedData = prefs.getString('data_$url');
 
     return cachedData;

@@ -218,7 +218,8 @@ class _ChannelScreenStateWrapperState
 
       _pagingController.appendPage(
         newposts.map((post) {
-          return BlogPostCard(post, response: progressMap[post.id]);
+          return BlogPostCard(post,
+              response: progressMap[post.id], key: Key(post.id ?? ''));
         }).toList(),
         isLastPage ? null : pageKey + 1,
       );
@@ -304,10 +305,12 @@ class _ChannelScreenStateWrapperState
                   child: Container(
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: CachedNetworkImageProvider(
-                          channel?.cover?.path ??
-                              'https://example.com/default-banner.jpg',
-                        ),
+                        image: channel?.cover?.path != null &&
+                                channel?.cover?.path.isNotEmpty
+                            ? CachedNetworkImageProvider(
+                                channel?.cover?.path!,
+                              )
+                            : AssetImage('assets/placeholder.png'),
                         fit: BoxFit.fitHeight,
                       ),
                     ),
@@ -336,10 +339,12 @@ class _ChannelScreenStateWrapperState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         CircleAvatar(
-                          backgroundImage: CachedNetworkImageProvider(
-                            channel?.icon?.path ??
-                                'https://example.com/default-profile.jpg',
-                          ),
+                          backgroundImage: channel?.icon?.path != null &&
+                                  channel?.icon?.path.isNotEmpty
+                              ? CachedNetworkImageProvider(
+                                  channel?.icon?.path!,
+                                )
+                              : AssetImage('assets/placeholder.png'),
                           radius: 20,
                         ),
                         const SizedBox(width: 12),
@@ -475,6 +480,16 @@ class _ChannelScreenStateWrapperState
             ),
           ),
         ),
+        if (rootchannel.channels!.length > 1 &&
+            rootLayoutKey.currentState!.isSmallScreen)
+          const SizedBox(height: 12),
+        if (rootchannel.channels!.length > 1 &&
+            rootLayoutKey.currentState!.isSmallScreen)
+          ChannelSelector(
+            creator: rootchannel,
+            channelId: channel.id,
+            isRootChannel: isRootChannel,
+          ),
       ],
     );
   }
@@ -510,10 +525,12 @@ class _ChannelScreenStateWrapperState
                   child: Container(
                     decoration: BoxDecoration(
                       image: DecorationImage(
-                        image: CachedNetworkImageProvider(
-                          channel?.cover?.path ??
-                              'https://example.com/default-banner.jpg',
-                        ),
+                        image: channel?.cover?.path != null &&
+                                channel?.cover?.path.isNotEmpty
+                            ? CachedNetworkImageProvider(
+                                channel?.cover?.path!,
+                              )
+                            : AssetImage('assets/placeholder.png'),
                         fit: BoxFit.fitHeight,
                       ),
                     ),
@@ -545,10 +562,12 @@ class _ChannelScreenStateWrapperState
                     children: [
                       CircleAvatar(
                         radius: profileImageRadius,
-                        backgroundImage: CachedNetworkImageProvider(
-                          channel?.icon?.path ??
-                              'https://example.com/default-profile.jpg',
-                        ),
+                        backgroundImage: channel?.icon?.path != null &&
+                                channel?.icon?.path.isNotEmpty
+                            ? CachedNetworkImageProvider(
+                                channel?.icon?.path!,
+                              )
+                            : AssetImage('assets/placeholder.png'),
                       ),
                       const SizedBox(
                         width: 10,
@@ -680,6 +699,16 @@ class _ChannelScreenStateWrapperState
             ),
           ),
         ),
+        if (rootchannel.channels!.length > 1 &&
+            rootLayoutKey.currentState!.isSmallScreen)
+          const SizedBox(height: 12),
+        if (rootchannel.channels!.length > 1 &&
+            rootLayoutKey.currentState!.isSmallScreen)
+          ChannelSelector(
+            creator: rootchannel,
+            channelId: channel.id,
+            isRootChannel: isRootChannel,
+          ),
       ],
     );
   }
@@ -717,7 +746,8 @@ class _ChannelScreenStateWrapperState
                           SliverToBoxAdapter(
                             //TODO: setting
                             child: channelHeader(
-                                smol: smol), //legacyChannelHeader(), :
+                              smol: smol,
+                            ), //legacyChannelHeader(), :
                           ),
                           if (isLoading)
                             const SliverFillRemaining(
@@ -749,7 +779,9 @@ class _ChannelScreenStateWrapperState
                                                 vertical: 2,
                                               ),
                                               child: BlogPostCard(item.blogPost,
-                                                  response: item.response),
+                                                  response: item.response,
+                                                  key: Key(
+                                                      item.blogPost.id ?? '')),
                                             ),
                                             noItemsFoundIndicatorBuilder:
                                                 (context) => const Center(
@@ -775,7 +807,9 @@ class _ChannelScreenStateWrapperState
                                                     Padding(
                                               padding: const EdgeInsets.all(4),
                                               child: BlogPostCard(item.blogPost,
-                                                  response: item.response),
+                                                  response: item.response,
+                                                  key: Key(
+                                                      item.blogPost.id ?? '')),
                                             ),
                                             noItemsFoundIndicatorBuilder:
                                                 (context) => const Center(
@@ -1248,4 +1282,175 @@ class LiveContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(child: CircularProgressIndicator());
   }
+}
+
+class ChannelSelector extends StatefulWidget {
+  const ChannelSelector(
+      {super.key,
+      required this.creator,
+      required this.channelId,
+      required this.isRootChannel});
+  final CreatorModelV3 creator;
+  final String channelId;
+  final bool isRootChannel;
+  @override
+  State<ChannelSelector> createState() => _ChannelSelectorState();
+}
+
+class _ChannelSelectorState extends State<ChannelSelector> {
+  final ScrollController _channelSelectorScrollController = ScrollController();
+  List<ChannelModel> _sortedChannels(List<ChannelModel> channels) {
+    return List<ChannelModel>.from(channels)
+      ..sort((a, b) => a.order!.compareTo(b.order ?? 0));
+  }
+
+  List<ChannelListItem> _buildItems() {
+    return [
+      if (!widget.isRootChannel)
+        ChannelButtonItem(
+          icon: Icons.arrow_upward,
+          label: 'View All',
+        ),
+      if (!widget.isRootChannel)
+        ChannelCustomItem(
+          widget: Container(
+            width: 1,
+            height: 20,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            color: Colors.grey,
+          ),
+        ),
+      ..._sortedChannels(widget.creator.channels ?? []).map((channel) {
+        return ChannelButtonItem(
+          label: channel.title!,
+          image: channel.icon?.path,
+        );
+      }),
+    ];
+  }
+
+  int selectedIndex = -1;
+  int? hoveredIndex;
+
+  @override
+  void dispose() {
+    _channelSelectorScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scrollbar(
+      controller: _channelSelectorScrollController,
+      thumbVisibility: true,
+      radius: const Radius.circular(5),
+      thickness: 4,
+      interactive: true, // Allow interactive scrollbar
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12), // More bottom padding
+        child: SingleChildScrollView(
+          controller: _channelSelectorScrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: List.generate(_buildItems().length, (index) {
+              final item = _buildItems()[index];
+              int channelIndex = _sortedChannels(widget.creator.channels ?? [])
+                  .indexWhere((channel) => channel.id == widget.channelId);
+              if (channelIndex != -1) {
+                selectedIndex = channelIndex + 2;
+              }
+
+              if (item is ChannelCustomItem) {
+                return item.widget;
+              }
+
+              final isSelected = index == selectedIndex;
+              final isHovered = index == hoveredIndex;
+              final button = item as ChannelButtonItem;
+
+              return MouseRegion(
+                onEnter: (_) => setState(() => hoveredIndex = index),
+                onExit: (_) => setState(() => hoveredIndex = null),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: TextButton(
+                    style: ButtonStyle(
+                      backgroundColor:
+                          WidgetStateProperty.all(Colors.grey[850]),
+                      shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(
+                          side: BorderSide(
+                            color: isSelected || isHovered
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                    ),
+                    onPressed: () {
+                      if (index == 0 && !widget.isRootChannel) {
+                        context.push('/channel/${widget.creator.urlname}');
+                      }
+                      if (selectedIndex != index) {
+                        context.push(
+                            '/channel/${widget.creator.urlname}/${widget.isRootChannel ? _sortedChannels(widget.creator.channels ?? [])[index].urlname : _sortedChannels(widget.creator.channels ?? [])[index - 2].urlname}');
+                      }
+                      setState(() => selectedIndex = index);
+                    },
+                    child: Row(
+                      children: [
+                        if (button.icon != null)
+                          Icon(button.icon, size: 18)
+                        else if (button.iconAsset != null)
+                          Image.asset(button.iconAsset!, width: 18, height: 18),
+                        if (button.image != null)
+                          CircleAvatar(
+                            radius: 9,
+                            foregroundImage: button.image != null &&
+                                    (button.image ?? '').isNotEmpty
+                                ? CachedNetworkImageProvider(button.image!)
+                                : AssetImage('assets/placeholder.png'),
+                          ),
+                        const SizedBox(width: 6),
+                        Text(button.label),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+abstract class ChannelListItem {}
+
+class ChannelButtonItem extends ChannelListItem {
+  final IconData? icon;
+  final String? iconAsset;
+  final String label;
+  final String? image;
+
+  ChannelButtonItem({
+    this.icon,
+    this.iconAsset,
+    this.image,
+    required this.label,
+  });
+}
+
+class ChannelCustomItem extends ChannelListItem {
+  final Widget widget;
+
+  ChannelCustomItem({required this.widget});
 }

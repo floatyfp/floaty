@@ -232,11 +232,10 @@ class PostNotifier extends StateNotifier<PostState> {
 
       if (loadedPost.title != null) {
         final showDate = extractShowDate(loadedPost.title!);
-        final latenessString = WhenPlaneIntegration().newPhrase();
+        final latenessString = whenPlaneIntegration.newPhrase();
 
         if (showDate != null) {
-          final res =
-              await WhenPlaneIntegration().getPreviousShowInfo(showDate);
+          final res = await whenPlaneIntegration.getPreviousShowInfo(showDate);
           final jsonRes = jsonDecode(res);
           final preShowStart = jsonRes['metadata']['preShowStart'];
           final mainShowStart = jsonRes['metadata']['mainShowStart'];

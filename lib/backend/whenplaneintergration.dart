@@ -1,9 +1,15 @@
-import 'package:floaty/settings.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:web_socket_client/web_socket_client.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:get_it/get_it.dart';
+
+final WhenPlaneIntegration whenPlaneIntegration =
+    GetIt.I<WhenPlaneIntegration>();
 
 class WhenPlaneIntegration {
   static String baseUrl = 'https://whenplane.com/api';
@@ -25,16 +31,33 @@ class WhenPlaneIntegration {
     "gregariously unpunctual"
   ];
 
-  Future<String> fetchData(String apiUrl) async {
-    final url = Uri.parse('$baseUrl/$apiUrl');
-    final response = await http.get(
-      url,
+  late Dio _dio;
+
+  WhenPlaneIntegration() {
+    initHttp();
+  }
+
+  Future<void> initHttp() async {
+    final dir = await getApplicationSupportDirectory();
+    final cookieJar = PersistCookieJar(
+      storage: FileStorage('${dir.path}/.cookies/'),
+    );
+
+    _dio = Dio(BaseOptions(
+      baseUrl: baseUrl,
+      responseType: ResponseType.plain,
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
       },
-    );
-    return response.body;
+    ));
+
+    _dio.interceptors.add(CookieManager(cookieJar));
+  }
+
+  Future<String> fetchData(String apiUrl) async {
+    final response = await _dio.get('/$apiUrl');
+    return response.data.toString();
   }
 
   getPreviousShowInfo(String date) {
@@ -320,21 +343,18 @@ class WhenPlaneIntegration {
   }
 
   Future<String> sendVote(String vote, String k) async {
-    final response = await http.post(
-        Uri.parse(
-            'https://whenplane.com/?/vote=&for=${Uri.encodeComponent(vote)}&k=$k'),
+    final response = await _dio.post(
+      '/?/vote=&for=${Uri.encodeComponent(vote)}&k=$k',
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Origin': 'https://whenplane.com',
-          'Cookie':
-              Settings().getKey('whenplaneid').toString().split(';').first,
-          'User-Agent': 'FloatyClient/1.0.0, CFNetwork'
-        });
+          'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
+        },
+      ),
+    );
 
-    if (response.headers.containsKey('set-cookie')) {
-      Settings().setKey('whenplaneid', response.headers['set-cookie'] ?? '');
-    }
-
-    return response.body;
+    return response.data.toString();
   }
 }

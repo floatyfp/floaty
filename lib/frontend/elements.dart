@@ -1,6 +1,7 @@
 // ignore_for_file: use_super_parameters, library_private_types_in_public_api
 
 import 'package:floaty/settings.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/providers/elements_provider.dart';
 import 'package:floaty/backend/whenplaneintergration.dart';
@@ -155,15 +156,26 @@ class PictureSidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       selected: GoRouterState.of(context).uri.path == route,
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: picture.isEmpty
-            ? Icon(Icons.person)
-            : CachedNetworkImage(
-                width: 24,
-                height: 24,
-                imageUrl: picture,
-              ),
+      leading: AnimatedContainer(
+        width: 24,
+        height: 24,
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          border: GoRouterState.of(context).uri.path == route
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary, width: 2)
+              : null,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: picture.isNotEmpty
+                ? CachedNetworkImage(
+                    width: 24,
+                    height: 24,
+                    imageUrl: picture,
+                  )
+                : Image.asset('assets/placeholder.png')),
       ),
       title: isSidebarCollapsed
           ? null
@@ -328,11 +340,14 @@ class _SidebarChannelItemState extends ConsumerState<SidebarChannelItem>
             ),
             child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  width: 24,
-                  height: 24,
-                  imageUrl: widget.response.icon!.path ?? '',
-                )),
+                child: widget.response.icon!.path != null &&
+                        (widget.response.icon!.path ?? '').isNotEmpty
+                    ? CachedNetworkImage(
+                        width: 24,
+                        height: 24,
+                        imageUrl: widget.response.icon!.path ?? '',
+                      )
+                    : Image.asset('assets/placeholder.png')),
           ),
           title: widget.isSidebarCollapsed
               ? null
@@ -392,11 +407,14 @@ class _SidebarChannelItemState extends ConsumerState<SidebarChannelItem>
                       ),
                       child: ClipRRect(
                           borderRadius: BorderRadius.circular(11),
-                          child: CachedNetworkImage(
-                            width: 22,
-                            height: 22,
-                            imageUrl: subChannel.icon!.path ?? '',
-                          ))),
+                          child: subChannel.icon!.path != null &&
+                                  (subChannel.icon!.path ?? '').isNotEmpty
+                              ? CachedNetworkImage(
+                                  width: 22,
+                                  height: 22,
+                                  imageUrl: subChannel.icon!.path ?? '',
+                                )
+                              : Image.asset('assets/placeholder.png'))),
                 ),
                 title: widget.isSidebarCollapsed
                     ? null
@@ -419,6 +437,21 @@ class _SidebarChannelItemState extends ConsumerState<SidebarChannelItem>
       ],
     );
   }
+}
+
+class CustomCacheManager extends CacheManager {
+  static const key = 'customCache';
+
+  static final instance = CustomCacheManager._();
+
+  CustomCacheManager._()
+      : super(Config(
+          key,
+          stalePeriod: const Duration(days: 1), // Shorter cache lifetime
+          maxNrOfCacheObjects: 100, // Limit number of cached files
+          repo: JsonCacheInfoRepository(databaseName: key),
+          fileService: HttpFileService(),
+        ));
 }
 
 class BlogPostCard extends StatelessWidget {
@@ -503,23 +536,16 @@ class BlogPostCard extends StatelessWidget {
       aspectRatio: 16 / 9,
       child: Stack(
         children: [
-          // Thumbnail image
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: blogPost.thumbnail?.path != null
-                  ? DecorationImage(
-                      image: NetworkImage(blogPost.thumbnail?.path ?? ''),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: blogPost.thumbnail?.path == null
-                ? const ClipRRect(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                    child: GradientPlaceholder(),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: blogPost.thumbnail?.path != null
+                ? FadeInImage.assetNetwork(
+                    placeholder: 'assets/placeholder.png',
+                    image: blogPost.thumbnail?.path ?? '',
+                    fit: BoxFit.cover,
+                    fadeInDuration: const Duration(milliseconds: 300),
                   )
-                : null,
+                : Image.asset('assets/placeholder.png', fit: BoxFit.cover),
           ),
 
           // Duration label
@@ -590,25 +616,32 @@ class BlogPostCard extends StatelessWidget {
           // Channel icon
           if (blogPost.channel is ChannelModel)
             ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: blogPost.channel?.icon?.path ??
-                    blogPost.creator.icon?.path ??
-                    '',
-                width: iconSize,
-                height: iconSize,
-                fit: BoxFit.cover,
-              ),
+              child: blogPost.channel?.icon?.path != null &&
+                      (blogPost.channel?.icon?.path ?? '').isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: blogPost.channel?.icon?.path ??
+                          blogPost.creator.icon?.path ??
+                          '',
+                      placeholder: (context, url) => GradientPlaceholder(),
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.asset('assets/placeholder.png'),
             ),
           if (blogPost.channel is! ChannelModel &&
               blogPost.creator.icon != null &&
               blogPost.creator.icon is ImageModel)
             ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: blogPost.creator.icon?.path ?? '',
-                width: iconSize,
-                height: iconSize,
-                fit: BoxFit.cover,
-              ),
+              child: blogPost.creator.icon?.path != null &&
+                      (blogPost.creator.icon?.path ?? '').isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: blogPost.creator.icon?.path ?? '',
+                      width: iconSize,
+                      height: iconSize,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.asset('assets/placeholder.png'),
             ),
           const SizedBox(width: 8),
 
@@ -1762,10 +1795,20 @@ class _CommentItemState extends ConsumerState<CommentItem> {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.grey[800],
-                backgroundImage: CachedNetworkImageProvider(
+                backgroundImage:
                     widget.comment.user.id != widget.content.creator?.owner
-                        ? widget.comment.user.profileImage.path ?? ''
-                        : widget.content.channel?.icon?.path ?? ''),
+                        ? widget.comment.user.profileImage.path != null &&
+                                (widget.comment.user.profileImage.path ?? '')
+                                    .isNotEmpty
+                            ? CachedNetworkImageProvider(
+                                widget.comment.user.profileImage.path ?? '')
+                            : AssetImage('assets/placeholder.png')
+                        : widget.content.channel?.icon?.path != null &&
+                                (widget.content.channel?.icon?.path ?? '')
+                                    .isNotEmpty
+                            ? CachedNetworkImageProvider(
+                                widget.content.channel?.icon?.path ?? '')
+                            : AssetImage('assets/placeholder.png'),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -2714,7 +2757,7 @@ class WhenplaneScreen extends StatefulWidget {
 class _WhenplaneScreenState extends State<WhenplaneScreen> {
   // Countdown timer
   Timer? _timer;
-  String phrase = WhenPlaneIntegration().newPhrase();
+  String phrase = whenPlaneIntegration.newPhrase();
   late String jsonData;
   late String latenessData;
   bool isLoading = true;
@@ -2732,15 +2775,15 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   }
 
   void initFetch() async {
-    jsonData = await WhenPlaneIntegration().aggregate();
-    latenessData = await WhenPlaneIntegration().lateness();
+    jsonData = await whenPlaneIntegration.aggregate();
+    latenessData = await whenPlaneIntegration.lateness();
     setState(() {
       isLoading = false;
     });
   }
 
   void websocketStart() async {
-    final stream = WhenPlaneIntegration().streamWebsocket();
+    final stream = whenPlaneIntegration.streamWebsocket();
     stream.listen((message) {
       if (message != 'pong') {
         if (mounted) {
@@ -2766,7 +2809,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   bool isMainLate = false;
   String countdownString = '';
   bool isAfterStartTime = false;
-  DateTime nextWan = WhenPlaneIntegration().getNextWAN(DateTime.now());
+  DateTime nextWan = whenPlaneIntegration.getNextWAN(DateTime.now());
   String sscountdownText = '';
   bool isSSlate = false;
   bool showPlayed = false;
@@ -2785,7 +2828,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
           : false;
       if (pjsonData['specialStream'] != false &&
           pjsonData['specialStream'] != null) {
-        final timeUntil = WhenPlaneIntegration()
+        final timeUntil = whenPlaneIntegration
             .getTimeUntil(DateTime.parse(pjsonData['specialStream']?['start']));
 
         sscountdownText = timeUntil['string'];
@@ -2794,11 +2837,11 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
       if (isMainShow || isPreShow) {
         if (!isMainShow && isPreShow && pjsonData['floatplane']?['isLive']) {
           final mainScheduledStart =
-              WhenPlaneIntegration().getClosestWan(DateTime.now());
+              whenPlaneIntegration.getClosestWan(DateTime.now());
           setState(() {
             isMainLate = true;
-            countdownString = WhenPlaneIntegration()
-                .getTimeUntil(mainScheduledStart)['string'];
+            countdownString =
+                whenPlaneIntegration.getTimeUntil(mainScheduledStart)['string'];
           });
         } else {
           setState(() {
@@ -2812,16 +2855,15 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
 
         isAfterStartTime = true;
         showPlayed = true;
-        countdownString =
-            WhenPlaneIntegration().getTimeUntil(started)['string'];
+        countdownString = whenPlaneIntegration.getTimeUntil(started)['string'];
       } else {
         if (showPlayed) {
           showPlayed = false;
-          nextWan = WhenPlaneIntegration()
-              .getNextWAN(DateTime.now(), hasDone: pjsonData['hasDone']);
+          nextWan = whenPlaneIntegration.getNextWAN(DateTime.now(),
+              hasDone: pjsonData['hasDone']);
         }
 
-        final timeUntil = WhenPlaneIntegration().getTimeUntil(nextWan);
+        final timeUntil = whenPlaneIntegration.getTimeUntil(nextWan);
         countdownString = timeUntil['string'];
         isAfterStartTime = timeUntil['late'];
 
@@ -3133,7 +3175,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
 
           if (!isAfterStartTime && !isMainShow) ...[
             AutoSizeText(
-              'Next WAN: ${DateFormat('MM/dd/yyyy HH:mm:ss').format(WhenPlaneIntegration().getNextWAN(DateTime.now()).toLocal())}',
+              'Next WAN: ${DateFormat('MM/dd/yyyy HH:mm:ss').format(whenPlaneIntegration.getNextWAN(DateTime.now()).toLocal())}',
               minFontSize: 8.0,
               maxLines: 1,
             ),
@@ -3296,7 +3338,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Text(
-                '${WhenPlaneIntegration().timeString(
+                '${whenPlaneIntegration.timeString(
                   (platenessData['averageLateness'] as num).abs().toInt(),
                 )} $phrase',
                 style:
@@ -3306,7 +3348,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                      '± ${WhenPlaneIntegration().timeString(
+                      '± ${whenPlaneIntegration.timeString(
                         (platenessData['latenessStandardDeviation'] as num)
                             .abs()
                             .toInt(),
@@ -3341,7 +3383,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Text(
-                '${WhenPlaneIntegration().timeString(
+                '${whenPlaneIntegration.timeString(
                   (platenessData['medianLateness'] as num).abs().toInt(),
                 )} $phrase',
                 style:
@@ -3433,7 +3475,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                   children: [
                     TextSpan(
                       text:
-                          ' ${WhenPlaneIntegration().timeString(pjsonData['floatplane']?['thumbnailAge'], long: true, showSeconds: false)}ago',
+                          ' ${whenPlaneIntegration.timeString(pjsonData['floatplane']?['thumbnailAge'], long: true, showSeconds: false)}ago',
                     ),
                   ],
                 ),
@@ -3541,7 +3583,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
             return InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: () {
-                WhenPlaneIntegration().sendVote(voteText, generateK());
+                whenPlaneIntegration.sendVote(voteText, generateK());
                 Settings().setKey('votedname', voteText);
 
                 setState(() {
@@ -3559,15 +3601,14 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                         Text(
                           '$voteText ${selectedVote == voteText ? '(your vote)' : ''}',
                           style: TextStyle(
-                            color: ((WhenPlaneIntegration().getTimeUntil(
-                                                nextWan,
+                            color: ((whenPlaneIntegration.getTimeUntil(nextWan,
                                                 now: nextWan)['distance'] ??
                                             0)
                                         .abs()) >
                                     (vote['time'] ?? 0)
                                 ? Colors.grey
                                 : Colors.white,
-                            decoration: ((WhenPlaneIntegration().getTimeUntil(
+                            decoration: ((whenPlaneIntegration.getTimeUntil(
                                                 nextWan,
                                                 now: nextWan)['distance'] ??
                                             0)
@@ -3589,7 +3630,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                       child: LinearProgressIndicator(
                         value: percentage > 0 ? percentage / 100 : 0,
                         backgroundColor: Colors.grey[700],
-                        color: ((WhenPlaneIntegration().getTimeUntil(nextWan,
+                        color: ((whenPlaneIntegration.getTimeUntil(nextWan,
                                             now: nextWan)['distance'] ??
                                         0)
                                     .abs()) >

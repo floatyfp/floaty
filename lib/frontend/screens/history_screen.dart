@@ -227,6 +227,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             id: item.contentId,
             progress: item.progress,
           ),
+          key: Key(item.blogPost.id ?? ''),
         ),
       );
     }

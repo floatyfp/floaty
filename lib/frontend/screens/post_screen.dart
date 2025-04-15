@@ -925,8 +925,10 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               CircleAvatar(
-                backgroundImage:
-                    CachedNetworkImageProvider(post.channel?.icon?.path ?? ''),
+                backgroundImage: post.channel?.icon?.path != null &&
+                        (post.channel?.icon?.path ?? '').isNotEmpty
+                    ? CachedNetworkImageProvider(post.channel?.icon?.path ?? '')
+                    : AssetImage('assets/placeholder.png'),
                 radius: 20,
               ),
               const SizedBox(width: 12),

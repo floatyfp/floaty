@@ -5,6 +5,9 @@ import 'package:floaty/backend/definitions.dart';
 import 'package:floaty/providers/root_provider.dart';
 import 'package:floaty/frontend/widgets/mini_player_widget.dart';
 import 'package:floaty/services/media/media_player_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:floaty/settings.dart';
 
 // ignore: library_private_types_in_public_api
 final GlobalKey<_RootLayoutState> rootLayoutKey = GlobalKey<_RootLayoutState>();
@@ -20,6 +23,8 @@ class RootLayout extends ConsumerStatefulWidget {
 class _RootLayoutState extends ConsumerState<RootLayout>
     with SingleTickerProviderStateMixin {
   UserSelfV3Response? user;
+
+  late bool isSmallScreen;
   @override
   void initState() {
     super.initState();
@@ -43,9 +48,9 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     super.didChangeDependencies();
     final rootNotifier = ref.read(rootProvider.notifier);
     final screenWidth = MediaQuery.of(context).size.width;
-    final bool isSmallScreen = screenWidth < 600;
-    final bool isLargeScreen = screenWidth >= 1024;
-    final bool isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
+    isSmallScreen = screenWidth < 600;
+    final isLargeScreen = screenWidth >= 1024;
+    final isMediumScreen = screenWidth >= 600 && screenWidth < 1024;
 
     final isSidebarCollapsed =
         isSmallScreen ? false : ref.watch(rootProvider).isCollapsed;
@@ -62,7 +67,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
     final rootState = ref.watch(rootProvider);
     final rootNotifier = ref.read(rootProvider.notifier);
     final screenWidth = MediaQuery.of(context).size.width;
-    final bool isSmallScreen = screenWidth < 600;
+    isSmallScreen = screenWidth < 600;
 
     final isSidebarCollapsed = isSmallScreen ? false : rootState.isCollapsed;
 
@@ -146,7 +151,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                 PictureSidebarItem(
                   picture: rootState.user?.profileImage?.path ?? '',
                   title: rootState.user?.username ?? '',
-                  route: '/profile',
+                  route: '/profile/${rootState.user?.username}',
                   isSidebarCollapsed: isSidebarCollapsed,
                   isSmallScreen: isSmallScreen,
                   showText: rootState.showText,

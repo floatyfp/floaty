@@ -136,7 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           vertical: 2,
                         ),
                         child: BlogPostCard(item.blogPost,
-                            response: item.response),
+                            response: item.response,
+                            key: Key(item.blogPost.id ?? '')),
                       ),
                       noItemsFoundIndicatorBuilder: (context) => const Center(
                         child: Text("No items found."),
@@ -157,7 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (context, item, index) => Padding(
                         padding: const EdgeInsets.all(4),
                         child: BlogPostCard(item.blogPost,
-                            response: item.response),
+                            response: item.response,
+                            key: Key(item.blogPost.id ?? '')),
                       ),
                       noItemsFoundIndicatorBuilder: (context) => const Center(
                         child: Text("No items found."),

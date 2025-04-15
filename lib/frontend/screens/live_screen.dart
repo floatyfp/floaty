@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:core';
 
+import 'package:dio/dio.dart';
 import 'package:floaty/backend/fpwebsockets.dart';
 import 'package:floaty/frontend/elements.dart';
 import 'package:floaty/providers/live_status_provider.dart';
 import 'package:floaty/frontend/screens/live_chat.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:resizable_widget/resizable_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:math';
@@ -65,7 +65,7 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
   void checker() async {
     bool isMrTechTips = widget.creatorInfo.urlname == 'linustechtips';
     if (isMrTechTips) {
-      final stats = await WhenPlaneIntegration().floatplanestats();
+      final stats = await whenPlaneIntegration.floatplanestats();
       setState(() {
         fpstats = jsonDecode(stats);
         isFPSTATSloading = false;
@@ -78,14 +78,14 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
     mediaUrl =
         '${deliveryData['groups'][0]['origins'][0]['url']}${deliveryData['groups'][0]['variants'][0]['url']}';
     while (offline == true) {
-      final response = await http.get(Uri.parse(mediaUrl!));
+      final response = await Dio().get(mediaUrl!);
       if (response.statusCode == 200) {
         if (mounted) {
           realCreatorInfo = await fpApiRequests
               .getCreator(urlname: widget.creatorInfo.urlname)
               .first;
           if (isMrTechTips) {
-            final stats = await WhenPlaneIntegration().floatplanestats();
+            final stats = await whenPlaneIntegration.floatplanestats();
             setState(() {
               fpstats = jsonDecode(stats);
             });
@@ -98,11 +98,11 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
       await Future.delayed(const Duration(seconds: 5));
     }
     while (offline == false) {
-      final response = await http.get(Uri.parse(mediaUrl!));
+      final response = await Dio().get(mediaUrl!);
       if (response.statusCode == 404) {
         if (mounted) {
           if (isMrTechTips) {
-            final stats = await WhenPlaneIntegration().floatplanestats();
+            final stats = await whenPlaneIntegration.floatplanestats();
             setState(() {
               fpstats = jsonDecode(stats);
             });
@@ -299,8 +299,13 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
                       Row(
                         children: [
                           CircleAvatar(
-                            backgroundImage: CachedNetworkImageProvider(
-                                realCreatorInfo?.icon?.path ?? ''),
+                            backgroundImage:
+                                realCreatorInfo?.icon?.path != null &&
+                                        (realCreatorInfo?.icon?.path ?? '')
+                                            .isNotEmpty
+                                    ? CachedNetworkImageProvider(
+                                        realCreatorInfo?.icon?.path ?? '')
+                                    : AssetImage('assets/placeholder.png'),
                             radius: 20,
                           ),
                           const SizedBox(width: 12),

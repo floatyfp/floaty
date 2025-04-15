@@ -2,17 +2,18 @@ import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:floaty/backend/login_api.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:cookie_jar/cookie_jar.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
-  late final api = LoginApi();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   Future login(String username, String password, BuildContext context) async {
     Map<String, dynamic> response;
     if (username.isNotEmpty || password.isNotEmpty) {
-      response = await api.login(username, password);
+      response = await loginApi.login(username, password);
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -157,14 +158,12 @@ class LoginScreen extends StatelessWidget {
 
 class TwoFaScreen extends StatelessWidget {
   TwoFaScreen({super.key});
-  late final api = LoginApi();
-  late final settings = Settings();
   final TextEditingController twofaCodeController = TextEditingController();
 
   Future twofa(String code, BuildContext context) async {
     Map<String, dynamic> response;
     if (code.isNotEmpty) {
-      response = await api.twofa(code);
+      response = await loginApi.twofa(code);
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
