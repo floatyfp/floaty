@@ -1,5 +1,3 @@
-// ignore_for_file: unused_field
-
 import 'dart:io';
 import 'dart:async';
 import 'package:floaty/backend/fpapi.dart';
@@ -9,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:logging/logging.dart';
@@ -36,6 +35,8 @@ final mediaPlayerServiceProvider =
         (ref) => MediaPlayerService());
 
 class MediaPlayerService extends StateNotifier<MediaPlayerState> {
+  PackageInfo? packageInfo;
+  String userAgent = 'FloatyClient/error, CFNetwork';
   static final MediaPlayerService _instance = MediaPlayerService._internal();
 
   factory MediaPlayerService() {
@@ -50,8 +51,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   }
 
   Future<void> _initSettings() async {
-    _subtitlesEnabled =
-        (await Settings().getBool('subtitles_enabled')) ?? false;
+    _subtitlesEnabled = (await Settings().getBool('subtitles_enabled'));
     state = state; // Notify listeners
   }
 
@@ -167,6 +167,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
   }
 
   Future<void> _ensureInitialized() async {
+    packageInfo = await PackageInfo.fromPlatform();
+    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
+
     if (_isInitialized) return;
     _initializeCompleter = Completer<void>();
 
@@ -254,7 +257,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       if (qualities != null) {
         _availableQualities = qualities;
         _currentQuality = qualities.first;
-        String? preferredQuality = await Settings().getKey('preferred_quality');
+        String? preferredQuality = await settings.getKey('preferred_quality');
         if (preferredQuality.isNotEmpty) {
           VideoQuality? selectedQuality = qualities.firstWhere(
             (quality) => quality.label == preferredQuality,
@@ -291,8 +294,8 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
         url,
         httpHeaders: headers ??
             {
-              'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
-              'Cookie': await Settings().getAuthTokenFromCookieJar() ?? '',
+              'User-Agent': userAgent,
+              'Cookie': await settings.getAuthTokenFromCookieJar() ?? '',
             },
         start: start,
         extras: {
@@ -451,14 +454,14 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       quality.url,
       httpHeaders: headers ??
           {
-            'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
-            'Cookie': await Settings().getAuthTokenFromCookieJar() ?? '',
+            'User-Agent': userAgent,
+            'Cookie': await settings.getAuthTokenFromCookieJar() ?? '',
           },
       start: position,
     );
 
     _currentQuality = quality;
-    Settings().setKey('preferred_quality', quality.label);
+    settings.setKey('preferred_quality', quality.label);
 
     await player.open(media, play: play);
     _videoController = VideoController(player);
@@ -527,7 +530,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
 
   Future<void> toggleSubtitles() async {
     _subtitlesEnabled = !_subtitlesEnabled;
-    await Settings().setBool('subtitles_enabled', _subtitlesEnabled);
+    await settings.setBool('subtitles_enabled', _subtitlesEnabled);
     _log.info('Toggling subtitles: ${_subtitlesEnabled ? 'on' : 'off'}');
 
     if (!_subtitlesEnabled) {
@@ -557,7 +560,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     _currentSubtitleTrackIndex = index;
     final track = _currentTextTracks![index];
 
-    Settings().setBool('subtitles_enabled', true);
+    settings.setBool('subtitles_enabled', true);
 
     await player.setSubtitleTrack(
       SubtitleTrack.uri(

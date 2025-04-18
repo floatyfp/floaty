@@ -1,3 +1,4 @@
+import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/backend/fpapi.dart';
@@ -15,7 +16,6 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-// ignore: must_be_immutable
 class ChannelScreen extends ConsumerWidget {
   const ChannelScreen({super.key, required this.channelName, this.subName});
   final String channelName;
@@ -47,12 +47,11 @@ class ChannelScreenStateWrapper extends ConsumerStatefulWidget {
   });
 
   @override
-  // ignore: library_private_types_in_public_api
-  _ChannelScreenStateWrapperState createState() =>
-      _ChannelScreenStateWrapperState();
+  ChannelScreenStateWrapperState createState() =>
+      ChannelScreenStateWrapperState();
 }
 
-class _ChannelScreenStateWrapperState
+class ChannelScreenStateWrapperState
     extends ConsumerState<ChannelScreenStateWrapper> {
   bool isRootChannel = true;
   bool isLoading = true;
@@ -60,12 +59,9 @@ class _ChannelScreenStateWrapperState
   dynamic rootchannel;
   dynamic response;
   bool searchfieldvisible = false;
-  // ignore: unused_field
-  double _filterPanelHeight = 0;
   dynamic home;
   static const _pageSize = 20;
-  final PagingController<int, BlogPostCard> _pagingController =
-      PagingController<int, BlogPostCard>(firstPageKey: 0);
+  late final PagingController<int, BlogPostCard> _pagingController;
   List<BlogPostModelV3> newposts = [];
   bool isLastPage = false;
   int fetchafter = 0;
@@ -86,14 +82,6 @@ class _ChannelScreenStateWrapperState
       );
     }
     widget.channelScreenStateNotifier.toggleSearch();
-  }
-
-  void _handleResize(Size size) {
-    if (searchfieldvisible) {
-      setState(() {
-        _filterPanelHeight = size.height;
-      });
-    }
   }
 
   void _handleFilterChange(
@@ -139,11 +127,10 @@ class _ChannelScreenStateWrapperState
   @override
   void initState() {
     super.initState();
-    _pagingController.addPageRequestListener((pageKey) {
-      if (mounted) {
-        _fetchPage(pageKey);
-      }
-    });
+    _pagingController = PagingController<int, BlogPostCard>(
+      getNextPageKey: (state) => (state.keys?.last ?? 0) + 1,
+      fetchPage: _fetchPage,
+    );
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       load();
@@ -184,7 +171,8 @@ class _ChannelScreenStateWrapperState
     super.dispose();
   }
 
-  Future<void> _fetchPage(int pageKey) async {
+  Future<List<BlogPostCard>> _fetchPage(int pageKey) async {
+    if (!mounted) return [];
     try {
       final state = ref.read(channelScreenProvider);
       home = await fpApiRequests.getChannelVideoFeed(
@@ -216,17 +204,12 @@ class _ChannelScreenStateWrapperState
         for (var progress in progressResponses) progress.id!: progress
       };
 
-      _pagingController.appendPage(
-        newposts.map((post) {
-          return BlogPostCard(post,
-              response: progressMap[post.id], key: Key(post.id ?? ''));
-        }).toList(),
-        isLastPage ? null : pageKey + 1,
-      );
+      return newposts.map((post) {
+        return BlogPostCard(post,
+            response: progressMap[post.id], key: Key(post.id ?? ''));
+      }).toList();
     } catch (error) {
-      if (mounted) {
-        _pagingController.error = error;
-      }
+      return [];
     }
   }
 
@@ -321,7 +304,7 @@ class _ChannelScreenStateWrapperState
           ],
         ),
         Container(
-          color: const Color.fromARGB(255, 40, 40, 40),
+          color: Theme.of(context).colorScheme.surfaceContainer,
           height: 110,
           child: Padding(
             padding: EdgeInsets.only(left: 20),
@@ -354,7 +337,6 @@ class _ChannelScreenStateWrapperState
                             Text(
                               channel?.title ?? 'Channel Name',
                               style: const TextStyle(
-                                color: Colors.white,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 16,
                               ),
@@ -366,7 +348,10 @@ class _ChannelScreenStateWrapperState
                                       : '${NumberFormat('#,###').format(response['channels'].firstWhere((postcount) => postcount['id'] == channel.id)['posts'])} Posts'
                                   : '${response?['subscribers'] != null ? '${NumberFormat('#,###').format(response['subscribers'])} Subscribers ·' : ''} ${response?['totalIncome'] != null ? '\$${NumberFormat('#,###.00').format(response['totalIncome'])} Per Month ·' : ''} ${isRootChannel ? '${NumberFormat('#,###').format(response['posts'])} Posts' : '${NumberFormat('#,###').format(response['channels'].firstWhere((postcount) => postcount['id'] == channel.id)['posts'])} Posts'}',
                               style: TextStyle(
-                                color: Colors.grey[400],
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.color,
                                 fontSize: 14,
                               ),
                             ),
@@ -429,7 +414,6 @@ class _ChannelScreenStateWrapperState
                                   .select((s) => s.searchFieldVisible))
                               ? Icons.close
                               : Icons.search,
-                          color: Colors.grey.shade200,
                         ),
                       ),
                     ),
@@ -450,13 +434,8 @@ class _ChannelScreenStateWrapperState
                       channelScreenProvider.select((s) => s.searchFieldVisible))
                   ? LayoutBuilder(
                       builder: (context, constraints) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _handleResize(Size(
-                              constraints.maxWidth, constraints.maxHeight));
-                        });
                         return Center(
                           child: FilterPanel(
-                            onSizeChanged: _handleResize,
                             parentWidth: constraints.maxWidth,
                             onFilterChanged: _handleFilterChange,
                             initialContentTypes: ref.watch(channelScreenProvider
@@ -578,8 +557,8 @@ class _ChannelScreenStateWrapperState
                           AutoSizeText(
                             channel?.title ?? 'Channel Name',
                             style: TextStyle(
-                              color: Colors.white,
                               fontSize: fontSize,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                             stepGranularity: 0.25,
@@ -651,7 +630,6 @@ class _ChannelScreenStateWrapperState
                                 .select((s) => s.searchFieldVisible))
                             ? Icons.close
                             : Icons.search,
-                        color: Colors.grey.shade200,
                       ),
                     ),
                   ),
@@ -669,13 +647,8 @@ class _ChannelScreenStateWrapperState
                       channelScreenProvider.select((s) => s.searchFieldVisible))
                   ? LayoutBuilder(
                       builder: (context, constraints) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _handleResize(Size(
-                              constraints.maxWidth, constraints.maxHeight));
-                        });
                         return Center(
                           child: FilterPanel(
-                            onSizeChanged: _handleResize,
                             parentWidth: constraints.maxWidth,
                             onFilterChanged: _handleFilterChange,
                             initialContentTypes: ref.watch(channelScreenProvider
@@ -744,10 +717,16 @@ class _ChannelScreenStateWrapperState
                             : null,
                         slivers: [
                           SliverToBoxAdapter(
-                            //TODO: setting
-                            child: channelHeader(
-                              smol: smol,
-                            ), //legacyChannelHeader(), :
+                            child: FutureBuilder(
+                              future: settings.getBool('legacy_ui'),
+                              builder: (context, snapshot) {
+                                return snapshot.data ?? false
+                                    ? legacyChannelHeader()
+                                    : channelHeader(
+                                        smol: smol,
+                                      );
+                              },
+                            ),
                           ),
                           if (isLoading)
                             const SliverFillRemaining(
@@ -763,60 +742,75 @@ class _ChannelScreenStateWrapperState
                                 builder: (context, constraints) {
                                   final useList =
                                       constraints.crossAxisExtent <= 450;
-                                  return useList
-                                      ? PagedSliverList<int, BlogPostCard>(
-                                          pagingController: _pagingController,
-                                          builderDelegate:
-                                              PagedChildBuilderDelegate<
-                                                  BlogPostCard>(
-                                            animateTransitions: true,
-                                            itemBuilder:
-                                                (context, item, index) =>
-                                                    Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 4,
-                                                vertical: 2,
+                                  return PagingListener<int, BlogPostCard>(
+                                    controller: _pagingController,
+                                    builder: (context, state, fetchNextPage) {
+                                      return useList
+                                          ? PagedSliverList<int, BlogPostCard>(
+                                              state: state,
+                                              fetchNextPage: fetchNextPage,
+                                              builderDelegate:
+                                                  PagedChildBuilderDelegate<
+                                                      BlogPostCard>(
+                                                invisibleItemsThreshold: 12,
+                                                animateTransitions: true,
+                                                itemBuilder:
+                                                    (context, item, index) =>
+                                                        Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 4,
+                                                    vertical: 2,
+                                                  ),
+                                                  child: BlogPostCard(
+                                                      item.blogPost,
+                                                      response: item.response,
+                                                      key: Key(
+                                                          item.blogPost.id ??
+                                                              '')),
+                                                ),
+                                                noItemsFoundIndicatorBuilder:
+                                                    (context) => const Center(
+                                                  child:
+                                                      Text("No items found."),
+                                                ),
                                               ),
-                                              child: BlogPostCard(item.blogPost,
-                                                  response: item.response,
-                                                  key: Key(
-                                                      item.blogPost.id ?? '')),
-                                            ),
-                                            noItemsFoundIndicatorBuilder:
-                                                (context) => const Center(
-                                              child: Text("No items found."),
-                                            ),
-                                          ),
-                                        )
-                                      : PagedSliverGrid<int, BlogPostCard>(
-                                          pagingController: _pagingController,
-                                          gridDelegate:
-                                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                                            maxCrossAxisExtent: 300,
-                                            crossAxisSpacing: 4,
-                                            mainAxisSpacing: 4,
-                                            childAspectRatio: 1.175,
-                                          ),
-                                          builderDelegate:
-                                              PagedChildBuilderDelegate<
-                                                  BlogPostCard>(
-                                            animateTransitions: true,
-                                            itemBuilder:
-                                                (context, item, index) =>
-                                                    Padding(
-                                              padding: const EdgeInsets.all(4),
-                                              child: BlogPostCard(item.blogPost,
-                                                  response: item.response,
-                                                  key: Key(
-                                                      item.blogPost.id ?? '')),
-                                            ),
-                                            noItemsFoundIndicatorBuilder:
-                                                (context) => const Center(
-                                              child: Text("No items found."),
-                                            ),
-                                          ),
-                                        );
+                                            )
+                                          : PagedSliverGrid<int, BlogPostCard>(
+                                              state: state,
+                                              fetchNextPage: fetchNextPage,
+                                              gridDelegate:
+                                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                                maxCrossAxisExtent: 300,
+                                                crossAxisSpacing: 4,
+                                                mainAxisSpacing: 4,
+                                                childAspectRatio: 1.175,
+                                              ),
+                                              builderDelegate:
+                                                  PagedChildBuilderDelegate<
+                                                      BlogPostCard>(
+                                                animateTransitions: true,
+                                                itemBuilder:
+                                                    (context, item, index) =>
+                                                        Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(4),
+                                                  child: BlogPostCard(
+                                                      item.blogPost,
+                                                      response: item.response,
+                                                      key: Key(
+                                                          item.blogPost.id ??
+                                                              '')),
+                                                ),
+                                                noItemsFoundIndicatorBuilder:
+                                                    (context) => const Center(
+                                                  child:
+                                                      Text("No items found."),
+                                                ),
+                                              ),
+                                            );
+                                    },
+                                  );
                                 },
                               ),
                             )
@@ -824,12 +818,17 @@ class _ChannelScreenStateWrapperState
                                   .select((s) => s.selectedIndex)) ==
                               1)
                             SliverToBoxAdapter(
-                              child: AboutContent(
-                                channel: channel,
-                                rootchannel: rootchannel,
-                                stats: response,
-                                smol: smol,
-                                legacy: false,
+                              child: FutureBuilder(
+                                future: settings.getBool('legacy_ui'),
+                                builder: (context, snapshot) {
+                                  return AboutContent(
+                                    channel: channel,
+                                    rootchannel: rootchannel,
+                                    stats: response,
+                                    smol: smol,
+                                    legacy: snapshot.data ?? false,
+                                  );
+                                },
                               ),
                             )
                           else if (ref.watch(channelScreenProvider
@@ -1239,7 +1238,7 @@ class AboutContent extends StatelessWidget {
                         horizontal: containerWidth * 0.06,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2A2A2A),
+                        color: Theme.of(context).colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(16.0),
                       ),
                       child: Row(

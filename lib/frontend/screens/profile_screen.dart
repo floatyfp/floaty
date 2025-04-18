@@ -1,3 +1,4 @@
+import 'package:floaty/settings.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +11,6 @@ import 'package:go_router/go_router.dart';
 import 'package:timelines_plus/timelines_plus.dart';
 import 'dart:convert';
 
-// ignore: must_be_immutable
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key, required this.userName});
   final String userName;
@@ -38,12 +38,11 @@ class ProfileScreenStateWrapper extends ConsumerStatefulWidget {
   });
 
   @override
-  // ignore: library_private_types_in_public_api
-  _ProfileScreenStateWrapperState createState() =>
-      _ProfileScreenStateWrapperState();
+  ProfileScreenStateWrapperState createState() =>
+      ProfileScreenStateWrapperState();
 }
 
-class _ProfileScreenStateWrapperState
+class ProfileScreenStateWrapperState
     extends ConsumerState<ProfileScreenStateWrapper> {
   bool isLoading = true;
   bool isActivityLoading = true;
@@ -142,7 +141,7 @@ class _ProfileScreenStateWrapperState
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          color: const Color.fromARGB(255, 40, 40, 40),
+          color: Theme.of(context).colorScheme.surfaceContainer,
           height: 110,
           child: Padding(
             padding: EdgeInsets.only(left: 20),
@@ -178,7 +177,6 @@ class _ProfileScreenStateWrapperState
                             Text(
                               user[0]['username'] ?? 'Username',
                               style: const TextStyle(
-                                color: Colors.white,
                                 fontWeight: FontWeight.w500,
                                 fontSize: 16,
                               ),
@@ -203,7 +201,7 @@ class _ProfileScreenStateWrapperState
     );
   }
 
-  Widget legacyChannelHeader() {
+  Widget legacyProfileHeader() {
     double screenWidth = MediaQuery.of(context).size.width;
 
     double profileImageRadius = (screenWidth * 0.1).clamp(44.0, 52.0);
@@ -276,8 +274,8 @@ class _ProfileScreenStateWrapperState
                           AutoSizeText(
                             user[0]['username'] ?? 'Username',
                             style: TextStyle(
-                              color: Colors.white,
                               fontSize: fontSize,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                             stepGranularity: 0.25,
@@ -334,10 +332,16 @@ class _ProfileScreenStateWrapperState
                           : null,
                       slivers: [
                         SliverToBoxAdapter(
-                          //TODO: setting
-                          child: profileHeader(
-                            smol: smol,
-                          ), //legacyChannelHeader(), :
+                          child: FutureBuilder(
+                            future: settings.getBool('legacy_ui'),
+                            builder: (context, snapshot) {
+                              return snapshot.data ?? false
+                                  ? legacyProfileHeader()
+                                  : profileHeader(
+                                      smol: smol,
+                                    );
+                            },
+                          ),
                         ),
                         if (isLoading)
                           const SliverFillRemaining(
@@ -503,9 +507,12 @@ class ActivityTimeline extends StatelessWidget {
                           padding: const EdgeInsets.only(bottom: 8.0),
                           child: Text(
                             dateModel.date,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.color,
                               fontSize: 12,
                             ),
                           ),
@@ -524,8 +531,11 @@ class ActivityTimeline extends StatelessWidget {
                                           maxLines: 2,
                                           text: TextSpan(
                                             style: TextStyle(
-                                              color: Colors.grey[400],
                                               fontSize: 14,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.color,
                                             ),
                                             children: [
                                               TextSpan(
@@ -564,17 +574,16 @@ class ActivityTimeline extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Container(
                                     decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainer,
                                       borderRadius: BorderRadius.circular(4),
-                                      border:
-                                          Border.all(color: Colors.grey[800]!),
+                                      border: Border.all(),
                                     ),
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 8),
                                     child: Text(
                                       comment.comment,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                      ),
                                     ),
                                   ),
                                 ],

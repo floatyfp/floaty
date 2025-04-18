@@ -1,3 +1,4 @@
+import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -510,10 +511,14 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialDesktopFullscreenButton(),
               ],
             ),
-            child: Video(
-              controller: videoController,
-              //TODO: setting
-              pauseUponEnteringBackgroundMode: false,
+            child: FutureBuilder(
+              future: settings.getBool('pause_on_background'),
+              builder: (context, snapshot) {
+                return Video(
+                  controller: videoController,
+                  pauseUponEnteringBackgroundMode: snapshot.data ?? true,
+                );
+              },
             ),
           );
         } else {
@@ -938,10 +943,14 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialFullscreenButton(),
               ],
             ),
-            child: Video(
-              controller: videoController,
-              //TODO: setting
-              pauseUponEnteringBackgroundMode: false,
+            child: FutureBuilder(
+              future: settings.getBool('pause_on_background'),
+              builder: (context, snapshot) {
+                return Video(
+                  controller: videoController,
+                  pauseUponEnteringBackgroundMode: snapshot.data ?? true,
+                );
+              },
             ),
           );
         }

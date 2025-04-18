@@ -4,13 +4,13 @@ import 'package:sails_io/sails_io.dart';
 import 'package:get_it/get_it.dart';
 import 'package:floaty/providers/live_chat_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 final FPWebsockets fpWebsockets = GetIt.I<FPWebsockets>();
 
 class FPWebsockets {
   late final SailsIOClient io;
   late final SailsIOClient fpio;
-  static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
   final String token;
   late Ref cref;
   String? liveid;
@@ -18,9 +18,12 @@ class FPWebsockets {
 
   bool get connected => io.socket.connected;
   bool get pollConnected => fpio.socket.connected;
+  PackageInfo? packageInfo;
+  String userAgent = 'FloatyClient/error, CFNetwork';
 
   @override
   FPWebsockets({required this.token}) {
+    _init();
     io = SailsIOClient(socket_io_client.io(
         'https://chat.floatplane.com?__sails_io_sdk_version=0.13.8&__sails_io_sdk_platform=node&__sails_io_sdk_language=javascript',
         socket_io_client.OptionBuilder()
@@ -67,6 +70,11 @@ class FPWebsockets {
         joinpoll(liveid!);
       }
     });
+  }
+
+  Future<void> _init() async {
+    packageInfo = await PackageInfo.fromPlatform();
+    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
   }
 
   Future<Map<String, dynamic>> joinLiveChat(String id) async {

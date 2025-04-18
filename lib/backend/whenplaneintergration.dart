@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:web_socket_client/web_socket_client.dart';
@@ -13,6 +14,9 @@ final WhenPlaneIntegration whenPlaneIntegration =
 
 class WhenPlaneIntegration {
   static String baseUrl = 'https://whenplane.com/api';
+  PackageInfo? packageInfo;
+  String userAgent = 'FloatyClient/error, CFNetwork';
+
   final List<String> alternates = [
     "late",
     "\"late\"",
@@ -35,6 +39,12 @@ class WhenPlaneIntegration {
 
   WhenPlaneIntegration() {
     initHttp();
+    initUserAgent();
+  }
+
+  Future<void> initUserAgent() async {
+    packageInfo = await PackageInfo.fromPlatform();
+    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
   }
 
   Future<void> initHttp() async {
@@ -48,7 +58,7 @@ class WhenPlaneIntegration {
       responseType: ResponseType.plain,
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
+        'User-Agent': userAgent,
       },
     ));
 
@@ -56,7 +66,7 @@ class WhenPlaneIntegration {
   }
 
   Future<String> fetchData(String apiUrl) async {
-    final response = await _dio.get('/$apiUrl');
+    final response = await _dio.get('$baseUrl/$apiUrl');
     return response.data.toString();
   }
 
@@ -79,7 +89,7 @@ class WhenPlaneIntegration {
         Uri.parse('wss://sockets.whenplane.com/socket?events=aggregate'),
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
+          'User-Agent': userAgent,
         },
       );
 
@@ -343,18 +353,16 @@ class WhenPlaneIntegration {
   }
 
   Future<String> sendVote(String vote, String k) async {
-    final response = await _dio.post(
-      '/?/vote=&for=${Uri.encodeComponent(vote)}&k=$k',
+    final response = await Dio().post(
+      'https://whenplane.com/?/vote=&for=${Uri.encodeComponent(vote)}&k=$k',
       options: Options(
         contentType: Headers.formUrlEncodedContentType,
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
           'Origin': 'https://whenplane.com',
-          'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
+          'User-Agent': userAgent,
         },
       ),
     );
-
     return response.data.toString();
   }
 }

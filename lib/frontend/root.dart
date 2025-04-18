@@ -5,22 +5,18 @@ import 'package:floaty/backend/definitions.dart';
 import 'package:floaty/providers/root_provider.dart';
 import 'package:floaty/frontend/widgets/mini_player_widget.dart';
 import 'package:floaty/services/media/media_player_service.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:cookie_jar/cookie_jar.dart';
-import 'package:floaty/settings.dart';
 
-// ignore: library_private_types_in_public_api
-final GlobalKey<_RootLayoutState> rootLayoutKey = GlobalKey<_RootLayoutState>();
+final GlobalKey<RootLayoutState> rootLayoutKey = GlobalKey<RootLayoutState>();
 
 class RootLayout extends ConsumerStatefulWidget {
   const RootLayout({super.key, required this.child});
   final Widget child;
 
   @override
-  ConsumerState<RootLayout> createState() => _RootLayoutState();
+  ConsumerState<RootLayout> createState() => RootLayoutState();
 }
 
-class _RootLayoutState extends ConsumerState<RootLayout>
+class RootLayoutState extends ConsumerState<RootLayout>
     with SingleTickerProviderStateMixin {
   UserSelfV3Response? user;
 
@@ -181,7 +177,7 @@ class _RootLayoutState extends ConsumerState<RootLayout>
                   width: isSidebarCollapsed ? 70 : 260,
                   duration: const Duration(milliseconds: 200),
                   child: Material(
-                    color: const Color.fromARGB(255, 40, 40, 40),
+                    color: Theme.of(context).colorScheme.surfaceContainer,
                     elevation: 2,
                     child: SafeArea(child: buildSidebarContent()),
                   ),
@@ -193,8 +189,8 @@ class _RootLayoutState extends ConsumerState<RootLayout>
       key: scaffoldKey,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        surfaceTintColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+        surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
         title: rootState.appBarTitle,
         actions: rootState.appBarActions,
         leading: isSmallScreen

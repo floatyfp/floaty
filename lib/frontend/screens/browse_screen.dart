@@ -7,11 +7,10 @@ class BrowseScreen extends ConsumerStatefulWidget {
   const BrowseScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  ConsumerState<BrowseScreen> createState() => _BrowseScreenState();
+  ConsumerState<BrowseScreen> createState() => BrowseScreenState();
 }
 
-class _BrowseScreenState extends ConsumerState<BrowseScreen> {
+class BrowseScreenState extends ConsumerState<BrowseScreen> {
   @override
   void initState() {
     super.initState();

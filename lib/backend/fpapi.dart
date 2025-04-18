@@ -1,6 +1,5 @@
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:http_cache_hive_store/http_cache_hive_store.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:floaty/settings.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'dart:convert';
@@ -10,26 +9,27 @@ import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 final FPApiRequests fpApiRequests = GetIt.I<FPApiRequests>();
 
 class FPApiRequests {
-  late final Settings settings = Settings();
+  late final Settings settings = settings;
   static const String baseUrl = 'https://www.floatplane.com/api';
-  static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
-  late final SharedPreferences prefs;
-
+  String userAgent = 'FloatyClient/error, CFNetwork';
   late final PersistCookieJar cookieJar;
   late final Dio _dio;
   late final CacheOptions _cacheOptions;
+  PackageInfo? packageInfo;
 
   FPApiRequests() {
     _init();
   }
 
   Future<void> _init() async {
-    prefs = await SharedPreferences.getInstance();
+    packageInfo = await PackageInfo.fromPlatform();
+    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
     final dir = await getApplicationSupportDirectory();
     cookieJar = PersistCookieJar(
       storage: FileStorage('${dir.path}/.cookies/'),
@@ -88,25 +88,6 @@ class FPApiRequests {
       return response.data;
     } on DioException catch (e) {
       return {'statusCode': e.response?.statusCode ?? 500, 'body': e.message};
-    }
-  }
-
-  Future<void> purgeOldEtags() async {
-    final keys = prefs.getKeys();
-    final currentTime = DateTime.now().millisecondsSinceEpoch;
-    const expiryTime = 30 * 24 * 60 * 60 * 1000;
-
-    for (var key in keys) {
-      if (key.startsWith('etag_time_')) {
-        final lastUpdated = prefs.getInt(key) ?? 0;
-        if (currentTime - lastUpdated > expiryTime) {
-          final etagKey = key.replaceFirst('etag_time_', 'etag_');
-          final dataKey = key.replaceFirst('etag_time_', 'data_');
-          await prefs.remove(key);
-          await prefs.remove(etagKey);
-          await prefs.remove(dataKey);
-        }
-      }
     }
   }
 
@@ -284,8 +265,7 @@ class FPApiRequests {
 
     try {
       final response = await postData('v3/content/get/progress', requestBody);
-      // ignore: unnecessary_null_comparison
-      if (response != null && response.isNotEmpty) {
+      if (response.isNotEmpty) {
         final List<dynamic> jsonResponse = jsonDecode(response);
         return jsonResponse
             .map((data) => GetProgressResponse.fromJson(data))
@@ -369,6 +349,33 @@ class FPApiRequests {
       if (stats != null && stats.isNotEmpty) {
         dynamic statsJson = jsonDecode(stats);
         return statsJson;
+      }
+      return {"error": true};
+    } catch (e) {
+      return {"error": true};
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserInfo() async {
+    try {
+      final userinfo =
+          await fetchData('v3/status?platform=flutter&version=FloatyClient');
+      if (userinfo != null && userinfo.isNotEmpty) {
+        dynamic userinfoJson = jsonDecode(userinfo);
+        return userinfoJson;
+      }
+      return {"error": true};
+    } catch (e) {
+      return {"error": true};
+    }
+  }
+
+  Future<Map<String, dynamic>> getInvoices() async {
+    try {
+      final invoices = await fetchData('v3/payment/invoice/list');
+      if (invoices != null && invoices.isNotEmpty) {
+        dynamic invoicesJson = jsonDecode(invoices);
+        return invoicesJson;
       }
       return {"error": true};
     } catch (e) {

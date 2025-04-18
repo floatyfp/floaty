@@ -123,7 +123,7 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
     if (isAdmin) {
       spans.add(WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: Icon(Icons.settings, color: Colors.white, size: 14)));
+          child: Icon(Icons.settings, size: 14)));
     }
 
     spans.add(WidgetSpan(

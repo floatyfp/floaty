@@ -18,21 +18,26 @@ import 'package:floaty/frontend/screens/channel_screen.dart';
 import 'package:floaty/frontend/screens/post_screen.dart';
 import 'package:floaty/frontend/screens/live_screen.dart';
 import 'package:floaty/frontend/root.dart';
+import 'package:floaty/services/system/single_instance_service.dart';
 import 'package:floaty/services/system/tray_service.dart';
 import 'package:window_manager/window_manager.dart';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, exit;
 import 'package:media_kit/media_kit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:floaty/frontend/widgets/pip_player_widget.dart';
 import 'package:floaty/backend/download_manager.dart';
+import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 
 GetIt getIt = GetIt.instance;
 late final Color? flavorPrimary;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  const String flavor =
+  await Hive.initFlutter();
+  await Hive.openBox('settings');
+  const flavor =
       String.fromEnvironment('FLUTTER_FLAVOR', defaultValue: 'release');
 
   // Initialize MediaKit
@@ -57,6 +62,10 @@ void main() async {
     LoginApi(),
   );
 
+  getIt.registerSingleton<Settings>(
+    Settings(),
+  );
+
   switch (flavor) {
     case 'release':
       flavorPrimary = Colors.blue.shade600;
@@ -77,17 +86,17 @@ void main() async {
 
   if (!Platform.isAndroid && !Platform.isIOS) {
     // // Initialize single instance service
-    // final singleInstanceService = await SingleInstanceService.getInstance();
-    // await singleInstanceService.initialize();
+    final singleInstanceService = await SingleInstanceService.getInstance();
+    await singleInstanceService.initialize();
 
     // // Only continue if this is the first instance
     // // Note: For Windows, this is handled in initialize()
-    // if (!Platform.isWindows) {
-    //   final isFirstInstance = await singleInstanceService.isFirstInstance();
-    //   if (!isFirstInstance) {
-    //     exit(0);
-    //   }
-    // }
+    if (!Platform.isWindows) {
+      final isFirstInstance = await singleInstanceService.isFirstInstance();
+      if (!isFirstInstance) {
+        exit(0);
+      }
+    }
 
     // Initialize tray service
     final trayService = await TrayService.getInstance();
@@ -148,265 +157,376 @@ void main() async {
         break;
     }
   }
-  runApp(ProviderScope(child: MyApp()));
+  runApp(ProviderScope(
+    child: DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) {
+        return MyApp(
+          lightDynamic: lightDynamic,
+          darkDynamic: darkDynamic,
+        );
+      },
+    ),
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key}) {
+  MyApp({super.key, this.lightDynamic, this.darkDynamic}) {
     // Set up window manager event handlers
     windowManager.addListener(_AppWindowListener());
   }
+  final ColorScheme? lightDynamic;
+  final ColorScheme? darkDynamic;
 
   final Checkers checkers = Checkers();
 
-  final ThemeData customDarkTheme = ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.dark,
-    //which flutter dev ever caused this bug you need to fucking stand up and fix it im fed up of flutters stupid shit.
-    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    colorScheme: ColorScheme.dark(
-      primary: flavorPrimary ?? Colors.blue.shade600,
-      onPrimary: flavorPrimary ?? Colors.blue.shade400,
-      secondary: Colors.grey.shade800,
-      onSecondary: Colors.black,
-      surface: Colors.grey.shade800,
-      onSurface: Colors.grey.shade200,
-      error: Colors.red.shade400,
-      onError: Colors.black,
-    ),
-    scaffoldBackgroundColor: Colors.grey.shade900,
-    appBarTheme: AppBarTheme(
-      backgroundColor: const Color.fromARGB(255, 40, 40, 40),
-      foregroundColor: Colors.grey.shade200,
-    ),
-    drawerTheme: const DrawerThemeData(
-      backgroundColor: Color.fromARGB(255, 40, 40, 40),
-    ),
-    cardColor: Colors.grey.shade800,
-    dividerColor: Colors.grey.shade800,
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.grey.shade700,
-        foregroundColor: Colors.white,
-      ),
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
-    final GoRouter router = GoRouter(
-      routes: <RouteBase>[
-        GoRoute(
-          path: '/',
-          builder: (BuildContext context, GoRouterState state) {
-            return const SplashScreen();
-          },
-        ),
-        GoRoute(
-          path: '/login',
-          builder: (BuildContext context, GoRouterState state) {
-            return LoginScreen();
-          },
-        ),
-        GoRoute(
-          path: '/2fa',
-          builder: (BuildContext context, GoRouterState state) {
-            return TwoFaScreen();
-          },
-        ),
-        GoRoute(
-          path: '/pip',
-          pageBuilder: (BuildContext context, GoRouterState state) {
-            final Map<String, dynamic> args =
-                state.extra as Map<String, dynamic>;
-            final videoController = args['controller'] as VideoController;
-            final postId = args['postId'] as String;
-            final live = args['live'] as bool;
-            return MaterialPage(
-              fullscreenDialog: true,
-              child: PipPlayerWidget(
-                videoController: videoController,
-                postId: postId,
-                live: live,
-              ),
-            );
-          },
-        ),
-        ShellRoute(
-          builder: (context, state, child) {
-            return RootLayout(key: rootLayoutKey, child: child);
-          },
-          routes: [
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        final box = Hive.box('settings');
+        final GoRouter router = GoRouter(
+          routes: <RouteBase>[
             GoRoute(
-              path: '/home',
-              builder: (context, state) => const HomeScreen(),
-            ),
-            GoRoute(
-              path: '/browse',
-              builder: (context, state) => const BrowseScreen(),
-            ),
-            GoRoute(
-              path: '/history',
-              builder: (context, state) => const HistoryScreen(),
-            ),
-            GoRoute(
-              path: '/channel/:ChannelName/:SubName',
-              builder: (context, state) {
-                final channelName =
-                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
-                final subName = state.pathParameters['SubName'];
-                return ChannelScreen(
-                  channelName: channelName,
-                  subName: subName,
-                );
+              path: '/',
+              builder: (BuildContext context, GoRouterState state) {
+                return const SplashScreen();
               },
             ),
             GoRoute(
-              path: '/liveold/:ChannelName',
-              builder: (context, state) {
-                final channelName =
-                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
-                return LiveChat(
-                  liveId: channelName,
-                );
+              path: '/login',
+              builder: (BuildContext context, GoRouterState state) {
+                return LoginScreen();
               },
             ),
             GoRoute(
-              path: '/live/:ChannelName',
-              builder: (context, state) {
-                final channelName =
-                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
-                return LiveScreen(
-                  channelName: channelName,
-                );
+              path: '/2fa',
+              builder: (BuildContext context, GoRouterState state) {
+                return TwoFaScreen();
               },
             ),
             GoRoute(
-              path: '/post/:postid',
-              builder: (context, state) {
-                final postid = state.pathParameters['postid'] ?? '';
-                return VideoDetailPage(
-                  postId: postid,
-                );
-              },
-            ),
-            // thanks goRouter i hate it
-            GoRoute(
-              path: '/channel/:ChannelName/:SubName?',
-              builder: (context, state) {
-                final channelName =
-                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
-                final subName = state.pathParameters['SubName'];
-                return ChannelScreen(
-                  channelName: channelName,
-                  subName: subName,
-                );
-              },
-            ),
-            GoRoute(
-              path: '/channel/:ChannelName',
-              builder: (context, state) {
-                final channelName =
-                    state.pathParameters['ChannelName'] ?? 'defaultChannel';
-                return ChannelScreen(
-                  channelName: channelName,
-                );
-              },
-            ),
-            GoRoute(
-              path: '/profile/:UserName',
-              builder: (context, state) {
-                final userName =
-                    state.pathParameters['UserName'] ?? 'defaultChannel';
-                return ProfileScreen(
-                  userName: userName,
+              path: '/pip',
+              pageBuilder: (BuildContext context, GoRouterState state) {
+                final Map<String, dynamic> args =
+                    state.extra as Map<String, dynamic>;
+                final videoController = args['controller'] as VideoController;
+                final postId = args['postId'] as String;
+                final live = args['live'] as bool;
+                return MaterialPage(
+                  fullscreenDialog: true,
+                  child: PipPlayerWidget(
+                    videoController: videoController,
+                    postId: postId,
+                    live: live,
+                  ),
                 );
               },
             ),
             ShellRoute(
               builder: (context, state, child) {
-                final isWideScreen = MediaQuery.of(context).size.width >= 600;
-
-                // Only wrap with SettingsScreen if it's wide
-                return isWideScreen ? SettingsScreen(child: child) : child;
+                return FocusTraversalGroup(
+                  policy: ReadingOrderTraversalPolicy(),
+                  child: RootLayout(key: rootLayoutKey, child: child),
+                );
               },
               routes: [
                 GoRoute(
-                  path: '/settings',
+                  path: '/home',
+                  builder: (context, state) => const HomeScreen(),
+                ),
+                GoRoute(
+                  path: '/browse',
+                  builder: (context, state) => const BrowseScreen(),
+                ),
+                GoRoute(
+                  path: '/history',
+                  builder: (context, state) => const HistoryScreen(),
+                ),
+                GoRoute(
+                  path: '/channel/:ChannelName/:SubName',
                   builder: (context, state) {
+                    final channelName =
+                        state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                    final subName = state.pathParameters['SubName'];
+                    return ChannelScreen(
+                      channelName: channelName,
+                      subName: subName,
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: '/liveold/:ChannelName',
+                  builder: (context, state) {
+                    final channelName =
+                        state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                    return LiveChat(
+                      liveId: channelName,
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: '/live/:ChannelName',
+                  builder: (context, state) {
+                    final channelName =
+                        state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                    return LiveScreen(
+                      channelName: channelName,
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: '/post/:postid',
+                  builder: (context, state) {
+                    final postid = state.pathParameters['postid'] ?? '';
+                    return VideoDetailPage(
+                      postId: postid,
+                    );
+                  },
+                ),
+                // thanks goRouter i hate it
+                GoRoute(
+                  path: '/channel/:ChannelName/:SubName?',
+                  builder: (context, state) {
+                    final channelName =
+                        state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                    final subName = state.pathParameters['SubName'];
+                    return ChannelScreen(
+                      channelName: channelName,
+                      subName: subName,
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: '/channel/:ChannelName',
+                  builder: (context, state) {
+                    final channelName =
+                        state.pathParameters['ChannelName'] ?? 'defaultChannel';
+                    return ChannelScreen(
+                      channelName: channelName,
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: '/profile/:UserName',
+                  builder: (context, state) {
+                    final userName =
+                        state.pathParameters['UserName'] ?? 'defaultChannel';
+                    return ProfileScreen(
+                      userName: userName,
+                    );
+                  },
+                ),
+                ShellRoute(
+                  builder: (context, state, child) {
                     final isWideScreen =
                         MediaQuery.of(context).size.width >= 600;
-                    if (isWideScreen) {
-                      // Redirect to default category
-                      return const AccountSettingsScreen();
-                    } else {
-                      return const SettingsListScreen(); // List of categories
-                    }
+                    final settingsContent =
+                        isWideScreen ? SettingsScreen(child: child) : child;
+                    return FocusTraversalGroup(
+                      policy: ReadingOrderTraversalPolicy(),
+                      child: settingsContent,
+                    );
                   },
                   routes: [
                     GoRoute(
-                      path: 'account',
-                      builder: (context, state) =>
-                          const AccountSettingsScreen(),
-                    ),
-                    GoRoute(
-                      path: 'privacy',
-                      builder: (context, state) =>
-                          const PrivacySettingsScreen(),
+                      path: '/settings',
+                      builder: (context, state) {
+                        final isWideScreen =
+                            MediaQuery.of(context).size.width >= 600;
+                        if (isWideScreen) {
+                          // Redirect to default category
+                          return AccountSettingsScreen();
+                        } else {
+                          return const SettingsListScreen(); // List of categories
+                        }
+                      },
+                      routes: [
+                        GoRoute(
+                          path: 'account',
+                          builder: (context, state) => AccountSettingsScreen(),
+                        ),
+                        GoRoute(
+                          path: 'invoices',
+                          builder: (context, state) =>
+                              const InvoicesSettingsScreen(),
+                        ),
+                        GoRoute(
+                          path: 'licenses',
+                          builder: (context, state) =>
+                              const LicensesSettingsScreen(),
+                        ),
+                        GoRoute(
+                          path: 'about',
+                          builder: (context, state) => AboutSettingsScreen(),
+                        ),
+                        GoRoute(
+                          path: 'appearance',
+                          builder: (context, state) =>
+                              AppearanceSettingsScreen(),
+                        ),
+                        GoRoute(
+                          path: 'player',
+                          builder: (context, state) => PlayerSettingsScreen(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
           ],
-        ),
-      ],
-      redirect: (BuildContext context, GoRouterState state) async {
-        final isAuthenticated = await checkers.isAuthenticated();
-        final hasAccessTo2FA = await checkers.twoFAAuthenticated();
-        final currentPath = state.uri.path;
+          redirect: (BuildContext context, GoRouterState state) async {
+            final isAuthenticated = await checkers.isAuthenticated();
+            final hasAccessTo2FA = await checkers.twoFAAuthenticated();
+            final currentPath = state.uri.path;
 
-        switch (currentPath) {
-          case '/':
-            if (hasAccessTo2FA) return '/2fa';
-            if (!isAuthenticated) return '/login';
-            if (isAuthenticated && !hasAccessTo2FA) return '/home';
-            break;
+            switch (currentPath) {
+              case '/':
+                if (hasAccessTo2FA) return '/2fa';
+                if (!isAuthenticated) return '/login';
+                if (isAuthenticated && !hasAccessTo2FA) return '/home';
+                break;
 
-          case '/login':
-            if (hasAccessTo2FA) return '/2fa';
-            if (!hasAccessTo2FA && isAuthenticated) return '/home';
+              case '/login':
+                if (hasAccessTo2FA) return '/2fa';
+                if (!hasAccessTo2FA && isAuthenticated) return '/home';
+                return null;
+
+              case '/2fa':
+                if (hasAccessTo2FA) return null;
+                if (!hasAccessTo2FA && isAuthenticated) return '/home';
+                if (!hasAccessTo2FA && !isAuthenticated) return '/login';
+                return null;
+
+              case '/home':
+                if (hasAccessTo2FA) return '/2fa';
+                if (!isAuthenticated && !hasAccessTo2FA) return '/login';
+                if (isAuthenticated) return null;
+                return null;
+
+              default:
+                if (hasAccessTo2FA) return '/2fa';
+                if (isAuthenticated) return null;
+                return '/';
+            }
             return null;
+          },
+        );
 
-          case '/2fa':
-            if (hasAccessTo2FA) return null;
-            if (!hasAccessTo2FA && isAuthenticated) return '/home';
-            if (!hasAccessTo2FA && !isAuthenticated) return '/login';
-            return null;
+        return ValueListenableBuilder(
+          valueListenable: box.listenable(),
+          builder: (_, Box settingsBox, __) {
+            final themeType =
+                settingsBox.get('theme_type', defaultValue: 2) as int;
+            final src =
+                settingsBox.get('material_source', defaultValue: 0) as int;
+            final seed = settingsBox.get('material_seed_color',
+                defaultValue: Colors.blue.value) as int;
+            late ThemeMode themeMode;
+            late ThemeData lightTheme;
+            late ThemeData darkTheme;
+            switch (themeType) {
+              case 0:
+                themeMode = ThemeMode.light;
+                lightTheme = ThemeData(
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    useMaterial3: true,
+                    primaryColor: flavorPrimary,
+                    colorScheme: ColorScheme.light(
+                      primary: flavorPrimary ?? Colors.blue.shade600,
+                      onPrimary: flavorPrimary ?? Colors.blue.shade400,
+                    ),
+                    brightness: Brightness.light);
+                darkTheme = ThemeData(
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    useMaterial3: true,
+                    primaryColor: flavorPrimary,
+                    brightness: Brightness.dark);
+                break;
+              case 1:
+                themeMode = ThemeMode.dark;
+                lightTheme = ThemeData(
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    useMaterial3: true,
+                    primaryColor: flavorPrimary,
+                    brightness: Brightness.light);
+                darkTheme = ThemeData(
+                  useMaterial3: true,
+                  brightness: Brightness.dark,
+                  //which flutter dev ever caused this bug you need to fucking stand up and fix it im fed up of flutters stupid shit.
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  colorScheme: ColorScheme.dark(
+                    primary: flavorPrimary ?? Colors.blue.shade600,
+                    onPrimary: flavorPrimary ?? Colors.blue.shade400,
+                    secondary: Colors.grey.shade800,
+                    onSecondary: Colors.black,
+                    surface: Colors.grey.shade800,
+                    onSurface: Colors.grey.shade200,
+                    error: Colors.red.shade400,
+                    onError: Colors.black,
+                    surfaceContainer: const Color.fromARGB(255, 40, 40, 40),
+                  ),
+                  scaffoldBackgroundColor: Colors.grey.shade900,
+                  appBarTheme: AppBarTheme(
+                    backgroundColor: const Color.fromARGB(255, 40, 40, 40),
+                    foregroundColor: Colors.grey.shade200,
+                  ),
+                  drawerTheme: const DrawerThemeData(
+                    backgroundColor: Color.fromARGB(255, 40, 40, 40),
+                  ),
+                  cardColor: Colors.grey.shade800,
+                  dividerColor: Colors.grey.shade800,
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade700,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                );
 
-          case '/home':
-            if (hasAccessTo2FA) return '/2fa';
-            if (!isAuthenticated && !hasAccessTo2FA) return '/login';
-            if (isAuthenticated) return null;
-            return null;
-
-          default:
-            if (hasAccessTo2FA) return '/2fa';
-            if (isAuthenticated) return null;
-            return '/';
-        }
-        return null;
+                break;
+              default:
+                final dynamicMode = settingsBox.get('material_dynamic_mode',
+                    defaultValue: 0) as int;
+                if (dynamicMode == 1) {
+                  themeMode = ThemeMode.light;
+                } else if (dynamicMode == 2) {
+                  themeMode = ThemeMode.dark;
+                } else {
+                  themeMode = ThemeMode.system;
+                }
+                if (src == 0 && lightDynamic != null && darkDynamic != null) {
+                  lightTheme = ThemeData(
+                      colorScheme: lightDynamic,
+                      useMaterial3: true,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap);
+                  darkTheme = ThemeData(
+                      colorScheme: darkDynamic,
+                      useMaterial3: true,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap);
+                } else {
+                  lightTheme = ThemeData.from(
+                      colorScheme: ColorScheme.fromSeed(
+                          seedColor: Color(seed),
+                          brightness: Brightness.light));
+                  darkTheme = ThemeData.from(
+                      colorScheme: ColorScheme.fromSeed(
+                          seedColor: Color(seed), brightness: Brightness.dark));
+                }
+            }
+            return MaterialApp.router(
+              // Force rebuild when theme settings change
+              key: ValueKey('$themeType-$src-$seed'),
+              routerConfig: router,
+              theme: lightTheme,
+              darkTheme: darkTheme,
+              themeMode: themeMode,
+              title: 'Floaty',
+              debugShowCheckedModeBanner: false,
+            );
+          },
+        );
       },
-    );
-
-    fpApiRequests.purgeOldEtags();
-
-    return MaterialApp.router(
-      title: 'Floaty',
-      theme: ThemeData.dark(),
-      darkTheme: customDarkTheme,
-      themeMode: ThemeMode.dark,
-      routerConfig: router,
     );
   }
 }

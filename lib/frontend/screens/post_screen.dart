@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:floaty/frontend/elements.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +20,7 @@ import 'package:floaty/settings.dart';
 import 'package:background_downloader/background_downloader.dart';
 import 'package:floaty/backend/download_manager.dart';
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 enum ScreenLayout { small, medium, wide }
 
@@ -63,10 +62,14 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
   final List<CommentModel> _comments = [];
   bool _isLoadingComments = false;
   bool _hasMoreComments = true;
+  String userAgent = 'FloatyClient/error, CFNetwork';
+  PackageInfo? packageInfo;
 
   @override
   void initState() {
     super.initState();
+    initUserAgent();
+
     postId = widget.postId;
     _mediaContentFuture = Future(() async {
       // Wait for post to be loaded
@@ -85,6 +88,11 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
     _commentController.addListener(_updateCharCount);
 
     _loadComments();
+  }
+
+  Future<void> initUserAgent() async {
+    packageInfo = await PackageInfo.fromPlatform();
+    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
   }
 
   //whenplane intergration
@@ -280,10 +288,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
       final postState = ref.watch(postProvider(widget.postId));
       final post = postState.post;
       if (post == null) {
-        return const Center(
-            child: CircularProgressIndicator(
-          color: Colors.white,
-        ));
+        return const Center(child: CircularProgressIndicator());
       }
 
       int progress = 0;
@@ -355,8 +360,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
               [];
 
           // Determine the default quality using the Settings class
-          String? preferredQuality =
-              await Settings().getKey('preferred_quality');
+          String? preferredQuality = await settings.getKey('preferred_quality');
           if (preferredQuality.isNotEmpty) {
             VideoQuality? selectedQuality = qualities.firstWhere(
               (quality) => quality.label == preferredQuality,
@@ -390,8 +394,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
           }
 
           // Determine the default quality using the Settings class
-          String? preferredQuality =
-              await Settings().getKey('preferred_quality');
+          String? preferredQuality = await settings.getKey('preferred_quality');
           if (preferredQuality.isNotEmpty) {
             VideoQuality? selectedQuality = qualities.firstWhere(
               (quality) => quality.label == preferredQuality,
@@ -420,27 +423,35 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
           1) {
         return Stack(
           children: [
-            MediaPlayerWidget(
-              contextBuild: context,
-              mediaUrl: mediaUrl!,
-              mediaType: selectedMediaType,
-              attachment: selectedAttachment,
-              qualities:
-                  selectedMediaType == MediaType.image ? null : qualities,
-              initialState: MediaPlayerState.main,
-              startFrom: progress,
-              textTracks: textTrack.isEmpty ? null : textTrack,
-              live: false,
-              title: ref.read(postProvider(widget.postId)).post?.title ??
-                  'Unknown Title',
-              artist:
-                  ref.read(postProvider(widget.postId)).post?.channel?.title ??
-                      'Unknown Creator',
-              postId: widget.postId,
-              artworkUrl:
-                  ref.read(postProvider(widget.postId)).post!.thumbnail?.path ??
-                      '',
-            ),
+            if (context.mounted)
+              MediaPlayerWidget(
+                //welcome to making dart shut up
+                contextBuild: context.mounted ? context : context,
+                mediaUrl: mediaUrl!,
+                mediaType: selectedMediaType,
+                attachment: selectedAttachment,
+                qualities:
+                    selectedMediaType == MediaType.image ? null : qualities,
+                initialState: MediaPlayerState.main,
+                startFrom: progress,
+                textTracks: textTrack.isEmpty ? null : textTrack,
+                live: false,
+                title: ref.read(postProvider(widget.postId)).post?.title ??
+                    'Unknown Title',
+                artist: ref
+                        .read(postProvider(widget.postId))
+                        .post
+                        ?.channel
+                        ?.title ??
+                    'Unknown Creator',
+                postId: widget.postId,
+                artworkUrl: ref
+                        .read(postProvider(widget.postId))
+                        .post!
+                        .thumbnail
+                        ?.path ??
+                    '',
+              ),
             // Left navigation arrow
             Positioned(
               left: 16,
@@ -519,7 +530,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
 
       // If only one attachment
       return MediaPlayerWidget(
-        contextBuild: context,
+        contextBuild: context.mounted ? context : context,
         mediaUrl: mediaUrl!,
         live: false,
         mediaType: selectedMediaType,
@@ -695,7 +706,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                           final hasPermissions = await DownloadManager()
                               .checkAndRequestPermissions();
                           if (!hasPermissions) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text(
@@ -713,13 +724,13 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                             updates: Updates.statusAndProgress,
                             requiresWiFi: true,
                             headers: {
-                              'User-Agent': 'FloatyClient/1.0.0, CFNetwork',
+                              'User-Agent': userAgent,
                             },
                           );
 
                           try {
                             await FileDownloader().enqueue(task);
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                     content: Text(
@@ -729,7 +740,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                             // Move file to downloads after completion
                             await DownloadManager().moveToDownloads(task);
                           } catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text('Failed to start download')),
@@ -757,7 +768,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
     return [
       if (hasMediaAttachment)
         IconButton(
-          icon: const Icon(Icons.download, color: Colors.white),
+          icon: const Icon(Icons.download),
           onPressed: showDownloadDialog,
         ),
       const SizedBox(width: 5),
@@ -771,7 +782,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
             iconTheme: IconThemeData(
               color: postState.isLiked
                   ? Theme.of(context).colorScheme.primary
-                  : Colors.white,
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
           duration: const Duration(milliseconds: 200),
@@ -782,7 +793,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
           style: TextStyle(
             color: postState.isLiked
                 ? Theme.of(context).colorScheme.primary
-                : Colors.white,
+                : Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
           child: Text('${postState.likeCount}'),
@@ -801,7 +812,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
             iconTheme: IconThemeData(
               color: postState.isDisliked
                   ? Theme.of(context).colorScheme.primary
-                  : Colors.white,
+                  : Theme.of(context).colorScheme.onSurface,
             ),
           ),
           duration: const Duration(milliseconds: 200),
@@ -812,7 +823,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
           style: TextStyle(
             color: postState.isDisliked
                 ? Theme.of(context).colorScheme.primary
-                : Colors.white,
+                : Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
           child: Text('${postState.dislikeCount}'),
@@ -844,7 +855,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
                 ),
                 stepGranularity: 0.25,
                 textScaleFactor: 0.75,
@@ -884,7 +894,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
                       ),
                     ),
                     if (post.tags.isNotEmpty == true)
@@ -939,7 +948,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                     Text(
                       post.channel?.title ?? 'Unknown Creator',
                       style: const TextStyle(
-                        color: Colors.white,
                         fontWeight: FontWeight.w500,
                         fontSize: 16,
                       ),
@@ -949,7 +957,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                           ? 'Posted ${DateFormat('MMMM dd, yyyy').format(post.releaseDate!)}'
                           : '',
                       style: TextStyle(
-                        color: Colors.grey[400],
+                        color: Theme.of(context).textTheme.titleMedium?.color,
                         fontSize: 14,
                       ),
                     ),
@@ -959,8 +967,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
             ],
           ),
         ),
-        // ignore: unnecessary_null_comparison
-        if (post != null && (post.attachmentOrder.length) > 1) ...[
+        if ((post.attachmentOrder.length) > 1) ...[
           const SizedBox(height: 16),
           ConstrainedBox(
             constraints:
@@ -1219,7 +1226,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
               ),
             ),
           ),
-        Divider(color: Colors.grey[800]),
+        Divider(),
         Row(
           children: [
             if (rootLayoutKey.currentState?.user?.profileImage?.path != null)
@@ -1249,7 +1256,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                         borderSide: BorderSide(color: Colors.grey[800]!),
                       ),
                     ),
-                    style: const TextStyle(color: Colors.white),
                   ),
                   AnimatedCrossFade(
                     firstChild: const SizedBox.shrink(),
@@ -1282,7 +1288,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                             child: const Text(
                               'CANCEL',
                               style: TextStyle(
-                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -1337,7 +1342,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
             Text(
               '${post.comments ?? 0} Comments',
               style: const TextStyle(
-                color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
@@ -1345,12 +1349,12 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
             SizedBox(width: 6),
             DropdownButton<String>(
               value: _getSortDisplayText(),
-              hint: const Text('Sort Comments',
-                  style: TextStyle(color: Colors.white)),
+              hint: const Text(
+                'Sort Comments',
+              ),
               dropdownColor: Colors.grey[800],
-              icon: const Icon(Icons.sort, color: Colors.white),
+              icon: const Icon(Icons.sort),
               underline: Container(),
-              style: const TextStyle(color: Colors.white),
               items: [
                 DropdownMenuItem(
                   value: 'newest',
@@ -1548,7 +1552,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
               ),
             ),
           ),

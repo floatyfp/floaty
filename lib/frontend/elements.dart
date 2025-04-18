@@ -1,5 +1,3 @@
-// ignore_for_file: use_super_parameters, library_private_types_in_public_api
-
 import 'package:floaty/settings.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,14 +29,14 @@ class SidebarSizeControl extends StatelessWidget {
   final VoidCallback? onTap;
 
   const SidebarSizeControl({
-    Key? key,
+    super.key,
     required this.title,
     required this.route,
     required this.isSidebarCollapsed,
     required this.isSmallScreen,
     required this.showText,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +70,7 @@ class SidebarItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   const SidebarItem({
-    Key? key,
+    super.key,
     required this.icon,
     required this.title,
     required this.route,
@@ -80,7 +78,7 @@ class SidebarItem extends StatelessWidget {
     required this.isSmallScreen,
     required this.showText,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -109,12 +107,12 @@ class SidebarText extends StatelessWidget {
   final bool showText;
 
   const SidebarText({
-    Key? key,
+    super.key,
     required this.title,
     required this.isSidebarCollapsed,
     required this.isSmallScreen,
     required this.showText,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +140,7 @@ class PictureSidebarItem extends StatelessWidget {
   final VoidCallback? onTap;
 
   const PictureSidebarItem({
-    Key? key,
+    super.key,
     required this.picture,
     required this.title,
     required this.route,
@@ -150,7 +148,7 @@ class PictureSidebarItem extends StatelessWidget {
     required this.isSmallScreen,
     required this.showText,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +216,6 @@ class StatColumn extends StatelessWidget {
                 style: TextStyle(
                   fontSize: valueFontSize,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -230,7 +227,7 @@ class StatColumn extends StatelessWidget {
                 label,
                 style: TextStyle(
                   fontSize: labelFontSize,
-                  color: Colors.grey.shade400,
+                  color: Theme.of(context).textTheme.titleMedium?.color,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -251,14 +248,14 @@ class SidebarChannelItem extends ConsumerStatefulWidget {
   final VoidCallback? onTap;
 
   const SidebarChannelItem({
-    Key? key,
+    super.key,
     required this.id,
     required this.response,
     required this.isSidebarCollapsed,
     required this.isSmallScreen,
     required this.showText,
     this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<SidebarChannelItem> createState() => _SidebarChannelItemState();
@@ -520,7 +517,7 @@ class BlogPostCard extends StatelessWidget {
                 children: [
                   _buildThumbnailSection(context, constraints, fontSize),
                   const SizedBox(height: 8),
-                  _buildFooterSection(iconSize, fontSize),
+                  _buildFooterSection(iconSize, fontSize, context),
                 ],
               ),
             );
@@ -608,7 +605,8 @@ class BlogPostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFooterSection(double iconSize, double fontSize) {
+  Widget _buildFooterSection(
+      double iconSize, double fontSize, BuildContext context) {
     return SizedBox(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -616,32 +614,25 @@ class BlogPostCard extends StatelessWidget {
           // Channel icon
           if (blogPost.channel is ChannelModel)
             ClipOval(
-              child: blogPost.channel?.icon?.path != null &&
-                      (blogPost.channel?.icon?.path ?? '').isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: blogPost.channel?.icon?.path ??
-                          blogPost.creator.icon?.path ??
-                          '',
-                      placeholder: (context, url) => GradientPlaceholder(),
-                      width: iconSize,
-                      height: iconSize,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.asset('assets/placeholder.png'),
+              child: CachedNetworkImage(
+                imageUrl: blogPost.channel?.icon?.path ??
+                    blogPost.creator.icon?.path ??
+                    '',
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.cover,
+              ),
             ),
           if (blogPost.channel is! ChannelModel &&
               blogPost.creator.icon != null &&
               blogPost.creator.icon is ImageModel)
             ClipOval(
-              child: blogPost.creator.icon?.path != null &&
-                      (blogPost.creator.icon?.path ?? '').isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: blogPost.creator.icon?.path ?? '',
-                      width: iconSize,
-                      height: iconSize,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.asset('assets/placeholder.png'),
+              child: CachedNetworkImage(
+                imageUrl: blogPost.creator.icon?.path ?? '',
+                width: iconSize,
+                height: iconSize,
+                fit: BoxFit.cover,
+              ),
             ),
           const SizedBox(width: 8),
 
@@ -657,7 +648,6 @@ class BlogPostCard extends StatelessWidget {
                   maxFontSize: 13,
                   textScaleFactor: 0.95,
                   style: TextStyle(
-                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: fontSize * 1.150, // 0.047 of constraints
                   ),
@@ -668,7 +658,7 @@ class BlogPostCard extends StatelessWidget {
                 AutoSizeText(
                   '${blogPost.channel is ChannelModel ? blogPost.channel?.title ?? '' : blogPost.creator.title ?? ''} • $relativeTime',
                   style: TextStyle(
-                    color: Colors.grey[400],
+                    color: Theme.of(context).textTheme.titleMedium?.color,
                     fontSize: fontSize,
                   ),
                   stepGranularity: 0.25,
@@ -759,16 +749,16 @@ class CreatorCard extends StatefulWidget {
   const CreatorCard(this.creator, {super.key});
 
   @override
-  _CreatorCardState createState() => _CreatorCardState();
+  CreatorCardState createState() => CreatorCardState();
 }
 
-class _CreatorCardState extends State<CreatorCard> {
+class CreatorCardState extends State<CreatorCard> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Material(
-          color: Colors.grey[850],
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.circular(8),
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
@@ -804,7 +794,6 @@ class _CreatorCardState extends State<CreatorCard> {
                         widget.creator.title ?? '',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
@@ -832,11 +821,10 @@ class FilterPanel extends ConsumerStatefulWidget {
   final DateTime? initialStartDate;
   final DateTime? initialEndDate;
   final bool? initialIsAscending;
-  final Function(Size)? onSizeChanged;
   final double? parentWidth;
 
   const FilterPanel({
-    Key? key,
+    super.key,
     required this.onFilterChanged,
     this.initialContentTypes,
     this.initialSearchQuery,
@@ -844,9 +832,8 @@ class FilterPanel extends ConsumerStatefulWidget {
     this.initialStartDate,
     this.initialEndDate,
     this.initialIsAscending,
-    this.onSizeChanged,
     this.parentWidth,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<FilterPanel> createState() => _FilterPanelState();
@@ -903,18 +890,6 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
     );
 
     _checkIfDefault();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _notifySizeChanged();
-    });
-  }
-
-  void _notifySizeChanged() {
-    if (widget.onSizeChanged != null && _key.currentContext != null) {
-      final RenderBox box =
-          _key.currentContext!.findRenderObject() as RenderBox;
-      widget.onSizeChanged!(box.size);
-    }
   }
 
   void _checkIfDefault() {
@@ -1058,9 +1033,10 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
         return Container(
           key: _key,
           decoration: BoxDecoration(
-            color: Colors.grey.shade900,
+            color: Theme.of(context).colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade800),
+            border: Border.all(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh),
           ),
           child: Padding(
             padding: const EdgeInsets.all(12.0),
@@ -1261,7 +1237,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
                 hintStyle: TextStyle(color: Colors.grey.shade500),
                 prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
                 filled: true,
-                fillColor: Colors.grey.shade800,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
                   borderSide: BorderSide.none,
@@ -1276,7 +1252,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
           height: _inputHeight,
           width: _inputHeight,
           decoration: BoxDecoration(
-            color: Colors.grey.shade800,
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Material(
@@ -1313,12 +1289,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
             lastDate: DateTime.now(),
             builder: (context, child) {
               return Theme(
-                data: Theme.of(context).copyWith(
-                  colorScheme: Theme.of(context).colorScheme.copyWith(
-                        surface: Colors.grey.shade900,
-                        primary: Colors.white,
-                      ),
-                ),
+                data: Theme.of(context).copyWith(),
                 child: child!,
               );
             },
@@ -1328,7 +1299,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
           }
         },
         style: TextButton.styleFrom(
-          backgroundColor: Colors.grey.shade800,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -1392,14 +1363,6 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
                             });
                           }
                         },
-                        fillColor: WidgetStateProperty.resolveWith<Color>(
-                          (Set<WidgetState> states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return Colors.blue.shade300;
-                            }
-                            return Colors.grey.shade600;
-                          },
-                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(value,
@@ -1414,7 +1377,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade800,
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -1456,7 +1419,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
       height: _inputHeight,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade800,
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -1516,14 +1479,15 @@ class ExpandableDescription extends ConsumerStatefulWidget {
   final int initialLines;
 
   const ExpandableDescription({
-    Key? key,
+    super.key,
     required this.description,
     this.initialLines = 3,
-  }) : super(key: key);
+  });
 
   @override
-  ConsumerState<ExpandableDescription> createState() =>
-      _ExpandableDescriptionState();
+  ConsumerState<ExpandableDescription> createState() {
+    return _ExpandableDescriptionState();
+  }
 }
 
 class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
@@ -1546,7 +1510,7 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
       text: TextSpan(
         text: widget.description,
         style: TextStyle(
-          color: Colors.grey[400],
+          color: Theme.of(context).textTheme.titleMedium?.color,
           fontSize: 14,
         ),
       ),
@@ -1576,7 +1540,7 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
                 widget.description,
                 key: _textKey,
                 style: TextStyle(
-                  color: Colors.grey[400],
+                  color: Theme.of(context).textTheme.titleMedium?.color,
                   fontSize: 14,
                 ),
                 maxLines: widget.initialLines,
@@ -1587,7 +1551,7 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
           secondChild: Text(
             widget.description,
             style: TextStyle(
-              color: Colors.grey[400],
+              color: Theme.of(context).textTheme.titleMedium?.color,
               fontSize: 14,
             ),
           ),
@@ -1822,7 +1786,6 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                           Text(
                             widget.comment.user.username,
                             style: const TextStyle(
-                              color: Colors.white,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1831,7 +1794,6 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                           Text(
                             widget.content.channel?.title ?? '',
                             style: const TextStyle(
-                              color: Colors.white,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1931,8 +1893,7 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                                                   });
                                                 }
                                               } else {
-                                                if (mounted) {
-                                                  // ignore: use_build_context_synchronously
+                                                if (context.mounted) {
                                                   ScaffoldMessenger.of(context)
                                                       .showSnackBar(
                                                     const SnackBar(
@@ -1943,8 +1904,7 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                                                 }
                                               }
 
-                                              if (mounted) {
-                                                // ignore: use_build_context_synchronously
+                                              if (context.mounted) {
                                                 Navigator.of(dialogContext)
                                                     .pop();
                                               }
@@ -1986,13 +1946,11 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                             children: [
                               TextField(
                                 controller: _editController,
-                                style: const TextStyle(color: Colors.white),
                                 maxLength: 1500,
                                 maxLines: null,
                                 keyboardType: TextInputType.multiline,
                                 decoration: InputDecoration(
                                   hintText: 'Edit your comment',
-                                  hintStyle: TextStyle(color: Colors.grey[400]),
                                   border: UnderlineInputBorder(
                                     borderSide:
                                         BorderSide(color: Colors.grey[800]!),
@@ -2060,7 +2018,7 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                                 size: 16,
                                 color: _isLiked
                                     ? Theme.of(context).colorScheme.primary
-                                    : Colors.white,
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             duration: const Duration(milliseconds: 200),
@@ -2072,7 +2030,7 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                               fontSize: 12,
                               color: _isLiked
                                   ? Theme.of(context).colorScheme.primary
-                                  : Colors.white,
+                                  : Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
                             ),
                             child: Text('$_likeCount'),
@@ -2117,7 +2075,7 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                                 size: 16,
                                 color: _isDisliked
                                     ? Theme.of(context).colorScheme.primary
-                                    : Colors.white,
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             duration: const Duration(milliseconds: 200),
@@ -2129,7 +2087,7 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                               fontSize: 12,
                               color: _isDisliked
                                   ? Theme.of(context).colorScheme.primary
-                                  : Colors.white,
+                                  : Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
                             ),
                             child: Text('$_dislikeCount'),
@@ -2173,7 +2131,6 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                             'REPLY',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -2195,7 +2152,6 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                   TextField(
                     controller: _replyController,
                     focusNode: _focusNode,
-                    style: const TextStyle(color: Colors.white),
                     maxLength: 1500,
                     maxLines: null,
                     keyboardType: TextInputType.multiline,
@@ -2235,7 +2191,6 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                           child: Text(
                             'CANCEL',
                             style: TextStyle(
-                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -2301,14 +2256,14 @@ class ShowInfoCard extends StatelessWidget {
   final bool late;
 
   const ShowInfoCard({
-    Key? key,
+    super.key,
     required this.preshowtime,
     required this.mainshowtime,
     required this.preshowlength,
     required this.mainshowlength,
     required this.lateness,
     required this.late,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2327,11 +2282,10 @@ class ShowInfoCard extends StatelessWidget {
               textScaleFactor: 1.15,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
               ),
             ),
             SizedBox(height: 3),
-            Divider(color: Colors.grey),
+            Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               spacing: 15,
@@ -2340,7 +2294,7 @@ class ShowInfoCard extends StatelessWidget {
                 _buildShowSection("Main Show", mainshowtime, mainshowlength),
               ],
             ),
-            Divider(color: Colors.grey),
+            Divider(),
             SizedBox(height: 3),
             AutoSizeText(
               late
@@ -2368,7 +2322,6 @@ class ShowInfoCard extends StatelessWidget {
           textScaleFactor: 1.15,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
           ),
         ),
         SizedBox(height: 4),
@@ -2383,9 +2336,6 @@ class ShowInfoCard extends StatelessWidget {
         AutoSizeText(
           duration,
           textScaleFactor: 1.02,
-          style: TextStyle(
-            color: Colors.white,
-          ),
         ),
       ],
     );
@@ -2514,7 +2464,7 @@ class StateCard extends ConsumerStatefulWidget {
   final Widget? topIcon;
 
   const StateCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.thumbnail,
@@ -2524,7 +2474,7 @@ class StateCard extends ConsumerStatefulWidget {
     this.isViewing = false,
     this.isSelected = false,
     this.topIcon,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<StateCard> createState() => _StateCardState();
@@ -2700,7 +2650,7 @@ class _StateCardState extends ConsumerState<StateCard>
 
 class ErrorScreen extends StatefulWidget {
   final String? message;
-  const ErrorScreen({Key? key, this.message}) : super(key: key);
+  const ErrorScreen({super.key, this.message});
 
   @override
   State<ErrorScreen> createState() => _ErrorScreenState();
@@ -2796,7 +2746,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   }
 
   Future<void> loadSelectedVote() async {
-    Settings().getKey('votedname').then((value) {
+    settings.getKey('votedname').then((value) {
       setState(() {
         selectedVote = value;
       });
@@ -2902,7 +2852,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
         ? Container(
             color: widget.v ? Colors.black : null,
             child: Center(
-              child: CircularProgressIndicator(color: Colors.white),
+              child: CircularProgressIndicator(),
             ),
           )
         : Container(
@@ -2986,7 +2936,6 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                     style: TextStyle(
                       fontSize: width * 0.06,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
                   ),
                   Text(
@@ -3070,7 +3019,6 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
         Text(
           '$platform:',
           style: TextStyle(
-            color: Colors.white,
             fontSize: fontSize,
           ),
         ),
@@ -3116,7 +3064,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
             AutoSizeText.rich(
               TextSpan(
                 text: 'The WAN show is currently',
-                style: TextStyle(fontSize: 16.0, color: Colors.white),
+                style: TextStyle(fontSize: 16.0),
                 children: [
                   TextSpan(
                     text: ' late',
@@ -3124,7 +3072,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                   ),
                   TextSpan(
                     text: ' by',
-                    style: TextStyle(fontSize: 16.0, color: Colors.white),
+                    style: TextStyle(fontSize: 16.0),
                   ),
                 ],
               ),
@@ -3161,7 +3109,8 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
             minFontSize: 16.0,
             style: TextStyle(
               fontSize: 50.0,
-              color: isLate ? Colors.red : Colors.white,
+              color:
+                  isLate ? Colors.red : Theme.of(context).colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
             textScaleFactor: 1,
@@ -3579,7 +3528,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
               borderRadius: BorderRadius.circular(8),
               onTap: () {
                 whenPlaneIntegration.sendVote(voteText, generateK());
-                Settings().setKey('votedname', voteText);
+                settings.setKey('votedname', voteText);
 
                 setState(() {
                   selectedVote = vote['name'];
@@ -3646,7 +3595,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
 }
 
 class WhenplaneCompactHolder extends StatelessWidget {
-  const WhenplaneCompactHolder(this.onWPExit, {Key? key}) : super(key: key);
+  const WhenplaneCompactHolder(this.onWPExit, {super.key});
   final VoidCallback onWPExit;
 
   @override

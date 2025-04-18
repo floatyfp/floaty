@@ -292,7 +292,6 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
                                 ''
                             : realCreatorInfo?.liveStream?.title ?? '',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                       ),
@@ -318,7 +317,6 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
                                 Text(
                                   realCreatorInfo?.title ?? '',
                                   style: const TextStyle(
-                                    color: Colors.white,
                                     fontWeight: FontWeight.w500,
                                     fontSize: 16,
                                   ),

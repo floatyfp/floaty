@@ -65,13 +65,13 @@ class _LiveChatState extends ConsumerState<LiveChat> {
     if (!widget.infoless) {
       trueliveid = widget.liveId;
     }
-    final storedLiveId = await Settings().getKey('liveid');
+    final storedLiveId = await settings.getKey('liveid');
     if (storedLiveId.isNotEmpty) {
       if (trueliveid != storedLiveId) {
         ref.read(chatProvider.notifier).reset(storedLiveId);
       }
     }
-    await Settings().setKey('liveid', trueliveid!);
+    await settings.setKey('liveid', trueliveid!);
     await ref
         .read(chatProvider.notifier)
         .joinLiveChat(trueliveid!, _controller);
@@ -114,8 +114,8 @@ class _LiveChatState extends ConsumerState<LiveChat> {
       appBar: AppBar(
           elevation: 0,
           toolbarHeight: 40,
-          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-          surfaceTintColor: Theme.of(context).appBarTheme.backgroundColor,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+          surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
           leading: widget.exit
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
@@ -125,13 +125,23 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                 )
               : null,
           actions: [
-            // TODO: debug setting
-            // IconButton(
-            //   onPressed: () {
-            //     ref.read(pollDataProvider.notifier).testPoll();
-            //   },
-            //   icon: Icon(Icons.warning),
-            // ),
+            FutureBuilder(
+              future: settings.getBool('developerMode'),
+              builder: (context, snapshot) {
+                if (snapshot.data == true) {
+                  return IconButton(
+                    onPressed: () {
+                      ref.read(pollDataProvider.notifier).testPoll();
+                    },
+                    icon: Icon(
+                      Icons.warning,
+                      color: Theme.of(context).textTheme.titleLarge?.color,
+                    ),
+                  );
+                }
+                return SizedBox.shrink();
+              },
+            ),
             IconButton(
               onPressed: () async {
                 chatterdata = await fpWebsockets.chatterlist(trueliveid!);
@@ -161,11 +171,17 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                   }
                 }
               },
-              icon: isChatterListOpen ? Icon(Icons.chat) : Icon(Icons.list),
+              icon: isChatterListOpen
+                  ? Icon(Icons.chat,
+                      color: Theme.of(context).textTheme.titleLarge?.color)
+                  : Icon(Icons.list,
+                      color: Theme.of(context).textTheme.titleLarge?.color),
             )
           ],
           title: Text(isChatterListOpen ? "Viewer List" : "Live Chat",
-              style: TextStyle(fontSize: 18))),
+              style: TextStyle(
+                  fontSize: 18,
+                  color: Theme.of(context).textTheme.titleLarge?.color))),
       body: errorState.hasError
           ? ErrorScreen(message: errorState.errorMessage)
           : isChatterListOpen
@@ -340,7 +356,9 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                         title: Text(
                                           "Poll",
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
                                             fontSize: 16,
                                           ),
                                         ),
@@ -355,7 +373,9 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                             showPoll
                                                 ? Icons.arrow_drop_down
                                                 : Icons.arrow_drop_up,
-                                            color: Colors.white,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary,
                                           ),
                                           onPressed: () {
                                             ref
@@ -371,7 +391,9 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                       constraints: BoxConstraints(
                                         maxHeight: showPoll ? 300 : 0,
                                       ),
-                                      color: Colors.grey.shade800,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .surfaceContainer,
                                       child: showPoll
                                           ? SingleChildScrollView(
                                               child: Padding(
@@ -385,7 +407,6 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                                     Text(
                                                       pollData.title,
                                                       style: TextStyle(
-                                                        color: Colors.white,
                                                         fontSize: 16,
                                                         fontWeight:
                                                             FontWeight.bold,
@@ -487,9 +508,9 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                                                           20,
                                                                       decoration:
                                                                           BoxDecoration(
-                                                                        color: Colors
-                                                                            .blue
-                                                                            .shade700,
+                                                                        color: Theme.of(context)
+                                                                            .colorScheme
+                                                                            .primary,
                                                                         borderRadius:
                                                                             BorderRadius.circular(2),
                                                                       ),
@@ -502,8 +523,9 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                                                             Alignment.centerLeft,
                                                                         child:
                                                                             Container(
-                                                                          color:
-                                                                              Colors.blue,
+                                                                          color: Theme.of(context)
+                                                                              .colorScheme
+                                                                              .primary,
                                                                         ),
                                                                       ),
                                                                     ),
@@ -559,25 +581,26 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                           children: [
                             Container(
                               height: 35,
-                              color: Colors.grey.shade800,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainer,
                               padding: EdgeInsets.only(top: 6),
                               child: ListTile(
                                 minVerticalPadding: 0,
                                 minTileHeight: 1,
                                 dense: true,
                                 title: Text("Emotes",
-                                    style: TextStyle(
-                                        color: Colors.white, fontSize: 16)),
+                                    style: TextStyle(fontSize: 16)),
                                 onTap: () => ref
                                     .read(emotePickerProvider.notifier)
                                     .state = !showEmotePicker,
                                 trailing: IconButton(
                                   iconSize: 15,
                                   icon: Icon(
-                                      showEmotePicker
-                                          ? Icons.arrow_drop_down
-                                          : Icons.arrow_drop_up,
-                                      color: Colors.white),
+                                    showEmotePicker
+                                        ? Icons.arrow_drop_down
+                                        : Icons.arrow_drop_up,
+                                  ),
                                   onPressed: () => ref
                                       .read(emotePickerProvider.notifier)
                                       .state = !showEmotePicker,
@@ -587,7 +610,9 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                             AnimatedContainer(
                               duration: Duration(milliseconds: 300),
                               height: showEmotePicker ? 90 : 0,
-                              color: Colors.grey.shade800,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainer,
                               child: !emotesLoaded
                                   ? CircularProgressIndicator()
                                   : GridView.builder(
@@ -600,20 +625,21 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                                       itemCount: emotes.length,
                                       itemBuilder: (context, index) {
                                         return Material(
+                                            color: Colors.transparent,
                                             child: InkWell(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          onTap: () {
-                                            _controller.text +=
-                                                ':${emotes[index].name}:';
-                                          },
-                                          child: Center(
-                                            child: Image.network(
-                                              emotes[index].url,
-                                              fit: BoxFit.cover,
-                                            ),
-                                          ),
-                                        ));
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              onTap: () {
+                                                _controller.text +=
+                                                    ':${emotes[index].name}:';
+                                              },
+                                              child: Center(
+                                                child: Image.network(
+                                                  emotes[index].url,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              ),
+                                            ));
                                       },
                                     ),
                             ),
@@ -677,8 +703,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
                           },
                           backgroundColor:
                               Theme.of(context).colorScheme.primary,
-                          child:
-                              Icon(Icons.arrow_downward, color: Colors.white),
+                          child: Icon(Icons.arrow_downward),
                         ),
                       ),
                     ),

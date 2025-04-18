@@ -3,15 +3,17 @@ import 'package:dio/dio.dart';
 import 'package:floaty/settings.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:get_it/get_it.dart';
 
 final LoginApi loginApi = GetIt.I<LoginApi>();
 
 class LoginApi {
-  late final Settings settings = Settings();
+  late final Settings settings = settings;
   static const String baseUrl = 'https://www.floatplane.com/api';
-  static const String userAgent = 'FloatyClient/1.0.0, CFNetwork';
+  PackageInfo? packageInfo;
+  String userAgent = 'FloatyClient/error, CFNetwork';
   String? token;
   late final PersistCookieJar cookieJar;
   late final Dio _dio;
@@ -21,6 +23,8 @@ class LoginApi {
   }
 
   void _init() async {
+    packageInfo = await PackageInfo.fromPlatform();
+    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
     final dir = await getApplicationSupportDirectory();
     cookieJar = PersistCookieJar(
       storage: FileStorage('${dir.path}/.cookies/'),

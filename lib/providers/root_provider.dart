@@ -105,11 +105,9 @@ class RootNotifier extends StateNotifier<RootState> {
   }
 
   Future<void> _loadSavedState() async {
-    if (await Settings().containsKey('sidebarCollapsed')) {
-      final savedState = await Settings().getBool('sidebarCollapsed');
-      if (savedState ?? false) {
-        state = state.copyWith(isCollapsed: savedState);
-      }
+    if (await settings.containsKey('sidebarCollapsed')) {
+      final savedState = await settings.getBool('sidebarCollapsed');
+      state = state.copyWith(isCollapsed: savedState);
     }
   }
 
@@ -125,18 +123,18 @@ class RootNotifier extends StateNotifier<RootState> {
     final newState = !state.isCollapsed;
     state = state.copyWith(isCollapsed: newState);
     Future(() async {
-      await Settings().setBool('sidebarCollapsed', newState);
+      await settings.setBool('sidebarCollapsed', newState);
     });
   }
 
   void setCollapsed() async {
-    if (!await Settings().containsKey('sidebarCollapsed')) {
+    if (!await settings.containsKey('sidebarCollapsed')) {
       state = state.copyWith(isCollapsed: true);
     }
   }
 
   void setExpanded() async {
-    if (!await Settings().containsKey('sidebarCollapsed')) {
+    if (!await settings.containsKey('sidebarCollapsed')) {
       state = state.copyWith(isCollapsed: false);
     }
   }

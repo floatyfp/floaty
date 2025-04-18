@@ -1,5 +1,3 @@
-// ignore_for_file: unnecessary_cast, unnecessary_type_check
-
 import 'package:floaty/backend/fpapi.dart';
 import 'package:floaty/backend/definitions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -268,7 +266,7 @@ class PostNotifier extends StateNotifier<PostState> {
   Future<void> _loadRecommendedPosts(String postId) async {
     try {
       final recommended = await fpApiRequests.getRecommended(postId);
-      final List<String> postIds = (recommended as List<BlogPostModelV3>)
+      final List<String> postIds = (recommended)
           .where((post) => post.id != null)
           .map((post) => post.id!)
           .toList();
@@ -276,11 +274,9 @@ class PostNotifier extends StateNotifier<PostState> {
       final progress = await fpApiRequests.getVideoProgress(postIds);
       final progressMap = <String, GetProgressResponse>{};
 
-      if (progress is List) {
-        for (var item in progress) {
-          if (item is GetProgressResponse && item.id != null) {
-            progressMap[item.id!] = item;
-          }
+      for (var item in progress) {
+        if (item.id != null) {
+          progressMap[item.id!] = item;
         }
       }
 
