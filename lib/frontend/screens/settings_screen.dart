@@ -998,7 +998,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                           Color picker = Color(seed);
                           await showDialog(
                             context: context,
-                            builder: (_) => AlertDialog(
+                            builder: (dialogContext) => AlertDialog(
                               title: const Text('Select Color'),
                               content: SingleChildScrollView(
                                 child: ColorPicker(
@@ -1008,13 +1008,16 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                               ),
                               actions: [
                                 TextButton(
-                                    onPressed: () => Navigator.pop(context),
+                                    onPressed: () =>
+                                        Navigator.of(dialogContext).pop(),
                                     child: const Text('Cancel')),
                                 TextButton(
                                   onPressed: () {
-                                    settingsBox.put('material_seed_color',
-                                        picker.toARGB32());
-                                    Navigator.pop(context);
+                                    if (picker != Color(seed)) {
+                                      settingsBox.put('material_seed_color',
+                                          picker.toARGB32());
+                                    }
+                                    Navigator.of(dialogContext).pop();
                                   },
                                   child: const Text('OK'),
                                 ),
