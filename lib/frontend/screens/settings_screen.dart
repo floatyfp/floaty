@@ -124,15 +124,6 @@ class SettingsListScreen extends StatelessWidget {
               context.go('/settings/about');
             },
           ),
-          ListTile(
-            selected:
-                GoRouterState.of(context).uri.path == '/settings/licenses',
-            leading: Icon(Icons.badge),
-            title: Text('Licenses'),
-            onTap: () {
-              context.go('/settings/licenses');
-            },
-          ),
           Divider(),
           ListTile(
             leading: Icon(Icons.logout, color: Colors.red),
@@ -741,7 +732,7 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 7),
-                    TeamMemberCard(
+                    CustomCard(
                       name: 'bw86',
                       role: 'Developer',
                       avatarUrl:
@@ -764,7 +755,7 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 7),
-                    TeamMemberCard(
+                    CustomCard(
                       name: 'ajgeiss0702',
                       role: 'Whenplane Owner',
                       avatarUrl:
@@ -775,6 +766,13 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
                     ),
                   ],
                 ),
+                SizedBox(height: 15),
+                CustomCard(
+                  name: 'Open source libraries',
+                  onTap: () {
+                    context.go('/settings/licenses');
+                  },
+                ),
               ],
             ),
           ),
@@ -784,17 +782,17 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
   }
 }
 
-class TeamMemberCard extends StatelessWidget {
+class CustomCard extends StatelessWidget {
   final String name;
-  final String role;
-  final String avatarUrl;
+  final String? role;
+  final String? avatarUrl;
   final VoidCallback onTap;
 
-  const TeamMemberCard({
+  const CustomCard({
     super.key,
     required this.name,
-    required this.role,
-    required this.avatarUrl,
+    this.role,
+    this.avatarUrl,
     required this.onTap,
   });
 
@@ -812,15 +810,16 @@ class TeamMemberCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              SizedBox(
-                height: 45,
-                child: CircleAvatar(
-                  radius: 22.5,
-                  foregroundImage: NetworkImage(avatarUrl),
-                  backgroundColor: Theme.of(context).colorScheme.surface,
+              if (avatarUrl != null)
+                SizedBox(
+                  height: 45,
+                  child: CircleAvatar(
+                    radius: 22.5,
+                    foregroundImage: NetworkImage(avatarUrl!),
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 11),
+              if (avatarUrl != null) const SizedBox(width: 11),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -831,14 +830,15 @@ class TeamMemberCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    role,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[400],
+                  if (role != null) const SizedBox(height: 3),
+                  if (role != null)
+                    Text(
+                      role!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[400],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
