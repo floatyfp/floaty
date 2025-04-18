@@ -423,7 +423,7 @@ class MyApp extends StatelessWidget {
             final src =
                 settingsBox.get('material_source', defaultValue: 0) as int;
             final seed = settingsBox.get('material_seed_color',
-                defaultValue: flavorPrimary);
+                defaultValue: flavorPrimary?.toARGB32() ?? 0 as int?);
 
             late ThemeMode themeMode;
             late ThemeData lightTheme;
