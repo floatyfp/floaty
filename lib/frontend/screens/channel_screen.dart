@@ -1316,7 +1316,7 @@ class _ChannelSelectorState extends State<ChannelSelector> {
             width: 1,
             height: 20,
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.surfaceContainer,
           ),
         ),
       ..._sortedChannels(widget.creator.channels ?? []).map((channel) {
@@ -1375,8 +1375,8 @@ class _ChannelSelectorState extends State<ChannelSelector> {
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: TextButton(
                     style: ButtonStyle(
-                      backgroundColor:
-                          WidgetStateProperty.all(Colors.grey[850]),
+                      backgroundColor: WidgetStateProperty.all(
+                          Theme.of(context).colorScheme.surfaceContainer),
                       shape: WidgetStateProperty.all(
                         RoundedRectangleBorder(
                           side: BorderSide(
@@ -1391,7 +1391,8 @@ class _ChannelSelectorState extends State<ChannelSelector> {
                       padding: WidgetStateProperty.all(
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                      foregroundColor: WidgetStateProperty.all(
+                          Theme.of(context).textTheme.titleLarge?.color),
                     ),
                     onPressed: () {
                       if (index == 0 && !widget.isRootChannel) {

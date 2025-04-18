@@ -10,7 +10,6 @@ import 'package:get_it/get_it.dart';
 final LoginApi loginApi = GetIt.I<LoginApi>();
 
 class LoginApi {
-  late final Settings settings = settings;
   static const String baseUrl = 'https://www.floatplane.com/api';
   PackageInfo? packageInfo;
   String userAgent = 'FloatyClient/error, CFNetwork';

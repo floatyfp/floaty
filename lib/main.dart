@@ -20,6 +20,7 @@ import 'package:floaty/frontend/screens/live_screen.dart';
 import 'package:floaty/frontend/root.dart';
 import 'package:floaty/services/system/single_instance_service.dart';
 import 'package:floaty/services/system/tray_service.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io' show Platform, exit;
 import 'package:media_kit/media_kit.dart';
@@ -35,7 +36,8 @@ late final Color? flavorPrimary;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
+  final dir = await getApplicationSupportDirectory();
+  await Hive.initFlutter(dir.path);
   await Hive.openBox('settings');
   const flavor =
       String.fromEnvironment('FLUTTER_FLAVOR', defaultValue: 'release');
@@ -417,11 +419,12 @@ class MyApp extends StatelessWidget {
           valueListenable: box.listenable(),
           builder: (_, Box settingsBox, __) {
             final themeType =
-                settingsBox.get('theme_type', defaultValue: 2) as int;
+                settingsBox.get('theme_type', defaultValue: 1) as int;
             final src =
                 settingsBox.get('material_source', defaultValue: 0) as int;
             final seed = settingsBox.get('material_seed_color',
-                defaultValue: Colors.blue.value) as int;
+                defaultValue: flavorPrimary);
+
             late ThemeMode themeMode;
             late ThemeData lightTheme;
             late ThemeData darkTheme;

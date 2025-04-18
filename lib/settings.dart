@@ -7,6 +7,8 @@ final Settings settings = GetIt.I<Settings>();
 
 class Settings {
   Future<Box> _getBox() async {
+    final dir = await getApplicationSupportDirectory();
+    Hive.init(dir.path);
     return await Hive.openBox('settings');
   }
 

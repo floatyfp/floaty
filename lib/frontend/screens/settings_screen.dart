@@ -216,7 +216,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       CircleAvatar(
                         radius: 50,
                         foregroundImage: CachedNetworkImageProvider(
-                          user?['selfUser']['profileImage']['path'],
+                          user?['selfUser']['profileImage']['path'] ?? '',
                         ),
                         backgroundImage: AssetImage('assets/placeholder.png'),
                       ),
@@ -930,11 +930,12 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
             valueListenable: box.listenable(),
             builder: (context, Box settingsBox, _) {
               final themeType =
-                  settingsBox.get('theme_type', defaultValue: 2) as int;
+                  settingsBox.get('theme_type', defaultValue: 1) as int;
               final src =
                   settingsBox.get('material_source', defaultValue: 0) as int;
               final seed = settingsBox.get('material_seed_color',
-                  defaultValue: flavorPrimary) as int;
+                  defaultValue: (flavorPrimary?.toARGB32() ??
+                      Colors.blue.toARGB32())) as int;
               final dynamicMode = settingsBox.get('material_dynamic_mode',
                   defaultValue: 0) as int;
               return ListView(
@@ -1011,8 +1012,8 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     child: const Text('Cancel')),
                                 TextButton(
                                   onPressed: () {
-                                    settingsBox.put(
-                                        'material_seed_color', picker.value);
+                                    settingsBox.put('material_seed_color',
+                                        picker.toARGB32());
                                     Navigator.pop(context);
                                   },
                                   child: const Text('OK'),
@@ -1032,8 +1033,10 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                       title: const Text('Follow System'),
                       value: 0,
                       groupValue: dynamicMode,
-                      onChanged: (v) =>
-                          settingsBox.put('material_dynamic_mode', v!),
+                      onChanged: (v) {
+                        settingsBox.put('material_dynamic_mode', v!);
+                        print(settingsBox.path);
+                      },
                     ),
                     RadioListTile<int>(
                       title: const Text('Force Light'),
