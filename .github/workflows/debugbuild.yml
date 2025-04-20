@@ -1,4 +1,4 @@
-9name: Debug Build - Floaty
+name: Debug Build - Floaty
 
 on:
   push:
