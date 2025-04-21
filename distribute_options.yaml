@@ -1,0 +1,250 @@
+output: dist/
+releases:
+  - name: dev
+    jobs:
+      - name: release-dev-android-apk
+        package:
+          platform: android
+          target: apk
+          build_args:
+            flavor: dev
+            target-platform: android-arm,android-arm64
+            dart-define:
+              FLUTTER_FLAVOR: dev
+      - name: release-dev-ios-ipa
+        package:
+          platform: ios
+          target: ipa
+          build_args:
+            flavor: dev
+            export-options-plist: ios/dev_ExportOptions.plist
+            dart-define:
+              FLUTTER_FLAVOR: dev
+      - name: release-dev-windows-exe
+        package:
+          platform: windows
+          target: exe
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: dev
+      - name: release-dev-windows-msix
+        package:
+          platform: windows
+          target: msix
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: dev
+      - name: release-dev-mac-dmg
+        package:
+          platform: macos
+          target: dmg
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: dev
+      - name: release-dev-linux-rpm
+        package:
+          platform: linux
+          target: rpm
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: dev
+      - name: release-dev-linux-appimage
+        package:
+          platform: linux
+          target: appimage
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: dev
+      - name: release-dev-linux-deb
+        package:
+          platform: linux
+          target: deb
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: dev
+  - name: release
+    jobs:
+      - name: release-release-android-apk
+        package:
+          platform: android
+          target: apk
+          build_args:
+            flavor: release
+            target-platform: android-arm,android-arm64
+            dart-define:
+              FLUTTER_FLAVOR: release
+      - name: release-release-ios-ipa
+        package:
+          platform: ios
+          target: ipa
+          build_args:
+            flavor: release
+            export-options-plist: ios/release_ExportOptions.plist
+            dart-define:
+              FLUTTER_FLAVOR: release
+      - name: release-release-windows-exe
+        package:
+          platform: windows
+          target: exe
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: release
+      - name: release-release-windows-msix
+        package:
+          platform: windows
+          target: msix
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: release
+      - name: release-release-mac-dmg
+        package:
+          platform: macos
+          target: dmg
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: release
+      - name: release-release-linux-rpm
+        package:
+          platform: linux
+          target: rpm
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: release
+      - name: release-release-linux-appimage
+        package:
+          platform: linux
+          target: appimage
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: release
+      - name: release-release-linux-deb
+        package:
+          platform: linux
+          target: deb
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: release
+  - name: beta
+    jobs:
+      - name: release-beta-android-apk
+        package:
+          platform: android
+          target: apk
+          build_args:
+            flavor: beta
+            target-platform: android-arm,android-arm64
+            dart-define:
+              FLUTTER_FLAVOR: beta
+      - name: release-beta-ios-ipa
+        package:
+          platform: ios
+          target: ipa
+          build_args:
+            flavor: beta
+            export-options-plist: ios/beta_ExportOptions.plist
+            dart-define:
+              FLUTTER_FLAVOR: beta
+      - name: release-beta-windows-exe
+        package:
+          platform: windows
+          target: exe
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: beta
+      - name: release-beta-windows-msix
+        package:
+          platform: windows
+          target: msix
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: beta
+      - name: release-beta-mac-dmg
+        package:
+          platform: macos
+          target: dmg
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: beta
+      - name: release-beta-linux-rpm
+        package:
+          platform: linux
+          target: rpm
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: beta
+      - name: release-beta-linux-appimage
+        package:
+          platform: linux
+          target: appimage
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: beta
+      - name: release-beta-linux-deb
+        package:
+          platform: linux
+          target: deb
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: beta
+  - name: nightly
+    jobs:
+      - name: release-nightly-android-apk
+        package:
+          platform: android
+          target: apk
+          build_args:
+            flavor: nightly
+            target-platform: android-arm,android-arm64
+            dart-define:
+              FLUTTER_FLAVOR: nightly
+      - name: release-nightly-ios-ipa
+        package:
+          platform: ios
+          target: ipa
+          build_args:
+            flavor: nightly
+            export-options-plist: ios/nightly_ExportOptions.plist
+            dart-define:
+              FLUTTER_FLAVOR: nightly
+      - name: release-nightly-windows-exe
+        package:
+          platform: windows
+          target: exe
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: nightly
+      - name: release-nightly-windows-msix
+        package:
+          platform: windows
+          target: msix
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: nightly
+      - name: release-nightly-mac-dmg
+        package:
+          platform: macos
+          target: dmg
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: nightly
+      - name: release-nightly-linux-rpm
+        package:
+          platform: linux
+          target: rpm
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: nightly
+      - name: release-nightly-linux-appimage
+        package:
+          platform: linux
+          target: appimage
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: nightly
+      - name: release-nightly-linux-deb
+        package:
+          platform: linux
+          target: deb
+          build_args:
+            dart-define:
+              FLUTTER_FLAVOR: nightly

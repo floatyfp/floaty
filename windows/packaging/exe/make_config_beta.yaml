@@ -1,0 +1,13 @@
+# The value of AppId uniquely identifies this application.
+# Do not use the same AppId value in installers for other applications.
+app_id: floaty-floatplane-client-beta
+publisher: bw86
+publisher_url: https://floaty.fyi
+display_name: Floaty Beta
+create_desktop_icon: true
+# See: https://jrsoftware.org/ishelp/index.php?topic=setup_defaultdirname
+install_dir_name: "D:\\FloatyBeta"
+# This path is relative to the root directory of your project; The format of icon file must be ico, can not be png or others
+setup_icon_file: assets/icon/beta_icon_win.ico
+locales:
+  - en

@@ -1,0 +1,25 @@
+icon: assets/release_icon.png
+summary: A third party client for Floatplane
+group: Application/Emulator
+vendor: bw86
+packager: bw86
+packagerEmail: hello@autow.in
+license: GPLv3
+url: https://floaty.fyi/
+
+display_name: Floaty Nightly
+
+keywords:
+  - Floatplane
+  - Floaty
+  - Whenplane
+
+generic_name: Video Application
+
+categories:
+  - Media
+
+startup_notify: true
+# You can also specify [metainfo](https://freedesktop.org/software/appstream/docs/chap-Quickstart.html) file
+# which contains metadata of the app.
+# metainfo: linux/packaging/myappid.appdata.xml

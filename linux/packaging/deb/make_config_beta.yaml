@@ -1,0 +1,24 @@
+display_name: Floaty Beta
+package_name: Floaty-Beta
+maintainer:
+  name: bw86
+  email: hello@autow.in
+section: x11
+installed_size: 6604
+essential: false
+icon: assets/beta_icon.png
+
+keywords:
+  - Floatplane
+  - Floaty
+  - Whenplane
+
+generic_name: Video Application
+
+categories:
+  - Media
+
+startup_notify: true
+# You can also specify [metainfo](https://freedesktop.org/software/appstream/docs/chap-Quickstart.html) file
+# which contains metadata of the app.
+# metainfo: linux/packaging/myappid.appdata.xml

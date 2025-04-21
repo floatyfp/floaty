@@ -1038,7 +1038,6 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                       groupValue: dynamicMode,
                       onChanged: (v) {
                         settingsBox.put('material_dynamic_mode', v!);
-                        print(settingsBox.path);
                       },
                     ),
                     RadioListTile<int>(

@@ -53,9 +53,7 @@ List<ChannelModel>? channelModelListFromJson(dynamic json) {
     return json
         .map((e) => e is ChannelModel
             ? e
-            : (e is Map<String, dynamic>
-                ? ChannelModel.fromJson(e)
-                : null))
+            : (e is Map<String, dynamic> ? ChannelModel.fromJson(e) : null))
         .where((e) => e != null)
         .cast<ChannelModel>()
         .toList();
@@ -88,8 +86,9 @@ dynamic discordServerModelListToJson(dynamic value) {
 
 dynamic liveStreamOfflineModelFromJson(dynamic json) {
   if (json == null) return null;
-  if (json is Map<String, dynamic>)
+  if (json is Map<String, dynamic>) {
     return LiveStreamOfflineModel.fromJson(json);
+  }
   return null;
 }
 
