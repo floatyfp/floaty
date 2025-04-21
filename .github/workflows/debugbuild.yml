@@ -23,7 +23,7 @@ jobs:
           flutter-version: "3.29.1"
           cache: true
 
-      - name: Install dependencies
+      - name: Install Flutter dependencies
         run: flutter pub get
 
       - name: Analyze code
@@ -53,6 +53,11 @@ jobs:
         run: flutter build linux --debug
 
       # iOS Debug Build (Only on macOS)
+      - name: Install CocoaPods dependencies (iOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: ios
+        run: pod install
+
       - name: Build iOS (Debug - No Codesign)
         if: matrix.os == 'macos-latest'
         run: flutter build ios --debug --no-codesign
