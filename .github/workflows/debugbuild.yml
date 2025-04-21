@@ -52,6 +52,12 @@ jobs:
       - name: Build and release
         run: fastforge release --name ${{ github.ref_name }}linux
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/
+
   MACOSIOS:
     if: github.ref_name == 'release'
     name: MacOS & iOS
@@ -83,6 +89,12 @@ jobs:
         
       - name: Build and release
         run: fastforge release --name ${{ github.ref_name }}macos
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/
 
   WINDOWS:
     name: Windows
@@ -116,3 +128,9 @@ jobs:
         
       - name: Build and release
         run: fastforge release --name ${{ github.ref_name }}windows
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/
