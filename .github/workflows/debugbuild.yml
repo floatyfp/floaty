@@ -30,11 +30,20 @@ jobs:
             libayatana-appindicator3-dev \
             libmpv-dev
 
-      - name: Build Android APK
-        run: flutter build apk --debug --split-per-abi --flavor dev --dart-define=FLUTTER_FLAVOR=dev
+      - name: Prepare make_config.yaml
+        run: |
+          OS=linux
+          for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
+            target_dir=$(dirname "$config_file")
+            cp "$config_file" "${target_dir}/make_config.yaml"
+            echo "Copied $config_file → ${target_dir}/make_config.yaml"
+          done
 
-      - name: Build Linux
-        run: flutter build linux --debug
+      - name: Install Fastforge
+        run: dart pub global activate fastforge
+        
+      - name: Build and release
+        run: fastforge release --name $GITHUB_REF_NAME
 
   MACOSIOS:
     name: MacOS & iOS
@@ -51,6 +60,15 @@ jobs:
 
       - name: Install Flutter dependencies
         run: flutter pub get
+
+      - name: Prepare make_config.yaml
+        run: |
+          OS=macos
+          for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
+            target_dir=$(dirname "$config_file")
+            cp "$config_file" "${target_dir}/make_config.yaml"
+            echo "Copied $config_file → ${target_dir}/make_config.yaml"
+          done
 
       - name: Build macOS
         run: flutter build macos --debug
@@ -70,6 +88,15 @@ jobs:
         with:
           flutter-version: "3.29.1"
           cache: true
+
+      - name: Prepare make_config.yaml
+        run: |
+          OS=windows
+          for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
+            target_dir=$(dirname "$config_file")
+            cp "$config_file" "${target_dir}/make_config.yaml"
+            echo "Copied $config_file → ${target_dir}/make_config.yaml"
+          done
 
       - name: Install Flutter dependencies
         run: flutter pub get
