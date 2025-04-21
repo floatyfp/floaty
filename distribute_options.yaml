@@ -189,11 +189,9 @@ releases:
           platform: macos
           target: dmg
           build_args:
+            flavor: beta
             dart-define:
               FLUTTER_FLAVOR: beta
-          build_args:
-            dart-define:
-              FLUTTER_FLAVOR: release
       - name: release-release-ios-ipa
         package:
           platform: ios
@@ -258,11 +256,9 @@ releases:
           platform: macos
           target: dmg
           build_args:
+            flavor: nightly
             dart-define:
               FLUTTER_FLAVOR: nightly
-          build_args:
-            dart-define:
-              FLUTTER_FLAVOR: release
       - name: release-release-ios-ipa
         package:
           platform: ios
