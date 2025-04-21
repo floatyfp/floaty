@@ -2534,7 +2534,7 @@ class _StateCardState extends ConsumerState<StateCard>
               borderRadius: BorderRadius.circular(12),
               border: widget.isSelected
                   ? Border.all(
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                       width: 2,
                     )
                   : null,
