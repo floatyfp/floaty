@@ -25,13 +25,13 @@ releases:
           build_args:
             dart-define:
               FLUTTER_FLAVOR: dev
-      - name: release-dev-linux-deb
-        package:
-          platform: linux
-          target: deb
-          build_args:
-            dart-define:
-              FLUTTER_FLAVOR: dev
+      # - name: release-dev-linux-deb
+      #   package:
+      #     platform: linux
+      #     target: deb
+      #     build_args:
+      #       dart-define:
+      #         FLUTTER_FLAVOR: dev
   - name: devwindows
     jobs:
       - name: release-dev-windows-exe
@@ -73,13 +73,13 @@ releases:
           build_args:
             dart-define:
               FLUTTER_FLAVOR: release
-      - name: release-release-linux-deb
-        package:
-          platform: linux
-          target: deb
-          build_args:
-            dart-define:
-              FLUTTER_FLAVOR: release
+      # - name: release-release-linux-deb
+      #   package:
+      #     platform: linux
+      #     target: deb
+      #     build_args:
+      #       dart-define:
+      #         FLUTTER_FLAVOR: release
   - name: releasewindows
     jobs:
       - name: release-release-windows-exe
@@ -138,13 +138,13 @@ releases:
           build_args:
             dart-define:
               FLUTTER_FLAVOR: beta
-      - name: release-beta-linux-deb
-        package:
-          platform: linux
-          target: deb
-          build_args:
-            dart-define:
-              FLUTTER_FLAVOR: beta
+      # - name: release-beta-linux-deb
+      #   package:
+      #     platform: linux
+      #     target: deb
+      #     build_args:
+      #       dart-define:
+      #         FLUTTER_FLAVOR: beta
   - name: betawindows
     jobs:
       - name: release-beta-windows-exe
@@ -186,13 +186,13 @@ releases:
           build_args:
             dart-define:
               FLUTTER_FLAVOR: nightly
-      - name: release-nightly-linux-deb
-        package:
-          platform: linux
-          target: deb
-          build_args:
-            dart-define:
-              FLUTTER_FLAVOR: nightly
+      # - name: release-nightly-linux-deb
+      #   package:
+      #     platform: linux
+      #     target: deb
+      #     build_args:
+      #       dart-define:
+      #         FLUTTER_FLAVOR: nightly
   - name: nightlywindows
     jobs:
       - name: release-nightly-windows-exe
