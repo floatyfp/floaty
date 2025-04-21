@@ -32,18 +32,10 @@ jobs:
       - name: Run tests
         run: flutter test || true
 
-      - name: Set up Java
-        if: matrix.os == 'windows-latest'
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-
       # Android Debug Build
       - name: Build Android Debug APK (Split by ABI)
-        if: matrix.os == 'windows-latest'
-        run: flutter build apk --debug --split-per-abi
+        if: matrix.os == 'ubuntu-latest'
+        run: flutter build apk --debug --split-per-abi --flavor dev --dart-define=FLUTTER_FLAVOR=dev
 
       # Windows Debug Build
       - name: Build Windows (Debug)
