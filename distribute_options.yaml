@@ -122,9 +122,7 @@ releases:
           platform: macos
           target: dmg
           build_args:
-            dart-define:
-              FLUTTER_FLAVOR: release
-          build_args:
+            flavor: release
             dart-define:
               FLUTTER_FLAVOR: release
       - name: release-release-ios-ipa
