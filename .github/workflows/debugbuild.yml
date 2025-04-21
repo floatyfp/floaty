@@ -54,7 +54,6 @@ jobs:
           sudo apt-get install -y \
             libgtk-3-dev \
             libayatana-appindicator3-dev \
-            libappindicator3-dev \
             libmpv-dev
 
 
