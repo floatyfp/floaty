@@ -6,13 +6,39 @@ on:
       - "**"
 
 jobs:
-  build:
-    name: Debug Build
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  LINUXANDROID:
+    name: Linux & Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.29.3"
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            libmpv-dev
+
+      - name: Build Android APK
+        run: flutter build apk --debug --split-per-abi --flavor dev --dart-define=FLUTTER_FLAVOR=dev
+
+      - name: Build Linux
+        run: flutter build linux --debug
+
+  MACOSIOS:
+    name: MacOS & iOS
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,59 +52,27 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Analyze code
-        run: flutter analyze || true
-
-      - name: Run tests
-        run: flutter test || true
-
-      # Android Debug Build
-      - name: Build Android Debug APK (Split by ABI)
-        if: matrix.os == 'ubuntu-latest'
-        run: flutter build apk --debug --split-per-abi --flavor dev --dart-define=FLUTTER_FLAVOR=dev
-
-      # Windows Debug Build
-      - name: Build Windows (Debug)
-        if: matrix.os == 'windows-latest'
-        run: flutter build windows --debug
-
-      # macOS Debug Build
-      - name: Build macOS (Debug)
-        if: matrix.os == 'macos-latest'
+      - name: Build macOS
         run: flutter build macos --debug
 
-      - name: Install Linux dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgtk-3-dev \
-            libayatana-appindicator3-dev \
-            libmpv-dev
-
-
-
-      # Linux Debug Build
-      - name: Build Linux (Debug)
-        if: matrix.os == 'ubuntu-latest'
-        run: flutter build linux --debug
-
-      # iOS Debug Build (Only on macOS)
-      - name: Generate iOS plugins
-        if: matrix.os == 'macos-latest'
-        run: flutter pub run build_runner build --delete-conflicting-outputs || true
-        
-      - name: Install CocoaPods dependencies (iOS)
-        if: matrix.os == 'macos-latest'
-        working-directory: ios
-        run: pod install
-
-      - name: Echo Podfile after installing pods (iOS)
-        if: matrix.os == 'macos-latest' && always()
-        run: |
-          echo "Echoing Podfile contents:"
-          cat ios/Podfile || true  # Adjust the path if needed
-
-      - name: Build iOS (Debug - No Codesign)
-        if: matrix.os == 'macos-latest'
+      - name: Build iOS (No Codesign)
         run: flutter build ios --debug --no-codesign
+
+  WINDOWS:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.29.1"
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Windows
+        run: flutter build windows --debug
