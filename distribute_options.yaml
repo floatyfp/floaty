@@ -48,25 +48,6 @@ releases:
           build_args:
             dart-define:
               FLUTTER_FLAVOR: dev
-  - name: devmacos  
-    jobs:
-      - name: release-dev-mac-dmg
-        package:
-          platform: macos
-          target: dmg
-          build_args:
-            flavor: dev
-            dart-define:
-              FLUTTER_FLAVOR: dev
-      - name: release-dev-ios-ipa
-        package:
-          platform: ios
-          target: ipa
-          build_args:
-            flavor: dev
-            export-options-plist: ios/release_ExportOptions.plist
-            dart-define:
-              FLUTTER_FLAVOR: dev
   - name: releaselinux
     jobs:
       - name: release-release-android-apk
@@ -122,7 +103,6 @@ releases:
           platform: macos
           target: dmg
           build_args:
-            flavor: release
             dart-define:
               FLUTTER_FLAVOR: release
       - name: release-release-ios-ipa
@@ -130,7 +110,6 @@ releases:
           platform: ios
           target: ipa
           build_args:
-            flavor: release
             export-options-plist: ios/release_ExportOptions.plist
             dart-define:
               FLUTTER_FLAVOR: release
@@ -182,25 +161,6 @@ releases:
           build_args:
             dart-define:
               FLUTTER_FLAVOR: beta
-  - name: betamacos  
-    jobs:
-      - name: release-beta-mac-dmg
-        package:
-          platform: macos
-          target: dmg
-          build_args:
-            flavor: beta
-            dart-define:
-              FLUTTER_FLAVOR: beta
-      - name: release-release-ios-ipa
-        package:
-          platform: ios
-          target: ipa
-          build_args:
-            flavor: release
-            export-options-plist: ios/release_ExportOptions.plist
-            dart-define:
-              FLUTTER_FLAVOR: release
   - name: nightlylinux
     jobs:
       - name: release-nightly-android-apk
@@ -249,22 +209,3 @@ releases:
           build_args:
             dart-define:
               FLUTTER_FLAVOR: nightly
-  - name: nightlymacos  
-    jobs:
-      - name: release-nightly-mac-dmg
-        package:
-          platform: macos
-          target: dmg
-          build_args:
-            flavor: nightly
-            dart-define:
-              FLUTTER_FLAVOR: nightly
-      - name: release-release-ios-ipa
-        package:
-          platform: ios
-          target: ipa
-          build_args:
-            flavor: release
-            export-options-plist: ios/release_ExportOptions.plist
-            dart-define:
-              FLUTTER_FLAVOR: release

@@ -55,6 +55,7 @@ jobs:
         run: fastforge release --name ${{ github.ref_name }}linux
 
   MACOSIOS:
+    if: github.ref_name == 'release'
     name: MacOS & iOS
     runs-on: macos-latest
     steps:
