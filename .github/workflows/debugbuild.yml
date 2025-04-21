@@ -32,9 +32,7 @@ jobs:
 
       - name: Install dependencies for AppImage
         run: |
-          sudo apt update
           sudo apt install -y locate
-          sudo updatedb
           wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
           chmod +x appimagetool
           sudo mv appimagetool /usr/local/bin/
