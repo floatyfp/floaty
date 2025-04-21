@@ -53,6 +53,10 @@ jobs:
         run: flutter build linux --debug
 
       # iOS Debug Build (Only on macOS)
+      - name: Generate iOS plugins
+        if: matrix.os == 'macos-latest'
+        run: flutter pub run build_runner build --delete-conflicting-outputs || true
+        
       - name: Install CocoaPods dependencies (iOS)
         if: matrix.os == 'macos-latest'
         working-directory: ios
