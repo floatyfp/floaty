@@ -52,7 +52,7 @@ jobs:
         run: dart pub global activate fastforge
         
       - name: Build and release
-        run: fastforge release --name "${{ github.ref_name }}linux"
+        run: fastforge release --name ${{ github.ref_name }}linux
 
   MACOSIOS:
     name: MacOS & iOS
@@ -83,7 +83,7 @@ jobs:
         run: dart pub global activate fastforge
         
       - name: Build and release
-        run: fastforge release --name "${{ github.ref_name }}macos"
+        run: fastforge release --name ${{ github.ref_name }}macos
 
   WINDOWS:
     name: Windows
@@ -117,4 +117,4 @@ jobs:
         
       - name: Build and release
         shell: bash
-        run: fastforge release --name "${{ github.ref_name }}windows"
+        run: fastforge release --name ${{ github.ref_name }}windows
