@@ -34,7 +34,7 @@ jobs:
 
       # Android Debug Build
       - name: Build Android Debug APK (Split by ABI)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'windows-latest'
         run: flutter build apk --debug --split-per-abi
 
       # Windows Debug Build
