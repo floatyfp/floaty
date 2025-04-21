@@ -30,6 +30,15 @@ jobs:
             libayatana-appindicator3-dev \
             libmpv-dev
 
+      - name: Install dependencies for AppImage
+        run: |
+          sudo apt update
+          sudo apt install -y locate
+          sudo updatedb
+          wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool
+          sudo mv appimagetool /usr/local/bin/
+
       - name: Prepare make_config.yaml
         run: |
           OS=linux
@@ -70,11 +79,11 @@ jobs:
             echo "Copied $config_file → ${target_dir}/make_config.yaml"
           done
 
-      - name: Build macOS
-        run: flutter build macos --debug
-
-      - name: Build iOS (No Codesign)
-        run: flutter build ios --debug --no-codesign
+      - name: Install Fastforge
+        run: dart pub global activate fastforge
+        
+      - name: Build and release
+        run: fastforge release --name $GITHUB_REF_NAME
 
   WINDOWS:
     name: Windows
@@ -89,7 +98,12 @@ jobs:
           flutter-version: "3.29.1"
           cache: true
 
+        
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
       - name: Prepare make_config.yaml
+        shell: bash  #i hate powershell it can burn in hell
         run: |
           OS=windows
           for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
@@ -98,8 +112,8 @@ jobs:
             echo "Copied $config_file → ${target_dir}/make_config.yaml"
           done
 
-      - name: Install Flutter dependencies
-        run: flutter pub get
-
-      - name: Build Windows
-        run: flutter build windows --debug
+      - name: Install Fastforge
+        run: dart pub global activate fastforge
+        
+      - name: Build and release
+        run: fastforge release --name $GITHUB_REF_NAME
