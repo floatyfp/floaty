@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:floaty/backend/definitions_helpers.dart';
 
 part 'definitions.g.dart';
 
@@ -65,14 +66,20 @@ class DiscordServerModel {
 @JsonSerializable()
 class ChannelModel {
   final String? id;
-  final String? creator;
+  @JsonKey(
+      fromJson: stringOrChannelModelFromJson,
+      toJson: stringOrChannelModelToJson)
+  final dynamic creator;
   final String? title;
   final String? urlname;
   final String? about;
   final int? order;
-  final ImageModel? cover;
-  final ImageModel? card;
-  final ImageModel? icon;
+  @JsonKey(fromJson: imageModelFromJson, toJson: imageModelToJson)
+  final dynamic cover;
+  @JsonKey(fromJson: imageModelFromJson, toJson: imageModelToJson)
+  final dynamic card;
+  @JsonKey(fromJson: imageModelFromJson, toJson: imageModelToJson)
+  final dynamic icon;
   final SocialLinksModel? socialLinks;
 
   ChannelModel({
@@ -145,7 +152,10 @@ class LiveStreamModel {
   final String? owner;
   final String? channel;
   final String? streamPath;
-  final LiveStreamOfflineModel? offline;
+  @JsonKey(
+      fromJson: liveStreamOfflineModelFromJson,
+      toJson: liveStreamOfflineModelToJson)
+  final dynamic offline;
 
   LiveStreamModel({
     this.id,
@@ -172,19 +182,26 @@ class CreatorModelV3 {
   final String? urlname;
   final String? description;
   final String? about;
+  @JsonKey(fromJson: categoryFromJson, toJson: categoryToJson)
   final dynamic category;
   final ImageModel? cover;
   final ImageModel? icon;
-  final LiveStreamModel? liveStream;
+  @JsonKey(fromJson: liveStreamModelFromJson, toJson: liveStreamModelToJson)
+  final dynamic liveStream;
   final List<dynamic>? subscriptionPlans;
   final bool? discoverable;
   final String? subscriberCountDisplay;
   final bool? incomeDisplay;
   final String? defaultChannel;
   final SocialLinksModel? socialLinks;
+  @JsonKey(fromJson: channelModelListFromJson, toJson: channelModelListToJson)
   final List<ChannelModel>? channels;
-  final List<DiscordServerModel>? discordServers;
-  final ImageModel? cardImage;
+  @JsonKey(
+      fromJson: discordServerModelListFromJson,
+      toJson: discordServerModelListToJson)
+  final dynamic discordServers;
+  @JsonKey(fromJson: imageModelFromJson, toJson: imageModelToJson)
+  final dynamic cardImage;
 
   CreatorModelV3({
     this.id,
@@ -255,6 +272,9 @@ class BlogPostModelV3 {
   final String? title;
   final String? text;
   final String? type;
+  @JsonKey(
+      fromJson: stringOrChannelModelFromJson,
+      toJson: stringOrChannelModelToJson)
   final dynamic channel;
   final List<String>? tags;
   final List<String>? attachmentOrder;
@@ -264,6 +284,9 @@ class BlogPostModelV3 {
   final int? dislikes;
   final int? score;
   final int? comments;
+  @JsonKey(
+      fromJson: stringOrChannelModelFromJson,
+      toJson: stringOrChannelModelToJson)
   final dynamic creator;
   final bool? wasReleasedSilently;
   final ImageModel? thumbnail;
@@ -705,7 +728,8 @@ class CommentModel {
         likes: (json['likes'] as num).toInt(),
         dislikes: (json['dislikes'] as num).toInt(),
         score: (json['score'] as num).toInt(),
-        interactionCounts: UserInteractionModel.fromJson(json['interactionCounts']),
+        interactionCounts:
+            UserInteractionModel.fromJson(json['interactionCounts']),
         totalReplies: (json['totalReplies'] as num?)?.toInt(),
         replies: (json['replies'] as List<dynamic>?)
             ?.map((e) => CommentModel.fromJson(e as Map<String, dynamic>))
