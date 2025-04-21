@@ -62,6 +62,12 @@ jobs:
         working-directory: ios
         run: pod install
 
+      - name: Echo Podfile after installing pods (iOS)
+        if: matrix.os == 'macos-latest' && always()
+        run: |
+          echo "Echoing Podfile contents:"
+          cat ios/Podfile || true  # Adjust the path if needed
+
       - name: Build iOS (Debug - No Codesign)
         if: matrix.os == 'macos-latest'
         run: flutter build ios --debug --no-codesign
