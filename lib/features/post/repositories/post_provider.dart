@@ -3,9 +3,9 @@ import 'package:floaty/features/api/models/definitions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/player/models/video_quality.dart';
 import 'dart:convert';
-import 'package:floaty/features/api/repositories/whenplaneintergration.dart';
+import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
 import 'package:intl/intl.dart';
-import 'package:floaty/shared/components/root.dart';
+import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 

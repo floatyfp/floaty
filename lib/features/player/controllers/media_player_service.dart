@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:floaty/features/api/repositories/fpapi.dart';
-import 'package:floaty/shared/components/root.dart';
+import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

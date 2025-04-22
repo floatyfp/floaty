@@ -1,6 +1,6 @@
 import 'package:floaty/features/authentication/repositories/login_api.dart';
-import 'package:floaty/features/api/repositories/whenplaneintergration.dart';
-import 'package:floaty/router.dart';
+import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
+import 'package:floaty/features/router/controllers/router.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

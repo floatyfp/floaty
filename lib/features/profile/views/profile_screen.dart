@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/profile/controllers/profile_provider.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:floaty/shared/components/root.dart';
+import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:floaty/features/api/repositories/fpapi.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timelines_plus/timelines_plus.dart';

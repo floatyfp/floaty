@@ -1,11 +1,14 @@
+import 'package:floaty/features/channel/components/filter_panel.dart';
+import 'package:floaty/features/channel/components/stat_column.dart';
+import 'package:floaty/features/post/components/blog_post_card.dart';
 import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/api/repositories/fpapi.dart';
-import 'package:floaty/shared/components/root.dart';
+import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
-import 'package:floaty/shared/components/elements.dart';
+
 import 'package:floaty/features/api/models/definitions.dart';
 import 'package:intl/intl.dart';
 import 'package:simple_icons/simple_icons.dart';

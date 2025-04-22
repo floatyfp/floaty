@@ -1,8 +1,9 @@
 import 'package:floaty/features/api/models/definitions.dart';
+import 'package:floaty/features/post/components/blog_post_card.dart';
 import 'package:flutter/material.dart';
 import 'package:floaty/features/api/repositories/fpapi.dart';
-import 'package:floaty/shared/components/elements.dart';
-import 'package:floaty/shared/components/root.dart';
+
+import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:intl/intl.dart';
 
 class DateSection {

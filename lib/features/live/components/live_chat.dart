@@ -1,10 +1,11 @@
 import 'package:floaty/features/api/repositories/fpapi.dart';
 import 'package:floaty/features/api/repositories/fpwebsockets.dart';
+import 'package:floaty/shared/views/error_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/live/controllers/live_chat_provider.dart';
-import 'package:floaty/shared/components/elements.dart';
+
 import 'package:floaty/features/api/utils/chat_utils.dart';
 import 'package:floaty/settings.dart';
 

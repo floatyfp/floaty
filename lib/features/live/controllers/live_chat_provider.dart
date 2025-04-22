@@ -4,7 +4,7 @@ import 'package:floaty/features/api/repositories/fpwebsockets.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:floaty/features/api/utils/chat_utils.dart';
-import 'package:floaty/shared/components/root.dart';
+import 'package:floaty/features/router/views/root_layout.dart';
 
 final chatProvider =
     StateNotifierProvider<ChatNotifier, List<ParsedChatMessage>>((ref) {

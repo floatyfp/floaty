@@ -3,7 +3,9 @@ import 'dart:core';
 
 import 'package:dio/dio.dart';
 import 'package:floaty/features/api/repositories/fpwebsockets.dart';
-import 'package:floaty/shared/components/elements.dart';
+import 'package:floaty/features/whenplane/components/compact_holder.dart';
+import 'package:floaty/features/whenplane/views/whenplane.dart';
+
 import 'package:floaty/features/live/controllers/live_status_provider.dart';
 import 'package:floaty/features/live/components/live_chat.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +20,7 @@ import 'dart:ui';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:floaty/features/player/components/media_player_widget.dart';
 import 'package:floaty/features/player/controllers/media_player_service.dart';
-import 'package:floaty/features/api/repositories/whenplaneintergration.dart';
+import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
 
 class LiveVideoWidget extends ConsumerStatefulWidget {
   final CreatorModelV3 creatorInfo;

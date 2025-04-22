@@ -1,5 +1,6 @@
+import 'package:floaty/features/browse/components/creator_card.dart';
 import 'package:flutter/material.dart';
-import 'package:floaty/shared/components/elements.dart';
+
 import 'package:floaty/features/browse/repositories/browse_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

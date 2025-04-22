@@ -1,6 +1,9 @@
+import 'package:floaty/features/router/components/picture_sidebar_item.dart';
+import 'package:floaty/features/router/components/sidebar_channel_item.dart';
+import 'package:floaty/features/router/components/sidebar_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:floaty/shared/components/elements.dart';
+
 import 'package:floaty/features/api/models/definitions.dart';
 import 'package:floaty/shared/controllers/root_provider.dart';
 import 'package:floaty/features/player/components/mini_player_widget.dart';

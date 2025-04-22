@@ -9,7 +9,7 @@ import 'package:floaty/features/live/views/live_screen.dart';
 import 'package:floaty/features/post/views/post_screen.dart';
 import 'package:floaty/features/profile/views/profile_screen.dart';
 import 'package:floaty/features/settings/views/settings_screen.dart';
-import 'package:floaty/shared/components/root.dart';
+import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:floaty/features/player/components/pip_player_widget.dart';
 import 'package:floaty/main.dart';
 import 'package:flutter/material.dart';
