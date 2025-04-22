@@ -1,5 +1,7 @@
 import 'package:floaty/features/router/components/picture_sidebar_item.dart';
 import 'package:floaty/features/router/components/sidebar_channel_item.dart';
+import 'package:floaty/features/router/components/sidebar_item.dart';
+import 'package:floaty/features/router/components/sidebar_size_control.dart';
 import 'package:floaty/features/router/components/sidebar_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
