@@ -16,7 +16,7 @@ keywords:
 generic_name: Video Application
 
 categories:
-  - Media
+  - AudioVideo
 
 startup_notify: true
 # You can also specify [metainfo](https://freedesktop.org/software/appstream/docs/chap-Quickstart.html) file

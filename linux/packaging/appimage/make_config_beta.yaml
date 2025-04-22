@@ -10,7 +10,7 @@ keywords:
 generic_name: Video Application
 
 categories:
-  - Media
+  - AudioVideo
 
 startup_notify: true
 

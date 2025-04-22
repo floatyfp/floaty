@@ -30,13 +30,36 @@ jobs:
             libayatana-appindicator3-dev \
             libmpv-dev
 
-      - name: Build Android APK
-        run: flutter build apk --debug --split-per-abi --flavor dev --dart-define=FLUTTER_FLAVOR=dev
+      - name: Install dependencies for AppImage
+        run: |
+          sudo apt install -y locate
+          wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+          chmod +x appimagetool
+          sudo mv appimagetool /usr/local/bin/
 
-      - name: Build Linux
-        run: flutter build linux --debug
+      - name: Prepare make_config.yaml
+        run: |
+          OS=linux
+          for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
+            target_dir=$(dirname "$config_file")
+            cp "$config_file" "${target_dir}/make_config.yaml"
+            echo "Copied $config_file → ${target_dir}/make_config.yaml"
+          done
+
+      - name: Install Fastforge
+        run: dart pub global activate fastforge
+        
+      - name: Build and release
+        run: fastforge release --name ${{ github.ref_name }}linux
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/
 
   MACOSIOS:
+    if: github.ref_name == 'release'
     name: MacOS & iOS
     runs-on: macos-latest
     steps:
@@ -52,11 +75,26 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Build macOS
-        run: flutter build macos --debug
+      - name: Prepare make_config.yaml
+        run: |
+          OS=macos
+          for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
+            target_dir=$(dirname "$config_file")
+            cp "$config_file" "${target_dir}/make_config.yaml"
+            echo "Copied $config_file → ${target_dir}/make_config.yaml"
+          done
 
-      - name: Build iOS (No Codesign)
-        run: flutter build ios --debug --no-codesign
+      - name: Install Fastforge
+        run: dart pub global activate fastforge
+        
+      - name: Build and release
+        run: fastforge release --name ${{ github.ref_name }}macos
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/
 
   WINDOWS:
     name: Windows
@@ -71,8 +109,28 @@ jobs:
           flutter-version: "3.29.1"
           cache: true
 
+        
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Build Windows
-        run: flutter build windows --debug
+      - name: Prepare make_config.yaml
+        shell: bash  #i hate powershell it can burn in hell
+        run: |
+          OS=windows
+          for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
+            target_dir=$(dirname "$config_file")
+            cp "$config_file" "${target_dir}/make_config.yaml"
+            echo "Copied $config_file → ${target_dir}/make_config.yaml"
+          done
+
+      - name: Install Fastforge
+        run: dart pub global activate fastforge
+        
+      - name: Build and release
+        run: fastforge release --name ${{ github.ref_name }}windows
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ runner.os }}
+          path: dist/
