@@ -1,5 +1,5 @@
 # Floaty
-#### An unofficial Floatplane client for Windows, Linux, MacOS, iOS, Android.
+#### An unofficial Floatplane client for Windows, Linux, MacOS, iOS and Android.
 #### ⚠️Spaghetti code
 This repository is the tartar sauce spaghetti code of Floaty.
 
