@@ -2,6 +2,7 @@ import 'package:floaty/features/authentication/repositories/login_api.dart';
 import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
 import 'package:floaty/features/router/controllers/router.dart';
 import 'package:flutter/material.dart';
+import 'package:floaty/features/logs/repositories/log_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/api/repositories/fpapi.dart';
@@ -17,6 +18,10 @@ import 'package:get_it/get_it.dart';
 import 'package:floaty/features/api/repositories/download_manager.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:floaty/features/notifications/controllers/firebase.dart';
+import 'package:floaty/features/notifications/controllers/notification.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 GetIt getIt = GetIt.instance;
 late final Color? flavorPrimary;
@@ -54,6 +59,40 @@ void main() async {
   getIt.registerSingleton<Settings>(
     Settings(),
   );
+
+  if (Platform.isAndroid || Platform.isIOS) {
+    //init notifications
+    await LogService.init();
+    await Firebase.initializeApp(
+      options: firebaseOptions,
+    );
+    await initializeNotifications();
+    await setupFirebaseMessaging();
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    await Settings().setKey('fcmToken', fcmToken ?? '');
+    await fpApiRequests.registerNotifications(fcmToken ?? '');
+    final messaging = FirebaseMessaging.instance;
+    final settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    registerBackgroundHandler();
+    LogService.logInfo(
+        'Notification permissions: ${settings.authorizationStatus}');
+
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      LogService.logInfo('Firebase initialized! FCM Token: $fcmToken');
+    } catch (e) {
+      LogService.logError('Firebase initialization failed: $e');
+    }
+  }
 
   switch (flavor) {
     case 'release':

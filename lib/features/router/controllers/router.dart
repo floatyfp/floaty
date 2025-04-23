@@ -6,6 +6,7 @@ import 'package:floaty/features/history/views/history_screen.dart';
 import 'package:floaty/features/home/views/home_screen.dart';
 import 'package:floaty/features/live/components/live_chat.dart';
 import 'package:floaty/features/live/views/live_screen.dart';
+import 'package:floaty/features/logs/views/log_screen.dart';
 import 'package:floaty/features/post/views/post_screen.dart';
 import 'package:floaty/features/profile/views/profile_screen.dart';
 import 'package:floaty/features/settings/views/settings_screen.dart';
@@ -194,6 +195,10 @@ final GoRouter routerController = GoRouter(
                 GoRoute(
                   path: 'player',
                   builder: (context, state) => PlayerSettingsScreen(),
+                ),
+                GoRoute(
+                  path: 'developer',
+                  builder: (context, state) => LogScreen(),
                 ),
               ],
             ),

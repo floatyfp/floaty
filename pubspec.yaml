@@ -53,6 +53,12 @@ dependencies:
   auto_size_text: ^3.0.0
   flutter_cache_manager: ^3.4.1
 
+  #notifications
+  firebase_messaging: ^15.2.5
+  firebase_core: ^3.13.0
+  flutter_local_notifications: ^19.1.0
+  logger: ^2.5.0
+
   #profile page
   timelines_plus: ^1.0.6
 

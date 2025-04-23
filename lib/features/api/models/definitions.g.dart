@@ -644,22 +644,6 @@ Map<String, dynamic> _$CreatorModelV2ToJson(CreatorModelV2 instance) =>
       'defaultChannel': instance.defaultChannel,
     };
 
-UserInteractionModel _$UserInteractionModelFromJson(
-        Map<String, dynamic> json) =>
-    UserInteractionModel(
-      like: (json['like'] as num?)?.toInt(),
-      dislike: (json['dislike'] as num?)?.toInt(),
-      value: json['value'] as String?,
-    );
-
-Map<String, dynamic> _$UserInteractionModelToJson(
-        UserInteractionModel instance) =>
-    <String, dynamic>{
-      'like': instance.like,
-      'dislike': instance.dislike,
-      'value': instance.value,
-    };
-
 UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       id: json['id'] as String,
       username: json['username'] as String,

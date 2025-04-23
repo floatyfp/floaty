@@ -124,6 +124,22 @@ class SettingsListScreen extends StatelessWidget {
               context.go('/settings/about');
             },
           ),
+          FutureBuilder(
+              future: Settings().getBool('developerMode'),
+              builder: (context, snapshot) {
+                if (snapshot.data == true) {
+                  return ListTile(
+                    selected: GoRouterState.of(context).uri.path ==
+                        '/settings/developer',
+                    leading: Icon(Icons.developer_mode),
+                    title: Text('Developer'),
+                    onTap: () {
+                      context.go('/settings/developer');
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
           Divider(),
           ListTile(
             leading: Icon(Icons.logout, color: Colors.red),
@@ -762,6 +778,15 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
                           'https://avatars.githubusercontent.com/u/6259574?v=4',
                       onTap: () {
                         launchUrl(Uri.parse('https://ajg0702.us/'));
+                      },
+                    ),
+                    CustomCard(
+                      name: 'EricApostal',
+                      role: 'Cleaning my terrible code.',
+                      avatarUrl:
+                          'https://avatars.githubusercontent.com/u/60072374?v=4',
+                      onTap: () {
+                        launchUrl(Uri.parse('https://github.com/EricApostal/'));
                       },
                     ),
                   ],

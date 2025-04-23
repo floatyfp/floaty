@@ -2,6 +2,7 @@ import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:http_cache_hive_store/http_cache_hive_store.dart';
 import 'package:floaty/settings.dart';
 import 'package:floaty/features/api/models/definitions.dart';
+import 'package:floaty/features/logs/repositories/log_service.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -116,6 +117,12 @@ class FPApiRequests {
       return activity;
     }
     return [];
+  }
+
+  Future<dynamic> registerNotifications(String token) async {
+    final response = await postData('v3/push/web/register?token=$token', null);
+    LogService.logInfo('✅ Notifications registered! Response: $response');
+    return response;
   }
 
   Stream<List<CreatorModelV3>> getSubscribedCreators() async* {

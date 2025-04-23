@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
