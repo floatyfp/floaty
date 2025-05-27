@@ -5,6 +5,11 @@ on:
     branches:
       - "**"
 
+env:
+  # Set these as repository secrets or environment variables
+  DEPLOYMENT_API_URL: ${{ secrets.DEPLOYMENT_API_URL }}
+  DEPLOYMENT_API_KEY: ${{ secrets.DEPLOYMENT_API_KEY }}
+
 jobs:
   LINUXANDROID:
     name: Linux & Android
@@ -12,6 +17,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install jq for JSON parsing
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -55,7 +63,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ runner.os }}
+          name: dist-linux-android
           path: dist/
 
   MACOSIOS:
@@ -93,7 +101,7 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ runner.os }}
+          name: dist-macos-ios
           path: dist/
 
   WINDOWS:
@@ -132,5 +140,274 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist-${{ runner.os }}
+          name: dist-windows
           path: dist/
+
+  DEPLOY:
+    name: Deploy Release
+    needs: [LINUXANDROID, WINDOWS, MACOSIOS]
+    runs-on: ubuntu-latest
+    if: always() && (needs.LINUXANDROID.result == 'success' || needs.WINDOWS.result == 'success' || needs.MACOSIOS.result == 'success')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Organize build files
+        run: |
+          mkdir -p release/{windows,linux,android,macos,ios}
+          
+          # Copy files from artifacts to organized structure
+          if [ -d "./artifacts/dist-linux-android" ]; then
+            find ./artifacts/dist-linux-android -name "*.rpm" -exec cp {} release/linux/ \;
+            find ./artifacts/dist-linux-android -name "*.AppImage" -exec cp {} release/linux/ \;
+            find ./artifacts/dist-linux-android -name "*.apk" -exec cp {} release/android/ \;
+          fi
+          
+          if [ -d "./artifacts/dist-windows" ]; then
+            find ./artifacts/dist-windows -name "*.exe" -exec cp {} release/windows/ \;
+            find ./artifacts/dist-windows -name "*.msi" -exec cp {} release/windows/ \;
+          fi
+          
+          if [ -d "./artifacts/dist-macos-ios" ]; then
+            find ./artifacts/dist-macos-ios -name "*.dmg" -exec cp {} release/macos/ \;
+            find ./artifacts/dist-macos-ios -name "*.pkg" -exec cp {} release/macos/ \;
+            find ./artifacts/dist-macos-ios -name "*.ipa" -exec cp {} release/ios/ \;
+          fi
+
+      - name: Generate deployment manifest
+        run: |
+          # Extract version from pubspec.yaml or use a default
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | tr -d ' ' || echo "1.0.0")
+          
+          # Determine flavor based on branch
+          if [[ "${{ github.ref_name }}" == "main" || "${{ github.ref_name }}" == "master" ]]; then
+            FLAVOR="stable"
+          elif [[ "${{ github.ref_name }}" == "release" ]]; then
+            FLAVOR="release"
+          else
+            FLAVOR="nightly"
+          fi
+          
+          # Generate JSON manifest
+          cat > release/manifest.json << EOF
+          {
+            "version": "$VERSION",
+            "flavor": "$FLAVOR",
+            "platforms": [
+          EOF
+          
+          # Add Windows platform if files exist
+          if ls release/windows/*.exe >/dev/null 2>&1 || ls release/windows/*.msi >/dev/null 2>&1; then
+            echo '      {' >> release/manifest.json
+            echo '        "platform": "windows",' >> release/manifest.json
+            echo '        "files": [' >> release/manifest.json
+            
+            FIRST=true
+            for file in release/windows/*; do
+              if [ -f "$file" ]; then
+                [ "$FIRST" = false ] && echo ',' >> release/manifest.json
+                filename=$(basename "$file")
+                if [[ "$filename" == *.exe ]]; then
+                  echo -n "          {\"type\": \".exe Installer\", \"path\": \"windows/$filename\"}" >> release/manifest.json
+                elif [[ "$filename" == *.msi ]]; then
+                  echo -n "          {\"type\": \".msi Installer\", \"path\": \"windows/$filename\"}" >> release/manifest.json
+                fi
+                FIRST=false
+              fi
+            done
+            echo '' >> release/manifest.json
+            echo '        ]' >> release/manifest.json
+            echo '      },' >> release/manifest.json
+          fi
+          
+          # Add Linux platform if files exist
+          if ls release/linux/*.rpm >/dev/null 2>&1 || ls release/linux/*.AppImage >/dev/null 2>&1; then
+            echo '      {' >> release/manifest.json
+            echo '        "platform": "linux",' >> release/manifest.json
+            echo '        "files": [' >> release/manifest.json
+            
+            FIRST=true
+            for file in release/linux/*; do
+              if [ -f "$file" ]; then
+                [ "$FIRST" = false ] && echo ',' >> release/manifest.json
+                filename=$(basename "$file")
+                if [[ "$filename" == *.rpm ]]; then
+                  echo -n "          {\"type\": \"RPM\", \"path\": \"linux/$filename\"}" >> release/manifest.json
+                elif [[ "$filename" == *.AppImage ]]; then
+                  echo -n "          {\"type\": \"AppImage\", \"path\": \"linux/$filename\"}" >> release/manifest.json
+                fi
+                FIRST=false
+              fi
+            done
+            echo '' >> release/manifest.json
+            echo '        ]' >> release/manifest.json
+            echo '      },' >> release/manifest.json
+          fi
+          
+          # Add Android platform if files exist
+          if ls release/android/*.apk >/dev/null 2>&1; then
+            echo '      {' >> release/manifest.json
+            echo '        "platform": "android",' >> release/manifest.json
+            echo '        "files": [' >> release/manifest.json
+            
+            FIRST=true
+            for file in release/android/*; do
+              if [ -f "$file" ]; then
+                [ "$FIRST" = false ] && echo ',' >> release/manifest.json
+                filename=$(basename "$file")
+                echo -n "          {\"type\": \"APK\", \"path\": \"android/$filename\"}" >> release/manifest.json
+                FIRST=false
+              fi
+            done
+            echo '' >> release/manifest.json
+            echo '        ]' >> release/manifest.json
+            echo '      },' >> release/manifest.json
+          fi
+          
+          # Add macOS platform if files exist
+          if ls release/macos/*.dmg >/dev/null 2>&1 || ls release/macos/*.pkg >/dev/null 2>&1; then
+            echo '      {' >> release/manifest.json
+            echo '        "platform": "macos",' >> release/manifest.json
+            echo '        "files": [' >> release/manifest.json
+            
+            FIRST=true
+            for file in release/macos/*; do
+              if [ -f "$file" ]; then
+                [ "$FIRST" = false ] && echo ',' >> release/manifest.json
+                filename=$(basename "$file")
+                if [[ "$filename" == *.dmg ]]; then
+                  echo -n "          {\"type\": \"DMG\", \"path\": \"macos/$filename\"}" >> release/manifest.json
+                elif [[ "$filename" == *.pkg ]]; then
+                  echo -n "          {\"type\": \"PKG\", \"path\": \"macos/$filename\"}" >> release/manifest.json
+                fi
+                FIRST=false
+              fi
+            done
+            echo '' >> release/manifest.json
+            echo '        ]' >> release/manifest.json
+            echo '      },' >> release/manifest.json
+          fi
+          
+          # Remove trailing comma and close JSON
+          sed -i '$ s/,$//' release/manifest.json
+          echo '    ]' >> release/manifest.json
+          echo '  }' >> release/manifest.json
+
+      - name: Create deployment package
+        run: |
+          cd release
+          zip -r ../floaty-release-${{ github.ref_name }}-$(date +%Y%m%d-%H%M%S).zip .
+          cd ..
+          
+      - name: Display manifest content
+        run: cat release/manifest.json
+
+      - name: Deploy to API
+        id: deploy
+        run: |
+          PACKAGE_NAME="floaty-release-${{ github.ref_name }}-$(date +%Y%m%d-%H%M%S).zip"
+          
+          # Send the deployment package to your API (matching your test page format)
+          RESPONSE=$(curl -X POST \
+            -H "x-api-key: ${{ env.DEPLOYMENT_API_KEY }}" \
+            -F "artifact=@${PACKAGE_NAME}" \
+            -w "\n%{http_code}" \
+            "${{ env.DEPLOYMENT_API_URL }}" \
+            2>/dev/null)
+          
+          # Extract response body and status code
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "Successfully deployed $PACKAGE_NAME"
+            echo "Response: $RESPONSE_BODY"
+            
+            # Parse JSON response and set outputs for GitHub release
+            echo "deployment_response=$RESPONSE_BODY" >> $GITHUB_OUTPUT
+            
+            # Extract individual fields for use in release
+            DEPLOYMENT_ID=$(echo "$RESPONSE_BODY" | jq -r '.deploymentId // empty')
+            VERSION=$(echo "$RESPONSE_BODY" | jq -r '.version // empty')
+            FLAVOR=$(echo "$RESPONSE_BODY" | jq -r '.flavor // empty')
+            
+            echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
+            
+            echo "Deployment ID: $DEPLOYMENT_ID"
+            echo "Version: $VERSION"
+            echo "Flavor: $FLAVOR"
+          else
+            echo "Deployment failed with HTTP $HTTP_CODE"
+            echo "Error: $RESPONSE_BODY"
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        if: steps.deploy.outputs.deployment_id != ''
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "${{ steps.deploy.outputs.flavor }}-v${{ steps.deploy.outputs.version }}-${{ steps.deploy.outputs.deployment_id }}"
+          release_name: "${{ steps.deploy.outputs.flavor }} v${{ steps.deploy.outputs.version }}"
+          body: |
+            ## ${{ steps.deploy.outputs.flavor }} Release v${{ steps.deploy.outputs.version }}
+            
+            🔗 **[View Changelogs](https://floaty.fyi/changelogs#${{ steps.deploy.outputs.deployment_id }})**
+            
+            This release includes builds for:
+            ${{ needs.LINUXANDROID.result == 'success' && '- 🐧 Linux (RPM, AppImage)' || '' }}
+            ${{ needs.LINUXANDROID.result == 'success' && '- 🤖 Android (APK)' || '' }}
+            ${{ needs.WINDOWS.result == 'success' && '- 🪟 Windows (EXE Installer)' || '' }}
+            ${{ needs.MACOSIOS.result == 'success' && '- 🍎 macOS (DMG, PKG)' || '' }}
+            ${{ needs.MACOSIOS.result == 'success' && '- 📱 iOS (IPA)' || '' }}
+            
+            **Deployment ID:** `${{ steps.deploy.outputs.deployment_id }}`
+            **Branch:** `${{ github.ref_name }}`
+            **Commit:** `${{ github.sha }}`
+          draft: false
+          prerelease: ${{ steps.deploy.outputs.flavor != 'stable' }}
+
+      - name: Upload Release Assets
+        if: steps.deploy.outputs.deployment_id != ''
+        run: |
+          # Get the release ID from the created release
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ steps.deploy.outputs.flavor }}-v${{ steps.deploy.outputs.version }}-${{ steps.deploy.outputs.deployment_id }}" \
+            | jq -r '.id')
+          
+          # Upload all platform-specific files as release assets
+          for platform_dir in release/windows release/linux release/android release/macos release/ios; do
+            if [ -d "$platform_dir" ]; then
+              for file in "$platform_dir"/*; do
+                if [ -f "$file" ]; then
+                  filename=$(basename "$file")
+                  echo "Uploading $filename..."
+                  curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                    -H "Content-Type: application/octet-stream" \
+                    --data-binary @"$file" \
+                    "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$filename"
+                fi
+              done
+            fi
+          done
+          
+          # Also upload the deployment manifest
+          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-binary @"release/manifest.json" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=manifest.json"
+
+      - name: Upload final package as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-package
+          path: "*.zip"
+          retention-days: 30
