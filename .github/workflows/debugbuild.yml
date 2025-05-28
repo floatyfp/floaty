@@ -5,6 +5,11 @@ on:
     branches:
       - "**"
 
+# Add explicit permissions for the workflow
+permissions:
+  contents: write  # Required for creating releases
+  actions: read    # Required for downloading artifacts
+
 env:
   DEPLOYMENT_API_KEY: ${{ secrets.DEPLOYMENT_API_KEY }}
 
@@ -351,12 +356,10 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.deploy.outputs.deployment_id != ''
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.deploy.outputs.flavor }}-v${{ steps.deploy.outputs.version }}-${{ steps.deploy.outputs.deployment_id }}"
-          release_name: "${{ steps.deploy.outputs.flavor }} v${{ steps.deploy.outputs.version }}"
+          name: "${{ steps.deploy.outputs.flavor }} v${{ steps.deploy.outputs.version }}"
           body: |
             ## ${{ steps.deploy.outputs.flavor }} Release v${{ steps.deploy.outputs.version }}
             
@@ -374,33 +377,13 @@ jobs:
             **Commit:** `${{ github.sha }}`
           draft: false
           prerelease: ${{ steps.deploy.outputs.flavor != 'stable' }}
-
-      - name: Upload Release Assets
-        if: steps.deploy.outputs.deployment_id != ''
-        run: |
-          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ steps.deploy.outputs.flavor }}-v${{ steps.deploy.outputs.version }}-${{ steps.deploy.outputs.deployment_id }}" \
-            | jq -r '.id')
-          
-          for platform_dir in release/windows release/linux release/android release/macos release/ios; do
-            if [ -d "$platform_dir" ]; then
-              for file in "$platform_dir"/*; do
-                if [ -f "$file" ]; then
-                  filename=$(basename "$file")
-                  echo "Uploading $filename..."
-                  curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                    -H "Content-Type: application/octet-stream" \
-                    --data-binary @"$file" \
-                    "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$filename"
-                fi
-              done
-            fi
-          done
-          
-          curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data-binary @"release/manifest.json" \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=manifest.json"
+          files: |
+            release/windows/*
+            release/linux/*
+            release/android/*
+            release/macos/*
+            release/ios/*
+            release/manifest.json
 
       - name: Upload final package as artifact
         uses: actions/upload-artifact@v4
