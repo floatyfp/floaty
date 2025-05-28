@@ -1,5 +1,5 @@
 {
   "java.configuration.updateBuildConfiguration": "interactive",
   "cmake.sourceDirectory": "C:/Users/dingd/Documents/GitHub/floaty/linux",
-  "dart.flutterSdkPath": ".fvm/versions/stable"
+  "dart.flutterSdkPath": "/home/kalebfletcher/development/flutter"
 }

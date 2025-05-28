@@ -3,6 +3,7 @@ package_name: Floaty-Nightly
 maintainer:
   name: bw86
   email: hello@autow.in
+priority: optional
 section: x11
 installed_size: 6604
 essential: false
