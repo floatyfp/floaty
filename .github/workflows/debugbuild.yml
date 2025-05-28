@@ -317,7 +317,7 @@ jobs:
             -H "x-api-key: ${{ env.DEPLOYMENT_API_KEY }}" \
             -F "artifact=@${PACKAGE_NAME}" \
             -w "\n%{http_code}" \
-            "${{ env.DEPLOYMENT_API_URL }}" \
+            "https://floaty.fyi/api/deploy" \
             2>/dev/null)
           
           # Extract response body and status code
