@@ -6,8 +6,6 @@ on:
       - "**"
 
 env:
-  # Set these as repository secrets or environment variables
-  DEPLOYMENT_API_URL: ${{ secrets.DEPLOYMENT_API_URL }}
   DEPLOYMENT_API_KEY: ${{ secrets.DEPLOYMENT_API_KEY }}
 
 jobs:
