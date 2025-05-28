@@ -16,7 +16,7 @@ env:
 jobs:
   LINUXANDROID:
     name: Linux & Android
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Changed from ubuntu-latest to ubuntu-22.04 for older glibc
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -60,8 +60,17 @@ jobs:
       - name: Install Fastforge
         run: dart pub global activate fastforge
         
-      - name: Build and release
-        run: fastforge release --name ${{ github.ref_name }}linux
+      - name: Build and release (with retry for deb packager bug)
+        run: |
+          # First attempt - may fail due to deb packager bug
+          echo "First build attempt..."
+          if ! fastforge release --name ${{ github.ref_name }}linux; then
+            echo "First build failed (expected due to deb packager bug), retrying..."
+            echo "Second build attempt..."
+            fastforge release --name ${{ github.ref_name }}linux
+          else
+            echo "First build succeeded!"
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -170,6 +179,7 @@ jobs:
           
           if [ -d "./artifacts/dist-linux-android" ]; then
             find ./artifacts/dist-linux-android -name "*.rpm" -exec cp {} release/linux/ \;
+            find ./artifacts/dist-linux-android -name "*.deb" -exec cp {} release/linux/ \;
             find ./artifacts/dist-linux-android -name "*.AppImage" -exec cp {} release/linux/ \;
             find ./artifacts/dist-linux-android -name "*.apk" -exec cp {} release/android/ \;
           fi
@@ -227,7 +237,7 @@ jobs:
             echo '      },' >> release/manifest.json
           fi
           
-          if ls release/linux/*.rpm >/dev/null 2>&1 || ls release/linux/*.AppImage >/dev/null 2>&1; then
+          if ls release/linux/*.rpm >/dev/null 2>&1 || ls release/linux/*.deb >/dev/null 2>&1 || ls release/linux/*.AppImage >/dev/null 2>&1; then
             echo '      {' >> release/manifest.json
             echo '        "platform": "linux",' >> release/manifest.json
             echo '        "files": [' >> release/manifest.json
@@ -239,6 +249,8 @@ jobs:
                 filename=$(basename "$file")
                 if [[ "$filename" == *.rpm ]]; then
                   echo -n "          {\"type\": \"RPM\", \"path\": \"linux/$filename\"}" >> release/manifest.json
+                elif [[ "$filename" == *.deb ]]; then
+                  echo -n "          {\"type\": \"DEB\", \"path\": \"linux/$filename\"}" >> release/manifest.json
                 elif [[ "$filename" == *.AppImage ]]; then
                   echo -n "          {\"type\": \"AppImage\", \"path\": \"linux/$filename\"}" >> release/manifest.json
                 fi
@@ -366,7 +378,7 @@ jobs:
             🔗 **[View Changelogs](https://floaty.fyi/changelogs#${{ steps.deploy.outputs.deployment_id }})**
             
             This release includes builds for:
-            ${{ needs.LINUXANDROID.result == 'success' && '- 🐧 Linux (RPM, AppImage)' || '' }}
+            ${{ needs.LINUXANDROID.result == 'success' && '- 🐧 Linux (RPM, DEB, AppImage)' || '' }}
             ${{ needs.LINUXANDROID.result == 'success' && '- 🤖 Android (APK)' || '' }}
             ${{ needs.WINDOWS.result == 'success' && '- 🪟 Windows (EXE Installer)' || '' }}
             ${{ needs.MACOSIOS.result == 'success' && '- 🍎 macOS (DMG, PKG)' || '' }}
