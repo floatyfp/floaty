@@ -115,6 +115,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     );
     if (globalPlayer == null) return;
 
+    (globalPlayer!.platform as NativePlayer)
+        .setProperty('ao', 'pulse,alsa,jack,null');
+
     if (_live == true) {
       (globalPlayer!.platform as NativePlayer)
           .setProperty('profile', 'low-latency');
