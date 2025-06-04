@@ -149,7 +149,7 @@ class ChannelScreenStateWrapperState
       channelScreenProvider.select((state) => state.selectedIndex),
       (previous, next) {
         if (next == 2 && context.mounted) {
-          context.go('/live/${widget.channelName}');
+          context.pushReplacement('/live/${widget.channelName}');
           ref.read(channelScreenProvider.notifier).resetSelectedIndex();
         }
       },
@@ -266,6 +266,8 @@ class ChannelScreenStateWrapperState
   }
 
   Widget channelHeader({bool smol = false}) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final search = ref.watch(
       channelScreenProvider.select((s) => s.searchFieldVisible),
     );
@@ -307,7 +309,7 @@ class ChannelScreenStateWrapperState
           ],
         ),
         Container(
-          color: Theme.of(context).colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainer,
           height: 110,
           child: Padding(
             padding: EdgeInsets.only(left: 20),
@@ -365,13 +367,13 @@ class ChannelScreenStateWrapperState
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildNavButton("Home", 0, smol: true),
+                        _buildNavButton(colorScheme, "Home", 0, smol: true),
                         const SizedBox(width: 10),
-                        _buildNavButton("About", 1, smol: true),
+                        _buildNavButton(colorScheme, "About", 1, smol: true),
                         if (rootchannel?.liveStream != null)
                           const SizedBox(width: 10),
                         if (rootchannel?.liveStream != null)
-                          _buildNavButton("Live", 2, smol: true),
+                          _buildNavButton(colorScheme, "Live", 2, smol: true),
                       ],
                     ),
                   ],
@@ -477,6 +479,8 @@ class ChannelScreenStateWrapperState
   }
 
   Widget legacyChannelHeader() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     legacy = true;
     final search = ref.watch(
       channelScreenProvider.select((s) => s.searchFieldVisible),
@@ -584,13 +588,13 @@ class ChannelScreenStateWrapperState
                   Padding(
                     padding: EdgeInsets.only(left: profileImageRadius * 2 + 20),
                   ),
-                  _buildNavButton("Home", 0),
+                  _buildNavButton(colorScheme, "Home", 0),
                   const SizedBox(width: 10),
-                  _buildNavButton("About", 1),
+                  _buildNavButton(colorScheme, "About", 1),
                   if (rootchannel?.liveStream != null)
                     const SizedBox(width: 10),
                   if (rootchannel?.liveStream != null)
-                    _buildNavButton("Live", 2),
+                    _buildNavButton(colorScheme, "Live", 2),
                 ],
               ),
               const Spacer(),
@@ -691,6 +695,7 @@ class ChannelScreenStateWrapperState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     _calculateScrollThreshold();
 
     final showNav =
@@ -859,10 +864,8 @@ class ChannelScreenStateWrapperState
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Theme.of(context).scaffoldBackgroundColor,
-                                Theme.of(context)
-                                    .scaffoldBackgroundColor
-                                    .withValues(alpha: 0.9),
+                                colorScheme.surface,
+                                colorScheme.surface.withValues(alpha: 0.9),
                               ],
                             ),
                             boxShadow: [
@@ -876,15 +879,16 @@ class ChannelScreenStateWrapperState
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildNavButton("Home", 0),
+                              _buildNavButton(colorScheme, "Home", 0),
                               const SizedBox(width: 10),
-                              _buildNavButton("About", 1),
+                              _buildNavButton(colorScheme, "About", 1),
                               if (rootchannel?.liveStream != null)
                                 const SizedBox(width: 10),
                               if (rootchannel?.liveStream != null)
-                                _buildNavButton("Live", 2),
+                                _buildNavButton(colorScheme, "Live", 2),
                               const SizedBox(width: 10),
                               _buildNavButton(
+                                  colorScheme,
                                   ref.watch(channelScreenProvider
                                           .select((s) => s.searchFieldVisible))
                                       ? "Close"
@@ -902,7 +906,8 @@ class ChannelScreenStateWrapperState
           );
   }
 
-  Widget _buildNavButton(String title, int index, {bool smol = false}) {
+  Widget _buildNavButton(ColorScheme colorScheme, String title, int index,
+      {bool smol = false}) {
     final bool isSelected =
         ref.watch(channelScreenProvider.select((s) => s.selectedIndex)) ==
             index;
@@ -921,16 +926,14 @@ class ChannelScreenStateWrapperState
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)
+              ? colorScheme.primary.withValues(alpha: 0.4)
               : Colors.grey.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(smol ? 5 : 8),
         ),
         child: Text(
           title,
           style: TextStyle(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Colors.white,
+            color: isSelected ? colorScheme.primary : Colors.white,
             fontSize: smol ? 13 : 18,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
@@ -967,6 +970,8 @@ class AboutContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Center(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 1000),
@@ -1241,7 +1246,7 @@ class AboutContent extends StatelessWidget {
                         horizontal: containerWidth * 0.06,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
+                        color: colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(16.0),
                       ),
                       child: Row(
@@ -1306,7 +1311,7 @@ class _ChannelSelectorState extends State<ChannelSelector> {
       ..sort((a, b) => a.order!.compareTo(b.order ?? 0));
   }
 
-  List<ChannelListItem> _buildItems() {
+  List<ChannelListItem> _buildItems(ColorScheme colorScheme) {
     return [
       if (!widget.isRootChannel)
         ChannelButtonItem(
@@ -1319,7 +1324,7 @@ class _ChannelSelectorState extends State<ChannelSelector> {
             width: 1,
             height: 20,
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: Theme.of(context).colorScheme.surfaceContainer,
+            color: colorScheme.surfaceContainer,
           ),
         ),
       ..._sortedChannels(widget.creator.channels ?? []).map((channel) {
@@ -1342,6 +1347,8 @@ class _ChannelSelectorState extends State<ChannelSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scrollbar(
       controller: _channelSelectorScrollController,
       thumbVisibility: true,
@@ -1355,8 +1362,8 @@ class _ChannelSelectorState extends State<ChannelSelector> {
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           child: Row(
-            children: List.generate(_buildItems().length, (index) {
-              final item = _buildItems()[index];
+            children: List.generate(_buildItems(colorScheme).length, (index) {
+              final item = _buildItems(colorScheme)[index];
               int channelIndex = _sortedChannels(widget.creator.channels ?? [])
                   .indexWhere((channel) => channel.id == widget.channelId);
               if (channelIndex != -1) {
@@ -1378,13 +1385,13 @@ class _ChannelSelectorState extends State<ChannelSelector> {
                   padding: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: TextButton(
                     style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(
-                          Theme.of(context).colorScheme.surfaceContainer),
+                      backgroundColor:
+                          WidgetStateProperty.all(colorScheme.surfaceContainer),
                       shape: WidgetStateProperty.all(
                         RoundedRectangleBorder(
                           side: BorderSide(
                             color: isSelected || isHovered
-                                ? Theme.of(context).colorScheme.primary
+                                ? colorScheme.primary
                                 : Colors.transparent,
                             width: 1.5,
                           ),
@@ -1395,7 +1402,7 @@ class _ChannelSelectorState extends State<ChannelSelector> {
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                       foregroundColor: WidgetStateProperty.all(
-                          Theme.of(context).textTheme.titleLarge?.color),
+                          theme.textTheme.titleLarge?.color),
                     ),
                     onPressed: () {
                       if (index == 0 && !widget.isRootChannel) {

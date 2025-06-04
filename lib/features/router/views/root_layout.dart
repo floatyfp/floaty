@@ -65,6 +65,7 @@ class RootLayoutState extends ConsumerState<RootLayout>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final rootState = ref.watch(rootProvider);
     final rootNotifier = ref.read(rootProvider.notifier);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -182,7 +183,7 @@ class RootLayoutState extends ConsumerState<RootLayout>
                   width: isSidebarCollapsed ? 70 : 260,
                   duration: const Duration(milliseconds: 200),
                   child: Material(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    color: colorScheme.surfaceContainer,
                     elevation: 2,
                     child: SafeArea(child: buildSidebarContent()),
                   ),
@@ -194,8 +195,8 @@ class RootLayoutState extends ConsumerState<RootLayout>
       key: scaffoldKey,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-        surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
+        backgroundColor: colorScheme.surfaceContainer,
+        surfaceTintColor: colorScheme.surfaceContainer,
         title: rootState.appBarTitle,
         actions: rootState.appBarActions,
         leading: isSmallScreen

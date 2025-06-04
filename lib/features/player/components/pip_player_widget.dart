@@ -21,6 +21,8 @@ class PipPlayerWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final mediaService = ref.read(mediaPlayerServiceProvider.notifier);
     return Material(
         child: DragToMoveArea(
@@ -58,7 +60,7 @@ class PipPlayerWidget extends ConsumerWidget {
                 buttonBarButtonSize: 24.0,
                 buttonBarButtonColor: Colors.white,
                 seekBarThumbColor: Colors.white,
-                seekBarPositionColor: Theme.of(context).colorScheme.primary,
+                seekBarPositionColor: colorScheme.primary,
                 modifyVolumeOnScroll: false,
                 bottomButtonBar: [
                   MaterialDesktopSkipPreviousButton(),
@@ -112,7 +114,7 @@ class PipPlayerWidget extends ConsumerWidget {
                 buttonBarButtonSize: 24.0,
                 buttonBarButtonColor: Colors.white,
                 seekBarThumbColor: Colors.white,
-                seekBarPositionColor: Theme.of(context).colorScheme.primary,
+                seekBarPositionColor: colorScheme.primary,
                 modifyVolumeOnScroll: false,
                 bottomButtonBar: [
                   MaterialDesktopSkipPreviousButton(),

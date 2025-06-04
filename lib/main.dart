@@ -1,8 +1,9 @@
 import 'package:floaty/features/authentication/repositories/login_api.dart';
+import 'package:floaty/features/updater/respositories/updater_controllers.dart';
 import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
 import 'package:floaty/features/router/controllers/router.dart';
 import 'package:flutter/material.dart';
-import 'package:floaty/features/logs/repositories/log_service.dart';
+// import 'package:floaty/features/logs/repositories/log_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/api/repositories/fpapi.dart';
@@ -18,10 +19,11 @@ import 'package:get_it/get_it.dart';
 import 'package:floaty/features/api/repositories/download_manager.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:floaty/features/notifications/controllers/firebase.dart';
-import 'package:floaty/features/notifications/controllers/notification.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+// import 'package:floaty/features/notifications/controllers/firebase.dart';
+// import 'package:floaty/features/notifications/controllers/notification.dart';
+// import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
 
 GetIt getIt = GetIt.instance;
 late final Color? flavorPrimary;
@@ -40,8 +42,14 @@ void main() async {
   // Initialize download manager
   await DownloadManager().initialize();
 
+  final packageInfo = await PackageInfo.fromPlatform();
+  final userAgent =
+      'Floaty/${packageInfo.version} (${packageInfo.buildNumber})';
+
   getIt.registerSingleton<FPWebsockets>(
-    FPWebsockets(token: (await Settings().getAuthTokenFromCookieJar()) ?? ''),
+    FPWebsockets(
+        token: (await Settings().getAuthTokenFromCookieJar()) ?? '',
+        userAgent: userAgent),
   );
 
   getIt.registerSingleton<FPApiRequests>(
@@ -60,39 +68,44 @@ void main() async {
     Settings(),
   );
 
-  if (Platform.isAndroid || Platform.isIOS) {
-    //init notifications
-    await LogService.init();
-    await Firebase.initializeApp(
-      options: firebaseOptions,
-    );
-    await initializeNotifications();
-    await setupFirebaseMessaging();
-    final fcmToken = await FirebaseMessaging.instance.getToken();
-    await Settings().setKey('fcmToken', fcmToken ?? '');
-    await fpApiRequests.registerNotifications(fcmToken ?? '');
-    final messaging = FirebaseMessaging.instance;
-    final settings = await messaging.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
+  getIt.registerSingleton<UpdaterController>(
+    UpdaterController(),
+  );
 
-    registerBackgroundHandler();
-    LogService.logInfo(
-        'Notification permissions: ${settings.authorizationStatus}');
+  // if (Platform.isAndroid) {
+  //   //init notifications
+  //   await LogService.init();
+  //   await Firebase.initializeApp(
+  //     name: 'floaty',
+  //     options: firebaseOptions,
+  //   );
+  //   await initializeNotifications();
+  //   await setupFirebaseMessaging();
+  //   final fcmToken = await FirebaseMessaging.instance.getToken();
+  //   await Settings().setKey('fcmToken', fcmToken ?? '');
+  //   // await fpApiRequests.registerNotifications(fcmToken ?? '');
+  //   final messaging = FirebaseMessaging.instance;
+  //   final settings = await messaging.requestPermission(
+  //     alert: true,
+  //     announcement: false,
+  //     badge: true,
+  //     carPlay: false,
+  //     criticalAlert: false,
+  //     provisional: false,
+  //     sound: true,
+  //   );
 
-    try {
-      final fcmToken = await FirebaseMessaging.instance.getToken();
-      LogService.logInfo('Firebase initialized! FCM Token: $fcmToken');
-    } catch (e) {
-      LogService.logError('Firebase initialization failed: $e');
-    }
-  }
+  //   registerBackgroundHandler();
+  //   LogService.logInfo(
+  //       'Notification permissions: ${settings.authorizationStatus}');
+
+  //   try {
+  //     final fcmToken = await FirebaseMessaging.instance.getToken();
+  //     LogService.logInfo('Firebase initialized! FCM Token: $fcmToken');
+  //   } catch (e) {
+  //     LogService.logError('Firebase initialization failed: $e');
+  //   }
+  // }
 
   switch (flavor) {
     case 'release':
@@ -227,62 +240,198 @@ class MyApp extends StatelessWidget {
             switch (themeType) {
               case 0:
                 themeMode = ThemeMode.light;
+                final primaryColor = flavorPrimary ?? Colors.blue.shade600;
                 lightTheme = ThemeData(
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    useMaterial3: true,
-                    primaryColor: flavorPrimary,
-                    colorScheme: ColorScheme.light(
-                      primary: flavorPrimary ?? Colors.blue.shade600,
-                      onPrimary: flavorPrimary ?? Colors.blue.shade400,
-                    ),
-                    brightness: Brightness.light);
-                darkTheme = ThemeData(
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    useMaterial3: true,
-                    primaryColor: flavorPrimary,
-                    brightness: Brightness.dark);
-                break;
-              case 1:
-                themeMode = ThemeMode.dark;
-                lightTheme = ThemeData(
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    useMaterial3: true,
-                    primaryColor: flavorPrimary,
-                    brightness: Brightness.light);
-                darkTheme = ThemeData(
-                  useMaterial3: true,
-                  brightness: Brightness.dark,
                   //which flutter dev ever caused this bug you need to fucking stand up and fix it im fed up of flutters stupid shit.
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  colorScheme: ColorScheme.dark(
-                    primary: flavorPrimary ?? Colors.blue.shade600,
-                    onPrimary: flavorPrimary ?? Colors.blue.shade400,
-                    secondary: Colors.grey.shade800,
-                    onSecondary: Colors.black,
-                    surface: Colors.grey.shade800,
-                    onSurface: Colors.grey.shade200,
-                    error: Colors.red.shade400,
-                    onError: Colors.black,
-                    surfaceContainer: const Color.fromARGB(255, 40, 40, 40),
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.light(
+                    primary: primaryColor,
+                    primaryContainer: primaryColor.withValues(alpha: 0.2),
+                    secondary: Colors.blueGrey,
+                    secondaryContainer: Colors.blueGrey.shade100,
+                    surface: Colors.white,
+                    error: Colors.red.shade700,
+                    onPrimary: Colors.white,
+                    onSecondary: Colors.white,
+                    onSurface: Colors.grey.shade900,
+                    onError: Colors.white,
+                    brightness: Brightness.light,
                   ),
-                  scaffoldBackgroundColor: Colors.grey.shade900,
+                  scaffoldBackgroundColor: Colors.grey.shade50,
                   appBarTheme: AppBarTheme(
-                    backgroundColor: const Color.fromARGB(255, 40, 40, 40),
-                    foregroundColor: Colors.grey.shade200,
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
                   ),
-                  drawerTheme: const DrawerThemeData(
-                    backgroundColor: Color.fromARGB(255, 40, 40, 40),
+                  cardTheme: CardThemeData(
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  cardColor: Colors.grey.shade800,
-                  dividerColor: Colors.grey.shade800,
                   elevatedButtonTheme: ElevatedButtonThemeData(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade700,
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                  ),
+                  dividerTheme: DividerThemeData(
+                    color: Colors.grey.shade300,
+                    thickness: 1,
+                    space: 1,
                   ),
                 );
 
+                darkTheme = ThemeData(
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.dark(
+                    primary: primaryColor,
+                    primaryContainer: primaryColor.withValues(alpha: 0.2),
+                    secondary: Colors.blueGrey.shade300,
+                    secondaryContainer: Colors.blueGrey.shade800,
+                    surface: const Color(0xFF1E1E1E),
+                    error: Colors.red.shade400,
+                    onPrimary: Colors.black,
+                    onSecondary: Colors.black,
+                    onSurface: Colors.white,
+                    onError: Colors.black,
+                    brightness: Brightness.dark,
+                  ),
+                  scaffoldBackgroundColor: const Color(0xFF121212),
+                  appBarTheme: AppBarTheme(
+                    backgroundColor: const Color(0xFF1E1E1E),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                  ),
+                  cardTheme: CardThemeData(
+                    color: const Color(0xFF1E1E1E),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  dividerTheme: DividerThemeData(
+                    color: Colors.grey.shade800,
+                    thickness: 1,
+                    space: 1,
+                  ),
+                );
+                break;
+              case 1:
+                themeMode = ThemeMode.dark;
+                final primaryColor = flavorPrimary ?? Colors.blue.shade600;
+                lightTheme = ThemeData(
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.light(
+                    primary: primaryColor,
+                    primaryContainer: primaryColor.withValues(alpha: 0.2),
+                    secondary: Colors.blueGrey,
+                    secondaryContainer: Colors.blueGrey.shade100,
+                    surface: Colors.white,
+                    error: Colors.red.shade700,
+                    onPrimary: Colors.white,
+                    onSecondary: Colors.white,
+                    onSurface: Colors.grey.shade900,
+                    onError: Colors.white,
+                    brightness: Brightness.light,
+                  ),
+                  scaffoldBackgroundColor: Colors.grey.shade50,
+                  appBarTheme: AppBarTheme(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                  ),
+                  cardTheme: CardThemeData(
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  dividerTheme: DividerThemeData(
+                    color: Colors.grey.shade300,
+                    thickness: 1,
+                    space: 1,
+                  ),
+                );
+
+                darkTheme = ThemeData(
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  useMaterial3: true,
+                  colorScheme: ColorScheme.dark(
+                    primary: primaryColor,
+                    primaryContainer: primaryColor.withValues(alpha: 0.2),
+                    secondary: Colors.blueGrey.shade300,
+                    secondaryContainer: Colors.blueGrey.shade800,
+                    surface: const Color(0xFF1E1E1E),
+                    error: Colors.red.shade400,
+                    onPrimary: Colors.black,
+                    onSecondary: Colors.black,
+                    onSurface: Colors.white,
+                    onError: Colors.black,
+                    brightness: Brightness.dark,
+                  ),
+                  scaffoldBackgroundColor: const Color(0xFF121212),
+                  appBarTheme: const AppBarTheme(
+                    backgroundColor: Color(0xFF1E1E1E),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                  ),
+                  cardTheme: CardThemeData(
+                    color: const Color(0xFF1E1E1E),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  dividerTheme: DividerThemeData(
+                    color: Colors.grey.shade800,
+                    thickness: 1,
+                    space: 1,
+                  ),
+                  dialogTheme: const DialogThemeData(
+                    backgroundColor: Color(0xFF1E1E1E),
+                  ),
+                  bottomSheetTheme: const BottomSheetThemeData(
+                    backgroundColor: Color(0xFF1E1E1E),
+                  ),
+                );
                 break;
               default:
                 final dynamicMode = settingsBox.get('material_dynamic_mode',
@@ -304,15 +453,21 @@ class MyApp extends StatelessWidget {
                       useMaterial3: true,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap);
                 } else {
-                  lightTheme = ThemeData.from(
+                  lightTheme = ThemeData(
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       colorScheme: ColorScheme.fromSeed(
                           seedColor: Color(seed),
                           brightness: Brightness.light));
-                  darkTheme = ThemeData.from(
+                  darkTheme = ThemeData(
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       colorScheme: ColorScheme.fromSeed(
                           seedColor: Color(seed), brightness: Brightness.dark));
                 }
             }
+
+            //TODO: later
+            // updatercontroller.initialCheck();
+
             return MaterialApp.router(
               // Force rebuild when theme settings change
               key: ValueKey('$themeType-$src-$seed'),

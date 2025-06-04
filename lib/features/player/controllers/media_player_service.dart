@@ -110,8 +110,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
 
   void _setupPlayerListeners() {
     _simplePip = SimplePip(
-      onPipExited: () =>
-          rootLayoutKey.currentContext?.go('/post/_currentPostId'),
+      onPipExited: () => _live
+          ? rootLayoutKey.currentContext?.go('/live/${_currentPostId}')
+          : rootLayoutKey.currentContext?.go('/post/${_currentPostId}'),
     );
     if (globalPlayer == null) return;
 
@@ -171,7 +172,8 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
 
   Future<void> _ensureInitialized() async {
     packageInfo = await PackageInfo.fromPlatform();
-    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
+    userAgent =
+        'FloatyClient/${packageInfo?.version}+${packageInfo?.buildNumber}, CFNetwork';
 
     if (_isInitialized) return;
     _initializeCompleter = Completer<void>();

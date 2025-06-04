@@ -1,28 +1,28 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-late AndroidNotificationChannel channel;
+// final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+// late AndroidNotificationChannel channel;
 
-Future<void> initializeNotifications() async {
-  channel = const AndroidNotificationChannel(
-    'high_importance_channel',
-    'High Importance Notifications',
-    description: 'This channel is used for important notifications.',
-    importance: Importance.high,
-    playSound: true,
-  );
+// Future<void> initializeNotifications() async {
+//   channel = const AndroidNotificationChannel(
+//     'high_importance_channel',
+//     'High Importance Notifications',
+//     description: 'This channel is used for important notifications.',
+//     importance: Importance.high,
+//     playSound: true,
+//   );
 
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('mipmap/launcher_icon');
+//   const AndroidInitializationSettings initializationSettingsAndroid =
+//       AndroidInitializationSettings('mipmap/launcher_icon');
 
-  await flutterLocalNotificationsPlugin.initialize(
-    const InitializationSettings(
-      android: initializationSettingsAndroid,
-    ),
-  );
+//   await flutterLocalNotificationsPlugin.initialize(
+//     const InitializationSettings(
+//       android: initializationSettingsAndroid,
+//     ),
+//   );
 
-  final androidPlugin =
-      flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-  await androidPlugin?.createNotificationChannel(channel);
-}
+//   final androidPlugin =
+//       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+//           AndroidFlutterLocalNotificationsPlugin>();
+//   await androidPlugin?.createNotificationChannel(channel);
+// }

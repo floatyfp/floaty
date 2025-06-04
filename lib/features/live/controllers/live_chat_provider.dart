@@ -1,18 +1,26 @@
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:async';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:floaty/features/api/repositories/fpapi.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/api/repositories/fpwebsockets.dart';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:floaty/features/api/utils/chat_utils.dart';
 import 'package:floaty/features/router/views/root_layout.dart';
+import 'package:floaty/features/api/models/ws_definitions.dart';
+import 'package:floaty/settings.dart';
 
-final chatProvider =
-    StateNotifierProvider<ChatNotifier, List<ParsedChatMessage>>((ref) {
-  return ChatNotifier(ref);
+final webSocketEventHandlerProvider = Provider<WebSocketEventHandler>((ref) {
+  return WebSocketEventHandler(ref);
 });
 
-final emotePickerProvider = StateProvider<bool>((ref) => false);
-final pollProvider = StateProvider<bool>((ref) => false);
+final chatProvider =
+    StateNotifierProvider<ChatManager, List<ParsedChatMessage>>((ref) {
+  return ChatManager(ref);
+});
+
 final chatbroken = StateProvider<bool>((ref) => false);
 final errorProvider = StateNotifierProvider<ErrorNotifier, ErrorState>((ref) {
   return ErrorNotifier();
@@ -58,67 +66,65 @@ class EmoteResult {
   EmoteResult(this.isValid, this.emote);
 }
 
-final emotesProvider = FutureProvider<List<Emote>>((ref) {
-  return ref.watch(chatProvider.notifier).getEmotes();
-});
-
-class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
-  ChatNotifier(this.ref) : super([]);
-  List<Emote> emotes = [];
-  bool emotesLoaded = false;
-  late TextEditingController controller;
+class ChatManager extends StateNotifier<List<ParsedChatMessage>> {
+  ChatManager(this.ref) : super([]);
   final dynamic ref;
 
-  Future<bool> joinLiveChat(String id, TextEditingController controller) async {
-    this.controller = controller;
-    await fpWebsockets.connect(ref);
-    final res = await fpWebsockets.joinLiveChat(id);
-    await fpWebsockets.joinpoll(id);
-    if (res['success'] == false) {
-      ref.read(errorProvider.notifier).setError(res.toString());
-      return false;
-    }
-    emotes = [];
-    res['emotes'].forEach((emote) {
-      emotes = [
-        ...emotes,
-        Emote(name: emote['code'], url: emote['image']),
-      ];
-    });
-    return true;
-  }
-
-  List<Emote> getEmotes() {
-    return emotes;
-  }
-
-  void sendMessage(String username, String message, String id,
-      {bool isModerator = false, bool isCreator = true}) {
-    if (message.isNotEmpty) {
-      fpWebsockets.sendMessage(id, message);
-    }
-  }
-
-  void recieveMessage(ParsedChatMessage message) {
+  void addMessage(ParsedChatMessage message) {
     state = [
       ...state,
       message,
     ];
   }
 
-  List<InlineSpan> parseMessage(ChatMessage message) {
+  Future<List<InlineSpan>> parseMessage(
+      ChatMessage message, TextEditingController controller) async {
     final emoteRegex = RegExp(r':([a-zA-Z0-9_-]+):');
     final pingRegex = RegExp(r'@(\w+)(?=:|[^:\w]|$)');
+
+    bool showTimestamps =
+        await settings.getBool('timestamp_messages', defaultValue: false);
+    int messageSize =
+        await settings.getDynamic('chat_message_size', defaultValue: 1);
+    double fontSize = messageSize == 0
+        ? 10
+        : messageSize == 1
+            ? 14
+            : 18;
+    double emoteSize = messageSize == 0
+        ? 14
+        : messageSize == 1
+            ? 20
+            : 26;
+    double pingSize = messageSize == 0
+        ? 10
+        : messageSize == 1
+            ? 14
+            : 18;
 
     List<InlineSpan> spans = [];
     int lastIndex = 0;
 
     Color namecolor = message.username == 'System'
         ? Colors.white
-        : getColorForUsernameColor(message.username);
+        : await settings.getBool('show_username_colors', defaultValue: true)
+            ? getColorForUsernameColor(message.username)
+            : Theme.of(rootLayoutKey.currentState!.context).colorScheme.primary;
 
     bool isAdmin =
         message.userType == 'Moderator' || message.username == 'System';
+
+    if (showTimestamps) {
+      final localTime = message.sentAt.toLocal();
+      spans.add(TextSpan(
+          text:
+              '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')} ',
+          style: TextStyle(
+              fontSize: fontSize,
+              color: Theme.of(rootLayoutKey.currentState!.context)
+                  .colorScheme
+                  .tertiary)));
+    }
 
     if (isAdmin) {
       spans.add(WidgetSpan(
@@ -155,7 +161,7 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
                 style: TextStyle(
                   color: namecolor,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: fontSize,
                 ),
               ),
             ))));
@@ -184,7 +190,8 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
             .replaceAll('&Oacute;', 'Ó')
             .replaceAll('&Ocirc;', 'Ô')
             .replaceAll('&Otilde;', 'Õ');
-        spans.add(TextSpan(text: processedText));
+        spans.add(TextSpan(
+            text: processedText, style: TextStyle(fontSize: fontSize)));
       }
     }
 
@@ -239,7 +246,7 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
             child: Image.network(
               result.emote!.url,
               fit: BoxFit.cover,
-              height: 20,
+              height: emoteSize,
             ),
           ));
         } else {
@@ -248,7 +255,25 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
       } else if (matchData['type'] == 'ping') {
         var pingMatch = matchData['match'] as Match;
         String pingText = pingMatch.group(0)!;
-        Color pingcolor = getColorForUsernameColor(pingText.substring(1));
+        Color pingcolor = await settings.getBool('show_username_colors',
+                defaultValue: true)
+            ? getColorForUsernameColor(pingText.substring(1))
+            : Theme.of(rootLayoutKey.currentState!.context).colorScheme.primary;
+
+        bool highlightMentions =
+            await settings.getBool('highlight_mentions', defaultValue: true);
+        bool pingSound = await settings.getBool('play_sound_when_mentioned',
+            defaultValue: false);
+
+        if (pingText.substring(1) ==
+                rootLayoutKey.currentState?.user!.username &&
+            pingSound) {
+          final player = AudioPlayer();
+          await player.play(AssetSource('livechat/pop.wav'));
+          player.onPlayerComplete.listen((event) {
+            player.dispose();
+          });
+        }
 
         spans.add(WidgetSpan(
             child: Padding(
@@ -266,8 +291,9 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
                       if (states.contains(WidgetState.hovered)) {
                         return pingcolor.withValues(alpha: 0.25);
                       }
-                      return pingText.substring(1) ==
-                              rootLayoutKey.currentState?.user!.username
+                      return highlightMentions &&
+                              pingText.substring(1) ==
+                                  rootLayoutKey.currentState?.user!.username
                           ? Theme.of(rootLayoutKey.currentState!.context)
                               .colorScheme
                               .primary
@@ -282,12 +308,13 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
                   child: Text(
                     pingText,
                     style: TextStyle(
-                      color: pingText.substring(1) ==
-                              rootLayoutKey.currentState?.user!.username
+                      color: highlightMentions &&
+                              pingText.substring(1) ==
+                                  rootLayoutKey.currentState?.user!.username
                           ? Colors.white
                           : pingcolor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: pingSize,
                     ),
                   ),
                 ))));
@@ -299,284 +326,249 @@ class ChatNotifier extends StateNotifier<List<ParsedChatMessage>> {
     if (lastIndex < message.message.length) {
       addTextSpan(message.message.substring(lastIndex));
     }
-
     return spans;
   }
 
-  void reset(String id) async {
+  void reset() async {
     state = [];
   }
-}
 
-class PollObject {
-  final String id;
-  final String type;
-  final String creator;
-  final String title;
-  final List<String> options;
-  final String startDate;
-  final String endDate;
-  final TallyObject runningTally;
-
-  PollObject(
-      {required this.id,
-      required this.type,
-      required this.creator,
-      required this.title,
-      required this.options,
-      required this.startDate,
-      required this.endDate,
-      required this.runningTally});
-
-  factory PollObject.fromJson(Map<String, dynamic> json) {
-    return PollObject(
-      id: json['id'],
-      type: json['type'],
-      creator: json['creator'],
-      title: json['title'],
-      options: json['options'],
-      startDate: json['startDate'],
-      endDate: json['endDate'],
-      runningTally: TallyObject.fromJson(json['runningTally']),
-    );
+  void chatDisconnect() {
+    state = [];
+    ref.read(webSocketEventHandlerProvider).chatDisconnect();
   }
 
-  PollObject copyWith({
-    String? id,
-    String? type,
-    String? creator,
-    String? title,
-    List<String>? options,
-    String? startDate,
-    String? endDate,
-    TallyObject? runningTally,
-  }) {
-    return PollObject(
-      id: id ?? this.id,
-      type: type ?? this.type,
-      creator: creator ?? this.creator,
-      title: title ?? this.title,
-      options: options ?? this.options,
-      startDate: startDate ?? this.startDate,
-      endDate: endDate ?? this.endDate,
-      runningTally: runningTally ?? this.runningTally,
-    );
+  void sendMessage(String username, String message, String id,
+      {bool isModerator = false, bool isCreator = true}) {
+    if (message.isNotEmpty) {
+      ref.read(webSocketEventHandlerProvider).sendMessage(username, message, id,
+          isModerator: isModerator, isCreator: isCreator);
+    }
   }
 }
 
-class TallyObject {
-  final int tick;
-  final List<int> counts;
-
-  TallyObject({required this.tick, required this.counts});
-
-  factory TallyObject.fromJson(Map<String, dynamic> json) {
-    return TallyObject(
-      tick: json['tick'],
-      counts: json['counts'],
-    );
-  }
-}
-
-class TallyUpdateObject {
-  final int tick;
-  final List<int> counts;
-  final String pollId;
-
-  TallyUpdateObject(
-      {required this.tick, required this.counts, required this.pollId});
-
-  factory TallyUpdateObject.fromJson(Map<String, dynamic> json) {
-    return TallyUpdateObject(
-      tick: json['tick'],
-      counts: json['counts'],
-      pollId: json['pollId'],
-    );
-  }
-}
-
-final pollDataProvider =
-    StateNotifierProvider<PollNotifier, PollObject?>((ref) {
-  return PollNotifier(ref);
+final chatterlistprovider =
+    StateNotifierProvider<ChatterListManager, Map<String, dynamic>>((ref) {
+  return ChatterListManager(ref);
 });
 
-class PollNotifier extends StateNotifier<PollObject?> {
-  PollNotifier(this.ref) : super(null);
+class ChatterListManager extends StateNotifier<Map<String, dynamic>> {
+  ChatterListManager(this.ref) : super({});
   final dynamic ref;
-  String? selectedOption;
-  bool hasVoted = false;
-  DateTime? endTime;
-  Timer? _updateTimer;
-  bool test = false;
 
-  @override
-  void dispose() {
-    _updateTimer?.cancel();
-    super.dispose();
+  void updateUserList(Map<String, dynamic> userlist) {
+    state = userlist;
   }
 
-  void openPoll(PollObject poll) {
-    state = poll;
-    endTime = DateTime.parse(poll.endDate);
-    selectedOption = null;
-    hasVoted = false;
+  void getChatterList(String creatorId) {
+    fpWebsockets.getChatUserList(creatorId, (data) {
+      ref.read(chatterlistprovider.notifier).updateUserList(data['data']);
+    });
+  }
 
-    // Start a timer to update UI every second
-    _updateTimer?.cancel();
-    _updateTimer = Timer.periodic(Duration(seconds: 1), (_) {
-      if (state != null) {
-        state = state!.copyWith(); // Force UI update
+  void reset() {
+    state = {};
+  }
+}
+
+class PollWrapper {
+  final Poll poll;
+  final bool isOpen;
+
+  PollWrapper({required this.poll, required this.isOpen});
+}
+
+final pollprovider =
+    StateNotifierProvider<PollManager, List<PollWrapper>>((ref) {
+  return PollManager(ref);
+});
+
+class PollManager extends StateNotifier<List<PollWrapper>> {
+  PollManager(this.ref) : super([]);
+  final dynamic ref;
+
+  void openPoll(Poll poll) {
+    state = [
+      ...state,
+      PollWrapper(poll: poll, isOpen: true),
+    ];
+  }
+
+  void closePoll(Poll poll) async {
+    state = state.map((p) {
+      if (p.poll.id == poll.id) {
+        return PollWrapper(
+          isOpen: false,
+          poll: p.poll,
+        );
+      }
+      return p;
+    }).toList();
+
+    Timer(const Duration(seconds: 30), () {
+      if (mounted) {
+        state = state.where((p) => p.poll.id != poll.id).toList();
       }
     });
   }
 
-  void closePoll(PollObject poll) {
-    state = poll;
-    endTime = DateTime.parse(poll.endDate);
-  }
-
-  void testPoll() {
-    test = true;
-    final testPoll = PollObject(
-      id: 'test-poll-123',
-      type: 'simple',
-      creator: 'test-creator',
-      title: 'Test Poll',
-      options: ['Option A', 'Option B', 'Option C'],
-      startDate: DateTime.now().toIso8601String(),
-      endDate: DateTime.now().add(Duration(seconds: 7)).toIso8601String(),
-      runningTally: TallyObject(
-        tick: 0,
-        counts: [5, 3, 2],
-      ),
-    );
-    openPoll(testPoll);
-  }
-
-  void updateTally(TallyUpdateObject update) {
-    if (state?.id == update.pollId) {
-      state = state!.copyWith(
-        runningTally: TallyObject(
-          tick: update.tick,
+  void updateTally(TallyUpdate update) {
+    state = state.map((p) {
+      if (p.poll.id == update.pollId) {
+        final updatedTally = RunningTally(
+          tick: p.poll.runningTally.tick,
           counts: update.counts,
-        ),
-      );
-    }
-  }
-
-  void selectOption(String option) {
-    if (!hasVoted && state != null) {
-      selectedOption = option;
-      state = state!.copyWith(); // Force UI update
-    }
-  }
-
-  void submitVote() {
-    if (!hasVoted && state != null && selectedOption != null) {
-      hasVoted = true;
-      if (test) {
-        final currentTally = state!.runningTally.counts;
-        final index = state!.options.indexOf(selectedOption!);
-        if (index != -1) {
-          List<int> newCounts = List.from(currentTally);
-          newCounts[index]++;
-          state = state!.copyWith(
-            runningTally: TallyObject(
-              tick: state!.runningTally.tick + 1,
-              counts: newCounts,
-            ),
-          );
-        }
-      } else {
-        fpApiRequests.submitVote(
-            state!.id, state!.options.indexOf(selectedOption!));
+        );
+        return PollWrapper(
+          isOpen: p.isOpen,
+          poll: Poll(
+            id: p.poll.id,
+            type: p.poll.type,
+            creator: p.poll.creator,
+            title: p.poll.title,
+            options: p.poll.options,
+            startDate: p.poll.startDate,
+            endDate: p.poll.endDate,
+            finalTallyApproximate: p.poll.finalTallyApproximate,
+            finalTallyReal: p.poll.finalTallyReal,
+            runningTally: updatedTally,
+          ),
+        );
       }
-    }
+      return p;
+    }).toList();
   }
 
-  bool isPollActive() {
-    if (state == null || endTime == null) return false;
-    final now = DateTime.now();
-    final difference = now.difference(endTime!);
+  void reset() {
+    state = [];
+  }
+}
 
-    // Show poll for 25 seconds after it ends
-    if (difference.inSeconds <= 25) {
-      return true;
-    }
+final emotepickerProvider =
+    StateNotifierProvider<EmotePickerManager, List<Emote>>((ref) {
+  return EmotePickerManager(ref);
+});
 
-    // Schedule state clear after 25 seconds
-    if (difference.inSeconds > 25 && state != null) {
-      Future(() {
-        _updateTimer?.cancel();
-        state = null;
-      });
-    }
+class EmotePickerManager extends StateNotifier<List<Emote>> {
+  EmotePickerManager(this.ref) : super([]);
+  final dynamic ref;
 
-    // Return true if poll hasn't ended yet
-    return difference.isNegative;
+  void updateEmotes(Map<String, dynamic> emotes) {
+    state = (emotes['emotes'] as List).map<Emote>((e) {
+      return Emote.fromJson(e as Map<String, dynamic>);
+    }).toList();
   }
 
-  bool isVotingActive() {
-    if (state == null || endTime == null) return false;
-    return DateTime.now().isBefore(endTime!);
+  void reset() {
+    state = [];
   }
+}
 
-  String getRemainingTime() {
-    if (endTime == null) return '';
-    final now = DateTime.now();
-    final difference = endTime!.difference(now);
+final connectionProvider =
+    StateNotifierProvider<ConnectionManager, Map<String, dynamic>>((ref) {
+  return ConnectionManager(ref);
+});
 
-    if (difference.isNegative) {
-      final afterEnd = now.difference(endTime!);
-      if (afterEnd.inSeconds <= 25) {
-        return 'Poll ended';
+class ConnectionManager extends StateNotifier<Map<String, dynamic>> {
+  ConnectionManager(this.ref) : super({});
+  final dynamic ref;
+
+  void updateConnectionState(Map<String, dynamic> data) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (data['color'] == 'success') {
+        Future.delayed(const Duration(seconds: 7), () {
+          ref.read(connectionProvider.notifier).reset();
+        });
       }
-      return 'Poll ended';
-    }
-
-    return '${difference.inSeconds}s remaining';
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      state = data;
+    });
   }
 
-  int getTotalVotes() {
-    if (state == null) return 0;
-    return state!.runningTally.counts.fold(0, (sum, count) => sum + count);
-  }
-
-  double getOptionPercentage(int index) {
-    if (state == null || index >= state!.runningTally.counts.length) return 0;
-    final total = getTotalVotes();
-    if (total == 0) return 0;
-    return (state!.runningTally.counts[index] / total) * 100;
+  void reset() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      state = {};
+    });
   }
 }
 
 class WebSocketEventHandler {
   final Ref ref;
-
   WebSocketEventHandler(this.ref);
+  TextEditingController? controller;
 
-  void handlePollOpen(Map<String, dynamic> data) {
-    final poll = PollObject.fromJson(data['poll']);
-    ref.read(pollDataProvider.notifier).openPoll(poll);
+  void submitVote(String pollId, int optionIndex) {
+    fpApiRequests.submitVote(pollId, optionIndex);
   }
 
-  void handlePollClose(Map<String, dynamic> data) {
-    final poll = PollObject.fromJson(data['poll']);
-    ref.read(pollDataProvider.notifier).closePoll(poll);
+  void sendMessage(String username, String message, String id,
+      {bool isModerator = false, bool isCreator = true}) {
+    if (message.isNotEmpty) {
+      fpWebsockets.sendChatMessage(id, message, messagesHandler);
+    }
   }
 
-  void handlePollUpdateTally(Map<String, dynamic> data) {
-    final pollUpdate = TallyUpdateObject.fromJson(data);
-    ref.read(pollDataProvider.notifier).updateTally(pollUpdate);
+  void chatConnect(
+      String liveId, String creatorId, TextEditingController controller) {
+    this.controller = controller;
+    fpWebsockets.chatConnect(liveId, messagesHandler, connectionHandler);
+    fpWebsockets.pollConnect(creatorId, messagesHandler);
   }
 
-  void handleRadioChatter(Map<String, dynamic> data) async {
-    final radioChatter = ChatMessage.fromJson(data);
-    bool notif = radioChatter.username == 'System';
-    final parsedtext =
-        ref.read(chatProvider.notifier).parseMessage(radioChatter);
-    final message = ParsedChatMessage(text: parsedtext, notification: notif);
-    ref.read(chatProvider.notifier).recieveMessage(message);
+  void chatDisconnect(String creatorId) {
+    fpWebsockets.chatDisconnect(connectionHandler);
+    fpWebsockets.pollDisconnect(
+      creatorId,
+      connectionHandler,
+    );
+  }
+
+  void reset() {
+    ref.read(emotepickerProvider.notifier).reset();
+    ref.read(chatterlistprovider.notifier).reset();
+    ref.read(chatProvider.notifier).reset();
+    ref.read(pollprovider.notifier).reset();
+  }
+
+  void messagesHandler(Map<String, dynamic> data) async {
+    if (data['socket'] == 'chat') {
+      if (data['type'] == 'radioChatter') {
+        final radioChatter = ChatMessage.fromJson(data['data']);
+        bool notif = radioChatter.username == 'System';
+        final parsedtext = await ref
+            .read(chatProvider.notifier)
+            .parseMessage(radioChatter, controller!);
+        final message =
+            ParsedChatMessage(text: parsedtext, notification: notif);
+        ref.read(chatProvider.notifier).addMessage(message);
+      } else if (data['type'] == 'getChatUserList') {
+        ref.read(chatterlistprovider.notifier).updateUserList(data['data']);
+      } else if (data['type'] == 'joinResponse') {
+        ref.read(emotepickerProvider.notifier).updateEmotes(data['data']);
+      }
+    } else if (data['socket'] == 'poll') {
+      if (data['type'] == 'open') {
+        ref.read(pollprovider.notifier).openPoll(Poll.fromJson(data['data']));
+      } else if (data['type'] == 'close') {
+        ref.read(pollprovider.notifier).closePoll(Poll.fromJson(data['data']));
+      } else if (data['type'] == 'updateTally') {
+        ref
+            .read(pollprovider.notifier)
+            .updateTally(TallyUpdate.fromJson(data['data']));
+      } else if (data['type'] == 'joinResponse') {
+        ref.read(pollprovider.notifier).reset();
+        for (var poll in data['data']['activePolls']) {
+          ref.read(pollprovider.notifier).openPoll(Poll.fromJson(poll));
+        }
+      }
+    }
+  }
+
+  void connectionHandler(Map<String, dynamic> data) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(connectionProvider.notifier).updateConnectionState(data);
+    });
   }
 }
 
@@ -589,6 +581,7 @@ class ChatMessage {
   final String userType;
   final List<Emote>? emotes;
   final bool success;
+  final DateTime sentAt;
 
   ChatMessage({
     required this.id,
@@ -599,6 +592,7 @@ class ChatMessage {
     required this.userType,
     this.emotes,
     required this.success,
+    required this.sentAt,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -613,6 +607,7 @@ class ChatMessage {
           ? null
           : (json['emotes'] as List).map((e) => Emote.fromJson(e)).toList(),
       success: json['success'],
+      sentAt: DateTime.parse(json['sentAt']),
     );
   }
 }

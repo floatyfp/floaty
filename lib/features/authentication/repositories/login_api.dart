@@ -23,7 +23,8 @@ class LoginApi {
 
   void _init() async {
     packageInfo = await PackageInfo.fromPlatform();
-    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
+    userAgent =
+        'FloatyClient/${packageInfo?.version}+${packageInfo?.buildNumber}, CFNetwork';
     final dir = await getApplicationSupportDirectory();
     cookieJar = PersistCookieJar(
       storage: FileStorage('${dir.path}/.cookies/'),

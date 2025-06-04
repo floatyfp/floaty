@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:core';
 
 import 'package:dio/dio.dart';
-import 'package:floaty/features/api/repositories/fpwebsockets.dart';
 import 'package:floaty/features/whenplane/components/compact_holder.dart';
 import 'package:floaty/features/whenplane/views/whenplane.dart';
 
@@ -56,9 +55,16 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
   @override
   void dispose() {
     Future.microtask(() async {
-      if (mediaService.playing &&
-          mediaService.mediastate == MediaPlayerState.main) {
-        mediaService.changeState(MediaPlayerState.mini);
+      try {
+        if (mediaService.playing &&
+            mediaService.mediastate == MediaPlayerState.main) {
+          mediaService.changeState(MediaPlayerState.mini);
+        }
+      } catch (e) {
+        if (mounted) {
+          super.dispose();
+        }
+        return;
       }
     });
     super.dispose();
@@ -68,12 +74,16 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
     bool isMrTechTips = widget.creatorInfo.urlname == 'linustechtips';
     if (isMrTechTips) {
       final stats = await whenPlaneIntegration.floatplanestats();
-      setState(() {
-        fpstats = jsonDecode(stats);
-        isFPSTATSloading = false;
-      });
+      if (mounted) {
+        setState(() {
+          fpstats = jsonDecode(stats);
+          isFPSTATSloading = false;
+        });
+      }
     }
-    mediaService = ref.read(mediaPlayerServiceProvider.notifier);
+    if (mounted) {
+      mediaService = ref.read(mediaPlayerServiceProvider.notifier);
+    }
     final delivery = await fpApiRequests.getDelivery(
         'live', widget.creatorInfo.liveStream?.id ?? '');
     final deliveryData = jsonDecode(delivery);
@@ -232,14 +242,10 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
                 ),
                 child: offline
                     ? isMrTechTips
-                        ? widget.compact
+                        ? (widget.compact)
                             ? offlineScreen()
                             : WhenplaneScreen(
                                 v: true,
-                                h: min(
-                                  availableWidth * 9 / 16,
-                                  availableHeight - 250,
-                                ),
                               )
                         : offlineScreen()
                     : MediaPlayerWidget(
@@ -268,6 +274,7 @@ class _LiveVideoWidgetState extends ConsumerState<LiveVideoWidget> {
                       ),
                   child: LiveChat(
                       liveId: widget.creatorInfo.liveStream?.id ?? '',
+                      creatorId: widget.creatorInfo.id ?? '',
                       exit: true,
                       onExit: onExit),
                 ),
@@ -469,9 +476,6 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (fpWebsockets.connected) {
-      fpWebsockets.disconnect();
-    }
     return Scaffold(
       body: isLoading
           ? Center(
@@ -497,6 +501,7 @@ class _LiveScreenState extends ConsumerState<LiveScreen> {
                         ),
                         LiveChat(
                           liveId: res?.liveStream?.id ?? '',
+                          creatorId: res?.id ?? '',
                         ),
                       ],
                     )

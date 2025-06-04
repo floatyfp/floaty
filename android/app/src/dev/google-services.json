@@ -1,12 +1,12 @@
 {
     "project_info": {
-      "project_number": "405578561317",
-      "project_id": "floatplane-production"
+      "project_number": "430361853609",
+      "project_id": "floaty-notif-test"
     },
     "client": [
       {
         "client_info": {
-          "mobilesdk_app_id": "1:405578561317:android:fc41c653d146bee5",
+          "mobilesdk_app_id": "1:430361853609:android:d92021ba319938ea83b3b8",
           "android_client_info": {
             "package_name": "uk.bw86.floaty.dev"
           }
@@ -14,7 +14,7 @@
         "oauth_client": [],
         "api_key": [
           {
-            "current_key": "AIzaSyAqwux9m8G0-s7YLJUGlJ6b8F4k2o_VyYU"
+            "current_key": "AIzaSyBIKRtWt3dwPSku43xTjMZ5I9arp7Hm7zs"
           }
         ],
         "services": {

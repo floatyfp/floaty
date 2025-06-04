@@ -165,6 +165,8 @@ class _CommentItemState extends ConsumerState<CommentItem> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Focus(
         child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -431,12 +433,12 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                                 horizontal: 4, vertical: 2),
                           ),
                           icon: AnimatedTheme(
-                            data: Theme.of(context).copyWith(
+                            data: theme.copyWith(
                               iconTheme: IconThemeData(
                                 size: 16,
                                 color: _isLiked
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).colorScheme.onSurface,
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
                               ),
                             ),
                             duration: const Duration(milliseconds: 200),
@@ -447,8 +449,8 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                             style: TextStyle(
                               fontSize: 12,
                               color: _isLiked
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurface,
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
                             ),
                             child: Text('$_likeCount'),
@@ -488,12 +490,12 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                                 horizontal: 4, vertical: 2),
                           ),
                           icon: AnimatedTheme(
-                            data: Theme.of(context).copyWith(
+                            data: theme.copyWith(
                               iconTheme: IconThemeData(
                                 size: 16,
                                 color: _isDisliked
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).colorScheme.onSurface,
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
                               ),
                             ),
                             duration: const Duration(milliseconds: 200),
@@ -504,8 +506,8 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                             style: TextStyle(
                               fontSize: 12,
                               color: _isDisliked
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurface,
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
                             ),
                             child: Text('$_dislikeCount'),

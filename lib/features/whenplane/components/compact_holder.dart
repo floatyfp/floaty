@@ -7,12 +7,13 @@ class WhenplaneCompactHolder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
           elevation: 0,
           toolbarHeight: 40,
-          backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-          surfaceTintColor: Theme.of(context).appBarTheme.backgroundColor,
+          backgroundColor: theme.appBarTheme.backgroundColor,
+          surfaceTintColor: theme.appBarTheme.backgroundColor,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {

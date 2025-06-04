@@ -33,6 +33,7 @@ class MiniPlayerWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final mediaService = ref.read(mediaPlayerServiceProvider.notifier);
     final isPlaying = ref.watch(playingStateProvider);
 
@@ -57,7 +58,7 @@ class MiniPlayerWidget extends ConsumerWidget {
         },
         child: Container(
           height: 72,
-          color: Theme.of(context).cardColor,
+          color: theme.cardColor,
           child: Row(
             children: [
               if (videoController != null)
@@ -106,10 +107,9 @@ class MiniPlayerWidget extends ConsumerWidget {
                       ),
                       AutoSizeText(
                         artist,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color:
-                                  Theme.of(context).textTheme.bodySmall?.color,
-                            ),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
                         minFontSize: 6,
                         maxFontSize: 16,
                         textScaleFactor: 0.85,

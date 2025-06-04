@@ -1,5 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
+// ignore_for_file: unused_element
+
 part of 'definitions.dart';
 
 // **************************************************************************
@@ -642,6 +644,22 @@ Map<String, dynamic> _$CreatorModelV2ToJson(CreatorModelV2 instance) =>
       'subscriberCountDisplay': instance.subscriberCountDisplay,
       'incomeDisplay': instance.incomeDisplay,
       'defaultChannel': instance.defaultChannel,
+    };
+
+UserInteractionModel _$UserInteractionModelFromJson(
+        Map<String, dynamic> json) =>
+    UserInteractionModel(
+      like: (json['like'] as num?)?.toInt(),
+      dislike: (json['dislike'] as num?)?.toInt(),
+      value: json['value'] as String?,
+    );
+
+Map<String, dynamic> _$UserInteractionModelToJson(
+        UserInteractionModel instance) =>
+    <String, dynamic>{
+      'like': instance.like,
+      'dislike': instance.dislike,
+      'value': instance.value,
     };
 
 UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(

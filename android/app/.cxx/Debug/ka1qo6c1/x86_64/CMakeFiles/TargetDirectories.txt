@@ -1,0 +1,2 @@
+C:/Users/dingd/Documents/GitHub/floaty/android/app/.cxx/Debug/ka1qo6c1/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/dingd/Documents/GitHub/floaty/android/app/.cxx/Debug/ka1qo6c1/x86_64/CMakeFiles/rebuild_cache.dir

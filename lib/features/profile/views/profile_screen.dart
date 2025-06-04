@@ -136,12 +136,12 @@ class ProfileScreenStateWrapperState
     }
   }
 
-  Widget profileHeader({bool smol = false}) {
+  Widget profileHeader(ColorScheme colorScheme, {bool smol = false}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          color: Theme.of(context).colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainer,
           height: 110,
           child: Padding(
             padding: EdgeInsets.only(left: 20),
@@ -188,7 +188,7 @@ class ProfileScreenStateWrapperState
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildNavButton("Activity", 0, smol: true),
+                        _buildNavButton(colorScheme, "Activity", 0, smol: true),
                       ],
                     ),
                   ],
@@ -201,7 +201,7 @@ class ProfileScreenStateWrapperState
     );
   }
 
-  Widget legacyProfileHeader() {
+  Widget legacyProfileHeader(ColorScheme colorScheme) {
     double screenWidth = MediaQuery.of(context).size.width;
 
     double profileImageRadius = (screenWidth * 0.1).clamp(44.0, 52.0);
@@ -298,7 +298,7 @@ class ProfileScreenStateWrapperState
                   Padding(
                     padding: EdgeInsets.only(left: profileImageRadius * 2 + 20),
                   ),
-                  _buildNavButton("Activity", 0),
+                  _buildNavButton(colorScheme, "Activity", 0),
                 ],
               ),
             ])),
@@ -316,6 +316,7 @@ class ProfileScreenStateWrapperState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return isLoading
         ? const Center(child: CircularProgressIndicator())
         : LayoutBuilder(
@@ -336,8 +337,9 @@ class ProfileScreenStateWrapperState
                             future: settings.getBool('legacy_ui'),
                             builder: (context, snapshot) {
                               return snapshot.data ?? false
-                                  ? legacyProfileHeader()
+                                  ? legacyProfileHeader(colorScheme)
                                   : profileHeader(
+                                      colorScheme,
                                       smol: smol,
                                     );
                             },
@@ -383,7 +385,8 @@ class ProfileScreenStateWrapperState
           );
   }
 
-  Widget _buildNavButton(String title, int index, {bool smol = false}) {
+  Widget _buildNavButton(ColorScheme colorScheme, String title, int index,
+      {bool smol = false}) {
     final bool isSelected =
         ref.watch(profileScreenProvider.select((s) => s.selectedIndex)) ==
             index;
@@ -398,16 +401,14 @@ class ProfileScreenStateWrapperState
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)
+              ? colorScheme.primary.withValues(alpha: 0.4)
               : Colors.grey.withValues(alpha: 0.7),
           borderRadius: BorderRadius.circular(smol ? 5 : 8),
         ),
         child: Text(
           title,
           style: TextStyle(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Colors.white,
+            color: isSelected ? colorScheme.primary : Colors.white,
             fontSize: smol ? 13 : 18,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
@@ -459,6 +460,8 @@ class ActivityTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return dates.isEmpty
         ? Center(child: Text('No Activity'))
         : TimelineTheme(
@@ -509,10 +512,7 @@ class ActivityTimeline extends StatelessWidget {
                             dateModel.date,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.color,
+                              color: theme.textTheme.titleMedium?.color,
                               fontSize: 12,
                             ),
                           ),
@@ -532,10 +532,8 @@ class ActivityTimeline extends StatelessWidget {
                                           text: TextSpan(
                                             style: TextStyle(
                                               fontSize: 14,
-                                              color: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyMedium
-                                                  ?.color,
+                                              color: theme
+                                                  .textTheme.bodyMedium?.color,
                                             ),
                                             children: [
                                               TextSpan(
@@ -574,9 +572,7 @@ class ActivityTimeline extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Container(
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainer,
+                                      color: colorScheme.surfaceContainer,
                                       borderRadius: BorderRadius.circular(4),
                                       border: Border.all(),
                                     ),

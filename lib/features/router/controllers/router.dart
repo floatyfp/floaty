@@ -4,7 +4,6 @@ import 'package:floaty/features/browse/views/browse_screen.dart';
 import 'package:floaty/features/channel/views/channel_screen.dart';
 import 'package:floaty/features/history/views/history_screen.dart';
 import 'package:floaty/features/home/views/home_screen.dart';
-import 'package:floaty/features/live/components/live_chat.dart';
 import 'package:floaty/features/live/views/live_screen.dart';
 import 'package:floaty/features/logs/views/log_screen.dart';
 import 'package:floaty/features/post/views/post_screen.dart';
@@ -12,12 +11,14 @@ import 'package:floaty/features/profile/views/profile_screen.dart';
 import 'package:floaty/features/settings/views/settings_screen.dart';
 import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:floaty/features/player/components/pip_player_widget.dart';
+import 'package:floaty/features/updater/views/update_screen.dart';
 import 'package:floaty/main.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 final Checkers checkers = Checkers();
+
 final GoRouter routerController = GoRouter(
   routes: <RouteBase>[
     GoRoute(
@@ -36,6 +37,12 @@ final GoRouter routerController = GoRouter(
       path: '/2fa',
       builder: (BuildContext context, GoRouterState state) {
         return TwoFaScreen();
+      },
+    ),
+    GoRoute(
+      path: '/update',
+      builder: (BuildContext context, GoRouterState state) {
+        return const UpdateScreen();
       },
     ),
     GoRoute(
@@ -84,16 +91,6 @@ final GoRouter routerController = GoRouter(
             return ChannelScreen(
               channelName: channelName,
               subName: subName,
-            );
-          },
-        ),
-        GoRoute(
-          path: '/liveold/:ChannelName',
-          builder: (context, state) {
-            final channelName =
-                state.pathParameters['ChannelName'] ?? 'defaultChannel';
-            return LiveChat(
-              liveId: channelName,
             );
           },
         ),

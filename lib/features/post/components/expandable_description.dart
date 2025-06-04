@@ -36,6 +36,7 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
     if (textBox == null) return;
 
     final TextPainter painter = TextPainter(
+      textDirection: TextDirection.ltr,
       text: TextSpan(
         text: widget.description,
         style: TextStyle(
@@ -53,6 +54,8 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final state = ref.watch(expandableDescriptionProvider(_uniqueId));
 
     return Column(
@@ -69,7 +72,7 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
                 widget.description,
                 key: _textKey,
                 style: TextStyle(
-                  color: Theme.of(context).textTheme.titleMedium?.color,
+                  color: theme.textTheme.titleMedium?.color,
                   fontSize: 14,
                 ),
                 maxLines: widget.initialLines,
@@ -80,7 +83,7 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
           secondChild: Text(
             widget.description,
             style: TextStyle(
-              color: Theme.of(context).textTheme.titleMedium?.color,
+              color: theme.textTheme.titleMedium?.color,
               fontSize: 14,
             ),
           ),
@@ -102,12 +105,12 @@ class _ExpandableDescriptionState extends ConsumerState<ExpandableDescription> {
                 Text(
                   state.expanded ? 'Show less' : 'Show more',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: colorScheme.primary,
                   ),
                 ),
                 Icon(
                   state.expanded ? Icons.expand_less : Icons.expand_more,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: colorScheme.primary,
                 ),
               ],
             ),

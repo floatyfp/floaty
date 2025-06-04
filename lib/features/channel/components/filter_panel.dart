@@ -219,15 +219,16 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         return Container(
           key: _key,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainer,
+            color: colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh),
+            border: Border.all(color: colorScheme.surfaceContainerHigh),
           ),
           child: Padding(
             padding: const EdgeInsets.all(12.0),
@@ -265,8 +266,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
                             ? TextButton.icon(
                                 onPressed: _resetFilters,
                                 style: TextButton.styleFrom(
-                                  foregroundColor:
-                                      Theme.of(context).colorScheme.primary,
+                                  foregroundColor: colorScheme.primary,
                                   padding:
                                       const EdgeInsets.symmetric(horizontal: 4),
                                 ),
@@ -280,9 +280,9 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
                 ),
                 const SizedBox(height: 8),
                 if (constraints.maxWidth > 900)
-                  _buildWideLayout(constraints.maxWidth)
+                  _buildWideLayout(constraints.maxWidth, colorScheme, theme)
                 else
-                  _buildNarrowLayout(),
+                  _buildNarrowLayout(colorScheme, theme),
               ],
             ),
           ),
@@ -291,7 +291,8 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
     );
   }
 
-  Widget _buildWideLayout(double maxWidth) {
+  Widget _buildWideLayout(
+      double maxWidth, ColorScheme colorScheme, ThemeData theme) {
     const spacing = 16.0;
 
     return Wrap(
@@ -300,11 +301,13 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
       children: [
         _buildFilterItem(
           'Search',
-          _buildSearchField(),
+          _buildSearchField(colorScheme),
         ),
         _buildFilterItem(
           'Start Date',
           _buildDateField(
+            colorScheme,
+            theme,
             value: startDate,
             onChanged: (date) => _handleDateChange(date, true),
           ),
@@ -312,17 +315,19 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
         _buildFilterItem(
           'End Date',
           _buildDateField(
+            colorScheme,
+            theme,
             value: endDate,
             onChanged: (date) => _handleDateChange(date, false),
           ),
         ),
         _buildFilterItem(
           'Content Type',
-          _buildContentTypeSelector(),
+          _buildContentTypeSelector(colorScheme),
         ),
         _buildFilterItem(
           'Duration',
-          _buildDurationSelector(),
+          _buildDurationSelector(colorScheme),
         ),
       ],
     );
@@ -349,7 +354,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
     );
   }
 
-  Widget _buildNarrowLayout() {
+  Widget _buildNarrowLayout(ColorScheme colorScheme, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -361,7 +366,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
           ),
         ),
         const SizedBox(height: 8.0),
-        _buildSearchField(),
+        _buildSearchField(colorScheme),
         const SizedBox(height: 16.0),
         Text(
           'Start Date',
@@ -372,6 +377,8 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
         ),
         const SizedBox(height: 8.0),
         _buildDateField(
+          colorScheme,
+          theme,
           value: startDate,
           onChanged: (date) => _handleDateChange(date, true),
         ),
@@ -385,6 +392,8 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
         ),
         const SizedBox(height: 8.0),
         _buildDateField(
+          colorScheme,
+          theme,
           value: endDate,
           onChanged: (date) => _handleDateChange(date, false),
         ),
@@ -397,7 +406,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
           ),
         ),
         const SizedBox(height: 8.0),
-        _buildContentTypeSelector(),
+        _buildContentTypeSelector(colorScheme),
         const SizedBox(height: 16.0),
         Text(
           'Duration',
@@ -407,12 +416,12 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
           ),
         ),
         const SizedBox(height: 8.0),
-        _buildDurationSelector(),
+        _buildDurationSelector(colorScheme),
       ],
     );
   }
 
-  Widget _buildSearchField() {
+  Widget _buildSearchField(ColorScheme colorScheme) {
     return Row(
       children: [
         Expanded(
@@ -428,7 +437,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
                 hintStyle: TextStyle(color: Colors.grey.shade500),
                 prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+                fillColor: colorScheme.surfaceContainerHigh,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(4),
                   borderSide: BorderSide.none,
@@ -443,7 +452,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
           height: _inputHeight,
           width: _inputHeight,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            color: colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Material(
@@ -465,7 +474,9 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
     );
   }
 
-  Widget _buildDateField({
+  Widget _buildDateField(
+    ColorScheme colorScheme,
+    ThemeData theme, {
     DateTime? value,
     required ValueChanged<DateTime?> onChanged,
   }) {
@@ -480,7 +491,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
             lastDate: DateTime.now(),
             builder: (context, child) {
               return Theme(
-                data: Theme.of(context).copyWith(),
+                data: theme.copyWith(),
                 child: child!,
               );
             },
@@ -490,7 +501,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
           }
         },
         style: TextButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+          backgroundColor: colorScheme.surfaceContainerHigh,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -513,7 +524,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
     );
   }
 
-  Widget _buildContentTypeSelector() {
+  Widget _buildContentTypeSelector(ColorScheme colorScheme) {
     return SizedBox(
       height: _inputHeight,
       child: PopupMenuButton<String>(
@@ -568,7 +579,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+            color: colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -593,7 +604,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
     );
   }
 
-  Widget _buildDurationSelector() {
+  Widget _buildDurationSelector(ColorScheme colorScheme) {
     String formatDuration(double minutes) {
       if (!_durationRangeInitialized) return minutes == 0 ? 'min' : 'max';
       if (minutes == 0) return 'min';
@@ -610,7 +621,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
       height: _inputHeight,
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          color: colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(8),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -631,7 +642,7 @@ class _FilterPanelState extends ConsumerState<FilterPanel>
                 min: 0,
                 max: 180,
                 divisions: 180,
-                activeColor: Theme.of(context).colorScheme.primary,
+                activeColor: colorScheme.primary,
                 inactiveColor: Colors.grey.shade700,
                 onChanged: _handleDurationChange,
               ),

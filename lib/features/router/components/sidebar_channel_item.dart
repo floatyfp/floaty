@@ -82,6 +82,7 @@ class _SidebarChannelItemState extends ConsumerState<SidebarChannelItem>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     bool hasSubChannels = widget.response.channels!.length > 1;
 
     return Column(
@@ -97,8 +98,7 @@ class _SidebarChannelItemState extends ConsumerState<SidebarChannelItem>
             decoration: BoxDecoration(
               border: GoRouterState.of(context).uri.path ==
                       '/channel/${widget.response.urlname}'
-                  ? Border.all(
-                      color: Theme.of(context).colorScheme.primary, width: 2)
+                  ? Border.all(color: colorScheme.primary, width: 2)
                   : null,
               borderRadius: BorderRadius.circular(100),
             ),
@@ -163,9 +163,7 @@ class _SidebarChannelItemState extends ConsumerState<SidebarChannelItem>
                       decoration: BoxDecoration(
                         border: GoRouterState.of(context).uri.path ==
                                 '/channel/${widget.response.urlname}/${subChannel.urlname}'
-                            ? Border.all(
-                                color: Theme.of(context).colorScheme.primary,
-                                width: 2)
+                            ? Border.all(color: colorScheme.primary, width: 2)
                             : null,
                         borderRadius: BorderRadius.circular(100),
                       ),

@@ -1,0 +1,2 @@
+C:/Users/dingd/Documents/GitHub/floaty/android/app/.cxx/Debug/ka1qo6c1/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/dingd/Documents/GitHub/floaty/android/app/.cxx/Debug/ka1qo6c1/armeabi-v7a/CMakeFiles/rebuild_cache.dir

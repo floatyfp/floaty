@@ -44,7 +44,8 @@ class WhenPlaneIntegration {
 
   Future<void> initUserAgent() async {
     packageInfo = await PackageInfo.fromPlatform();
-    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
+    userAgent =
+        'FloatyClient/${packageInfo?.version}+${packageInfo?.buildNumber}, CFNetwork';
   }
 
   Future<void> initHttp() async {

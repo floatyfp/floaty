@@ -30,7 +30,8 @@ class FPApiRequests {
 
   Future<void> _init() async {
     packageInfo = await PackageInfo.fromPlatform();
-    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
+    userAgent =
+        'FloatyClient/${packageInfo?.version}+${packageInfo?.buildNumber}, CFNetwork';
     final dir = await getApplicationSupportDirectory();
     cookieJar = PersistCookieJar(
       storage: FileStorage('${dir.path}/.cookies/'),
@@ -580,10 +581,11 @@ class FPApiRequests {
   }
 
   Future<void> submitVote(String id, int vote) async {
-    await postData('v3/poll/votePoll', {
+    final response = await postData('v3/poll/votePoll', {
       'pollId': id,
       'optionIndex': vote,
     });
+    LogService.logInfo('✅ Submitted Vote! response: $response');
   }
 
   //because of the dumb way i handle progress (i have 3 different things that can call progress) we debounce this to avoid spam and stale data.

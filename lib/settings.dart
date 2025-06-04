@@ -32,9 +32,9 @@ class Settings {
     await box.put(key, value);
   }
 
-  Future<dynamic> getDynamic(String key) async {
+  Future<dynamic> getDynamic(String key, {dynamic defaultValue}) async {
     final box = await _getBox();
-    return box.get(key);
+    return box.get(key, defaultValue: defaultValue);
   }
 
   Future<void> setBool(String key, bool value) async {
@@ -42,9 +42,9 @@ class Settings {
     await box.put(key, value);
   }
 
-  Future<bool> getBool(String key) async {
+  Future<bool> getBool(String key, {bool defaultValue = false}) async {
     final box = await _getBox();
-    return box.get(key, defaultValue: false);
+    return box.get(key, defaultValue: defaultValue);
   }
 
   Future<bool> toggleBool(String key) async {

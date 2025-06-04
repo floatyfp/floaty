@@ -51,6 +51,8 @@ class BlogPostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -69,9 +71,10 @@ class BlogPostCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildThumbnailSection(context, constraints, fontSize),
+                  _buildThumbnailSection(
+                      colorScheme, context, constraints, fontSize),
                   const SizedBox(height: 8),
-                  _buildFooterSection(iconSize, fontSize, context),
+                  _buildFooterSection(theme, iconSize, fontSize, context),
                 ],
               ),
             );
@@ -81,8 +84,8 @@ class BlogPostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildThumbnailSection(
-      BuildContext context, BoxConstraints constraints, double fontSize) {
+  Widget _buildThumbnailSection(ColorScheme colorScheme, BuildContext context,
+      BoxConstraints constraints, double fontSize) {
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Stack(
@@ -121,7 +124,7 @@ class BlogPostCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   backgroundColor: Colors.black.withValues(alpha: 0.7),
-                  color: Theme.of(context).colorScheme.primary,
+                  color: colorScheme.primary,
                   minHeight: 5,
                   value: computedValue,
                 ),
@@ -160,7 +163,7 @@ class BlogPostCard extends StatelessWidget {
   }
 
   Widget _buildFooterSection(
-      double iconSize, double fontSize, BuildContext context) {
+      ThemeData theme, double iconSize, double fontSize, BuildContext context) {
     return SizedBox(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,7 +215,7 @@ class BlogPostCard extends StatelessWidget {
                 AutoSizeText(
                   '${blogPost.channel is ChannelModel ? blogPost.channel?.title ?? '' : blogPost.creator.title ?? ''} • $relativeTime',
                   style: TextStyle(
-                    color: Theme.of(context).textTheme.titleMedium?.color,
+                    color: theme.textTheme.titleMedium?.color,
                     fontSize: fontSize,
                   ),
                   stepGranularity: 0.25,

@@ -161,56 +161,101 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     k = generateK();
     final day = DateTime.now().toUtc().weekday;
     final dayIsCloseEnough = day == 5 || day == 6;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     _startTimer();
     return isLoading
         ? Container(
-            color: widget.v ? Colors.black : null,
+            color: widget.v
+                ? colorScheme.surface
+                : colorScheme.surfaceContainerLowest,
             child: Center(
               child: CircularProgressIndicator(),
             ),
           )
-        : Container(
-            color: widget.v ? Colors.black : null,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (pjsonData['specialStream'] != false)
-                    _buildSpecialStreamCard(),
-                  const SizedBox(height: 12.0),
-                  if (!pjsonData['floatplane']?['isLive'] &&
-                      pjsonData['floatplane']?['isWAN'] &&
-                      ((dayIsCloseEnough &&
-                              (pjsonData['floatplane']?['isThumbnailNew'] ||
-                                  pjsonData['floatplane']?['thumbnailAge'] <
-                                      24 * 60 * 60e3)) &&
-                          !pjsonData['hasDone']))
-                    _buildShowMightStartSoonAlert(),
-                  const SizedBox(height: 12.0),
-                  _buildCountdownCard(),
-                  const SizedBox(height: 12.0),
-                  _buildPlatformStatusContainer(),
-                  const SizedBox(height: 12.0),
-                  _buildLatenessStats(),
-                  const SizedBox(height: 3.0),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () {
-                      launchUrl(Uri.parse('https://whenplane.com'));
-                    },
-                    child: Text('Data provided by Whenplane',
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey)),
+        : LayoutBuilder(
+            builder:
+                (BuildContext context, BoxConstraints viewportConstraints) {
+              return SingleChildScrollView(
+                child: Container(
+                  width: double.infinity, // Ensure full width
+                  constraints: BoxConstraints(
+                    minHeight: viewportConstraints
+                        .maxHeight, // Ensure it's at least as tall as the viewport
                   ),
-                  const SizedBox(height: 12.0),
-                  if (pjsonData['isThereWan']['text'] != null)
-                    _buildSpecialAlert(),
-                  const SizedBox(height: 12.0),
-                  if (pjsonData['hasDone'] == false) _buildLatenessVoting(),
-                ],
-              ),
-            ),
+                  color: widget.v
+                      ? colorScheme.surface
+                      : colorScheme.surfaceContainerLowest,
+                  child: Column(
+                    // Outer Column for centering the content block
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16.0,
+                            horizontal:
+                                8.0), // Padding around the content block
+                        child: Column(
+                          // Inner Column for the actual content, sized to fit content
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (pjsonData['specialStream'] != false)
+                              _buildSpecialStreamCard(),
+                            const SizedBox(height: 12.0),
+                            if (!pjsonData['floatplane']?['isLive'] &&
+                                pjsonData['floatplane']?['isWAN'] == bool &&
+                                pjsonData['floatplane']?['isWAN'] &&
+                                ((dayIsCloseEnough &&
+                                        (pjsonData['floatplane']
+                                                        ?['isThumbnailNew'] !=
+                                                    null &&
+                                                pjsonData['floatplane']
+                                                    ?['isThumbnailNew'] ||
+                                            pjsonData['floatplane']
+                                                        ?['thumbnailAge'] !=
+                                                    null &&
+                                                pjsonData['floatplane']
+                                                        ?['thumbnailAge'] <
+                                                    24 * 60 * 60e3)) &&
+                                    !pjsonData['hasDone']))
+                              _buildShowMightStartSoonAlert(colorScheme),
+                            const SizedBox(height: 12.0),
+                            _buildCountdownCard(colorScheme, textTheme),
+                            const SizedBox(height: 12.0),
+                            _buildPlatformStatusContainer(),
+                            const SizedBox(height: 12.0),
+                            _buildLatenessStats(),
+                            const SizedBox(height: 3.0),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                launchUrl(Uri.parse('https://whenplane.com'));
+                              },
+                              child: Text('Data provided by Whenplane',
+                                  style: const TextStyle(
+                                      fontSize: 12, color: Colors.grey)),
+                            ),
+                            const SizedBox(height: 12.0),
+                            if (pjsonData['isThereWan']['text'] != null)
+                              _buildSpecialAlert(colorScheme),
+                            const SizedBox(height: 12.0),
+                            if (!pjsonData['hasDone'] &&
+                                (DateTime.now().toUtc().weekday == 5 ||
+                                    DateTime.now().toUtc().weekday == 6))
+                              ConstrainedBox(
+                                  constraints: BoxConstraints(maxWidth: 600),
+                                  child: _buildLatenessVoting(
+                                      colorScheme, textTheme)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           );
   }
 
@@ -221,18 +266,19 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
         final width =
             constraints.maxWidth > maxWidth ? maxWidth : constraints.maxWidth;
         final height = width * 9 / 16;
+        final colorScheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
 
-        return Center(
+        return Card(
+          elevation: 1,
+          margin: EdgeInsets.zero,
           child: Container(
             width: width,
             height: height,
             decoration: BoxDecoration(
-              color: Colors.grey[850],
               borderRadius: BorderRadius.circular(12.0),
               image: DecorationImage(
-                image: NetworkImage(
-                  pjsonData['specialStream']['thumbnail'],
-                ),
+                image: NetworkImage(pjsonData['specialStream']['thumbnail']),
                 fit: BoxFit.cover,
                 colorFilter: ColorFilter.mode(
                   Colors.black.withValues(alpha: 0.7),
@@ -247,40 +293,44 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                 children: [
                   Text(
                     'Special Stream',
-                    style: TextStyle(
+                    style: textTheme.titleLarge?.copyWith(
                       fontSize: width * 0.06,
-                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     pjsonData['specialStream']['title'],
-                    style: TextStyle(
+                    style: textTheme.bodyMedium?.copyWith(
                       fontSize: width * 0.04,
-                      color: Colors.grey[300],
+                      color: colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const Spacer(),
                   Center(
-                    heightFactor: 1.388,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildPlatformIndicator(
-                            'Floatplane',
-                            pjsonData['specialStream']['onFloatplane'] == true,
-                            width * 0.035),
+                          'Floatplane',
+                          pjsonData['specialStream']['onFloatplane'] == true,
+                          width * 0.035,
+                        ),
                         SizedBox(height: height * 0.01),
                         _buildPlatformIndicator(
-                            'Twitch',
-                            pjsonData['specialStream']['onTwitch'] == true,
-                            width * 0.035),
+                          'Twitch',
+                          pjsonData['specialStream']['onTwitch'] == true,
+                          width * 0.035,
+                        ),
                         SizedBox(height: height * 0.01),
                         _buildPlatformIndicator(
-                            'YouTube',
-                            pjsonData['specialStream']['onYoutube'] == true,
-                            width * 0.035),
+                          'YouTube',
+                          pjsonData['specialStream']['onYoutube'] == true,
+                          width * 0.035,
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -290,26 +340,28 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                                   : isSSlate
                                       ? '$sscountdownText $phrase'
                                       : sscountdownText,
-                              style: TextStyle(
+                              style: textTheme.titleMedium?.copyWith(
                                 fontSize: width * 0.045,
-                                fontWeight: FontWeight.bold,
                                 color: pjsonData['floatplane']['isLive']
-                                    ? Colors.green
+                                    ? colorScheme.primary
                                     : isSSlate
-                                        ? Colors.red
-                                        : Colors.white,
+                                        ? colorScheme.error
+                                        : colorScheme.onSurface,
                               ),
                               textAlign: TextAlign.center,
                             ),
                             if (pjsonData['specialStream']['isEstimated'] ==
                                 true)
-                              const SizedBox(width: 6),
-                            if (pjsonData['specialStream']['isEstimated'] ==
-                                true)
-                              Tooltip(
-                                message: 'estimated',
-                                child: Icon(Icons.info_outline,
-                                    size: width * 0.040),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Tooltip(
+                                  message: 'Estimated start time',
+                                  child: Icon(
+                                    Icons.info_outline,
+                                    size: width * 0.04,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -346,7 +398,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     );
   }
 
-  Widget _buildCountdownCard() {
+  Widget _buildCountdownCard(ColorScheme colorScheme, TextTheme textTheme) {
     bool isPreShow = pjsonData != null
         ? !(pjsonData['youtube']?['isLive'] ?? false) &&
             (pjsonData['twitch']?['isWAN'] ??
@@ -362,118 +414,126 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
 
     bool mainShowStarted = pjsonData['youtube']['started'] != null;
 
-    bool isLate = isAfterStartTime && !isPreShow && !isMainShow;
+    bool isLate = pjsonData['hasDone'] && !isPreShow && !isMainShow;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[850],
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      padding: const EdgeInsets.all(8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Display text based on the state
-          if (isLate)
-            AutoSizeText.rich(
-              TextSpan(
-                text: 'The WAN show is currently',
-                style: TextStyle(fontSize: 16.0),
-                children: [
-                  TextSpan(
-                    text: ' late',
-                    style: TextStyle(fontSize: 16.0, color: Colors.red),
-                  ),
-                  TextSpan(
-                    text: ' by',
-                    style: TextStyle(fontSize: 16.0),
-                  ),
-                ],
-              ),
-              maxLines: 2,
-            )
-          else if (isMainShow)
-            AutoSizeText(
-              'The WAN show has been live for',
-              style: TextStyle(fontSize: 16.0),
-              maxLines: 2,
-            )
-          else if (pjsonData['floatplane']['isLive'] &&
-              pjsonData['floatplane']['isWAN'] &&
-              !pjsonData['twitch']['isLive'])
-            AutoSizeText(
-              'The pre-pre-show has been live for',
-              style: TextStyle(fontSize: 16.0),
-              maxLines: 2,
-            )
-          else if (isPreShow)
-            AutoSizeText(
-              'The pre-show has been live for',
-              style: TextStyle(fontSize: 16.0),
-              maxLines: 2,
-            )
-          else
-            AutoSizeText(
-              'The WAN show is (supposed) to start in',
-              style: TextStyle(fontSize: 16.0),
-              maxLines: 2,
-            ),
-          AutoSizeText(
-            '$countdownString ${isLate ? phrase : ''}',
-            minFontSize: 16.0,
-            style: TextStyle(
-              fontSize: 50.0,
-              color:
-                  isLate ? Colors.red : Theme.of(context).colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-            textScaleFactor: 1,
-            maxLines: 1,
-          ),
-
-          if (!isAfterStartTime && !isMainShow) ...[
-            AutoSizeText(
-              'Next WAN: ${DateFormat('MM/dd/yyyy HH:mm:ss').format(whenPlaneIntegration.getNextWAN(DateTime.now()).toLocal())}',
-              minFontSize: 8.0,
-              maxLines: 1,
-            ),
-          ] else if (isLate) ...[
-            const AutoSizeText(
-                'It usually actually starts between 1 and 3 hours late.',
-                maxLines: 2),
-          ] else if ((isMainShow && mainShowStarted) || isPreShow) ...[
-            AutoSizeText.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: isPreShow
-                        ? 'Pre-show started '
-                        : (pjsonData['floatplane']['isLive'] &&
-                                pjsonData['floatplane']['isWAN'] &&
-                                !pjsonData['twitch']['isLive'])
-                            ? 'Pre-pre-show started '
-                            : 'Started ',
-                  ),
-                  const TextSpan(text: 'at '),
-                  if (mounted)
+    return Card(
+      elevation: 1,
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Display text based on the state
+            if (isLate)
+              AutoSizeText.rich(
+                TextSpan(
+                  text: 'The WAN show is currently',
+                  style: TextStyle(fontSize: 16.0),
+                  children: [
                     TextSpan(
-                      text: (() {
-                        final raw = pjsonData['youtube']['started'] ??
-                            pjsonData['twitch']['started'] ??
-                            pjsonData['floatplane']['started'];
-                        final parsed = DateTime.tryParse(raw ?? '');
-                        if (parsed == null) return 'unknown time';
-                        final formatter = DateFormat('HH:mm:ss');
-                        return formatter.format(parsed.toLocal());
-                      })(),
-                      style: const TextStyle(fontSize: 16.0),
+                      text: ' late',
+                      style: TextStyle(fontSize: 16.0, color: Colors.red),
                     ),
-                ],
+                    TextSpan(
+                      text: ' by',
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              )
+            else if (isMainShow)
+              AutoSizeText(
+                'The WAN show has been live for',
+                style: TextStyle(fontSize: 16.0),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              )
+            else if (pjsonData['floatplane']['isLive'] &&
+                pjsonData['floatplane']['isWAN'] &&
+                !pjsonData['twitch']['isLive'])
+              AutoSizeText(
+                'The pre-pre-show has been live for',
+                style: TextStyle(fontSize: 16.0),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              )
+            else if (isPreShow)
+              AutoSizeText(
+                'The pre-show has been live for',
+                style: TextStyle(fontSize: 16.0),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+              )
+            else
+              AutoSizeText(
+                'The WAN show is (supposed) to start in',
+                style: TextStyle(fontSize: 16.0),
+                textAlign: TextAlign.center,
+                maxLines: 2,
               ),
+            AutoSizeText(
+              '$countdownString ${isLate ? phrase : ''}',
+              minFontSize: 16.0,
+              style: textTheme.headlineMedium?.copyWith(
+                color: isLate ? colorScheme.error : colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+              textScaleFactor: 1,
               maxLines: 1,
-            )
+            ),
+
+            if (!isAfterStartTime && !isMainShow) ...[
+              AutoSizeText(
+                'Next WAN: ${DateFormat('MM/dd/yyyy HH:mm:ss').format(whenPlaneIntegration.getNextWAN(DateTime.now()).toLocal())}',
+                minFontSize: 8.0,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+              ),
+            ] else if (isLate) ...[
+              const AutoSizeText(
+                  'It usually actually starts between 1 and 3 hours late.',
+                  textAlign: TextAlign.center,
+                  maxLines: 2),
+            ] else if ((isMainShow && mainShowStarted) || isPreShow) ...[
+              AutoSizeText.rich(
+                textAlign: TextAlign.center,
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: isPreShow
+                          ? 'Pre-show started '
+                          : (pjsonData['floatplane']['isLive'] &&
+                                  pjsonData['floatplane']['isWAN'] &&
+                                  !pjsonData['twitch']['isLive'])
+                              ? 'Pre-pre-show started '
+                              : 'Started ',
+                    ),
+                    const TextSpan(text: 'at '),
+                    if (mounted)
+                      TextSpan(
+                        text: (() {
+                          final raw = pjsonData['youtube']['started'] ??
+                              pjsonData['twitch']['started'] ??
+                              pjsonData['floatplane']['started'];
+                          final parsed = DateTime.tryParse(raw ?? '');
+                          if (parsed == null) return 'unknown time';
+                          final formatter = DateFormat('HH:mm:ss');
+                          return formatter.format(parsed.toLocal());
+                        })(),
+                        style: const TextStyle(fontSize: 16.0),
+                      ),
+                  ],
+                ),
+                maxLines: 1,
+              )
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -529,48 +589,47 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
         ? Colors.green
         : (isUpcoming ? Colors.yellow[700]! : Colors.grey);
 
-    return Container(
+    return Card(
+      elevation: 1,
       margin: const EdgeInsets.symmetric(horizontal: 4.0),
-      decoration: BoxDecoration(
-        color: Colors.grey[850],
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Column(
-            children: [
-              Icon(icon, size: 45),
-            ],
-          ),
-          const SizedBox(width: 16.0),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AutoSizeText(
-                platform,
-                style: const TextStyle(
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              children: [
+                Icon(icon, size: 45),
+              ],
+            ),
+            const SizedBox(width: 16.0),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AutoSizeText(
+                  platform,
+                  style: const TextStyle(
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textScaleFactor: 1.0,
+                  maxLines: 1,
+                  minFontSize: 2.0,
                 ),
-                textScaleFactor: 1.0,
-                maxLines: 1,
-                minFontSize: 2.0,
-              ),
-              AutoSizeText(
-                isUpcoming ? '(upcoming)' : status,
-                style: TextStyle(
-                  color: statusColor,
-                  fontSize: 12.0,
+                AutoSizeText(
+                  isUpcoming ? '(upcoming)' : status,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 12.0,
+                  ),
+                  minFontSize: 2.0,
+                  textScaleFactor: 1.0,
+                  maxLines: 1,
                 ),
-                minFontSize: 2.0,
-                textScaleFactor: 1.0,
-                maxLines: 1,
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -579,202 +638,214 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     return Wrap(
       runSpacing: 8.0,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[850],
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-          child: Column(
-            children: [
-              const Text(
-                'Average lateness',
-                style: TextStyle(fontSize: 14),
-              ),
-              const Text(
-                'from the last 5 shows',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              Text(
-                '${whenPlaneIntegration.timeString(
-                  (platenessData['averageLateness'] as num).abs().toInt(),
-                )} $phrase',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                      '± ${whenPlaneIntegration.timeString(
-                        (platenessData['latenessStandardDeviation'] as num)
-                            .abs()
-                            .toInt(),
-                      )}',
-                      style: const TextStyle(fontSize: 12)),
-                  const SizedBox(width: 4),
-                  const Tooltip(
-                    message:
-                        '''Think of standard deviation as a measure that tells you how much individual values in a set typically differ from the average of that set. If the standard deviation is small, it means most values are close to the average. If it's large, it means values are more spread out from the average, indicating greater variability in the data. Essentially, standard deviation gives you an idea of how consistent or varied the values are in relation to the average.''',
-                    child: Icon(Icons.info_outline, size: 12),
-                  ),
-                ],
-              ),
-            ],
+        Card(
+          elevation: 1,
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 64.0, vertical: 16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Average lateness',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const Text(
+                  'from the last 5 shows',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                Text(
+                  '${whenPlaneIntegration.timeString(
+                    (platenessData['averageLateness'] as num).abs().toInt(),
+                  )} $phrase',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                        '± ${whenPlaneIntegration.timeString(
+                          (platenessData['latenessStandardDeviation'] as num)
+                              .abs()
+                              .toInt(),
+                        )}',
+                        style: const TextStyle(fontSize: 12)),
+                    const SizedBox(width: 4),
+                    const Tooltip(
+                      message:
+                          '''Think of standard deviation as a measure that tells you how much individual values in a set typically differ from the average of that set. If the standard deviation is small, it means most values are close to the average. If it's large, it means values are more spread out from the average, indicating greater variability in the data. Essentially, standard deviation gives you an idea of how consistent or varied the values are in relation to the average.''',
+                      child: Icon(Icons.info_outline, size: 12),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 8.0),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey[850],
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
-          child: Column(
-            children: [
-              const Text(
-                'Median lateness',
-                style: TextStyle(fontSize: 14),
-              ),
-              const Text(
-                'from the last 5 shows',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              Text(
-                '${whenPlaneIntegration.timeString(
-                  (platenessData['medianLateness'] as num).abs().toInt(),
-                )} $phrase',
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(
-                height: 17,
-              )
-            ],
+        const SizedBox(width: 8),
+        Card(
+          elevation: 1,
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 64.0, vertical: 16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Median lateness',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const Text(
+                  'from the last 5 shows',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                Text(
+                  '${whenPlaneIntegration.timeString(
+                    (platenessData['medianLateness'] as num).abs().toInt(),
+                  )} $phrase',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 17),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildShowMightStartSoonAlert() {
-    return Container(
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: Colors.green[900],
-        border: Border.all(color: Colors.green, width: 2),
-        borderRadius: BorderRadius.circular(12.0),
+  Widget _buildShowMightStartSoonAlert(ColorScheme colorScheme) {
+    return Card(
+      elevation: 1,
+      color: colorScheme.surfaceContainerHighest,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: colorScheme.primaryContainer),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Wrap(
-        spacing: 8.0,
-        direction: Axis.horizontal,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 175,
-                height: 100,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.0),
-                  image: DecorationImage(
-                    image: NetworkImage(
-                      pjsonData['floatplane']['thumbnail'],
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Wrap(
+          spacing: 8.0,
+          direction: Axis.horizontal,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 175,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8.0),
+                    image: DecorationImage(
+                      image: NetworkImage(
+                        pjsonData['floatplane']['thumbnail'],
+                      ),
+                      fit: BoxFit.contain,
                     ),
-                    fit: BoxFit.contain,
                   ),
                 ),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (pjsonData['floatplane']?['isThumbnailNew'])
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (pjsonData['floatplane']?['isThumbnailNew'])
+                  AutoSizeText(
+                    maxLines: 1,
+                    'The show might start soon!',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 AutoSizeText(
-                  maxLines: 1,
-                  'The show might start soon!',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                  '"${pjsonData['floatplane']['title'].split(' - ')[0]}"',
+                  maxLines: 2,
+                  style: TextStyle(fontSize: 20),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                AutoSizeText.rich(
+                  maxLines: 2,
+                  TextSpan(
+                    text: 'The thumbnail was updated',
+                    children: [
+                      TextSpan(
+                        text: pjsonData['floatplane']?['isThumbnailNew']
+                            ? ""
+                            : ",",
+                      ),
+                      TextSpan(
+                        text: pjsonData['floatplane']?['isThumbnailNew']
+                            ? ""
+                            : " but they haven't gone live yet.",
+                      ),
+                    ],
                   ),
                 ),
-              AutoSizeText(
-                '"${pjsonData['floatplane']['title'].split(' - ')[0]}"',
-                maxLines: 2,
-                style: TextStyle(fontSize: 20),
-                overflow: TextOverflow.ellipsis,
-              ),
-              AutoSizeText.rich(
-                maxLines: 2,
-                TextSpan(
-                  text: 'The thumbnail was updated',
-                  children: [
-                    TextSpan(
-                      text:
-                          pjsonData['floatplane']?['isThumbnailNew'] ? "" : ",",
-                    ),
-                    TextSpan(
-                      text: pjsonData['floatplane']?['isThumbnailNew']
-                          ? ""
-                          : " but they haven't gone live yet.",
-                    ),
-                  ],
+                AutoSizeText.rich(
+                  maxLines: 2,
+                  TextSpan(
+                    text: pjsonData['floatplane']?['isThumbnailNew']
+                        ? ""
+                        : "It was updated",
+                    children: [
+                      TextSpan(
+                        text:
+                            ' ${whenPlaneIntegration.timeString(pjsonData['floatplane']?['thumbnailAge'], long: true, showSeconds: false)}ago',
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              AutoSizeText.rich(
-                maxLines: 2,
-                TextSpan(
-                  text: pjsonData['floatplane']?['isThumbnailNew']
-                      ? ""
-                      : "It was updated",
-                  children: [
-                    TextSpan(
-                      text:
-                          ' ${whenPlaneIntegration.timeString(pjsonData['floatplane']?['thumbnailAge'], long: true, showSeconds: false)}ago',
-                    ),
-                  ],
+                Tooltip(
+                  message:
+                      'Generally when a thumbnail is uploaded, all hosts are in their seats ready to start the show.\nUsually the show starts within 10 minutes of a thumbnail being uploaded.',
+                  child: Icon(Icons.info_outline, size: 16),
                 ),
-              ),
-              Tooltip(
-                message:
-                    'Generally when a thumbnail is uploaded, all hosts are in their seats ready to start the show.\nUsually the show starts within 10 minutes of a thumbnail being uploaded.',
-                child: Icon(Icons.info_outline, size: 16),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSpecialAlert() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.amber[900],
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: Colors.orange, width: 1),
+  Widget _buildSpecialAlert(ColorScheme colorScheme) {
+    return Card(
+      elevation: 1,
+      color: colorScheme.surfaceContainerHighest,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: colorScheme.tertiaryContainer),
+        borderRadius: BorderRadius.circular(12),
       ),
-      padding: const EdgeInsets.all(8.0),
-      child: Column(children: [
-        Text(
-          pjsonData['isThereWan']['text'],
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 14.0,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(children: [
+          Text(
+            pjsonData['isThereWan']['text'],
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14.0,
+            ),
           ),
-        ),
-        if (pjsonData['isThereWan']['image'] != null)
-          const SizedBox(height: 8.0),
-        if (pjsonData['isThereWan']['image'] != null)
-          Image.network(
-            pjsonData['isThereWan']['image'],
-            width: 400,
-            fit: BoxFit.contain,
-          ),
-      ]),
+          if (pjsonData['isThereWan']['image'] != null)
+            const SizedBox(height: 8.0),
+          if (pjsonData['isThereWan']['image'] != null)
+            Image.network(
+              pjsonData['isThereWan']['image'],
+              width: 400,
+              fit: BoxFit.contain,
+            ),
+        ]),
+      ),
     );
   }
 
@@ -784,7 +855,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     return base64.replaceAll('=', '');
   }
 
-  Widget _buildLatenessVoting() {
+  Widget _buildLatenessVoting(ColorScheme colorScheme, TextTheme textTheme) {
     // Calculate total votes
     int totalVotes = 0;
     for (var vote in pjsonData['votes']) {
@@ -833,72 +904,135 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
         if (votingrevealed)
           ...pjsonData['votes'].map((vote) {
             // Calculate percentage
-            double percentage = (vote['votes'] as int) / totalVotes * 100;
-            String percentageText =
-                percentage > 0 ? "${(percentage).toInt()}%" : "0%";
+            double percentage =
+                totalVotes > 0 ? (vote['votes'] as int) / totalVotes * 100 : 0;
+            int voteCount = vote['votes'] as int;
             String voteText = vote['name'] as String;
+            bool isSelected = selectedVote == voteText;
+            bool isExpired = ((whenPlaneIntegration.getTimeUntil(nextWan,
+                            now: nextWan)['distance'] ??
+                        0)
+                    .abs()) >
+                (vote['time'] ?? 0);
 
-            return InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () {
-                whenPlaneIntegration.sendVote(voteText, generateK());
-                settings.setKey('votedname', voteText);
-
-                setState(() {
-                  selectedVote = vote['name'];
-                });
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '$voteText ${selectedVote == voteText ? '(your vote)' : ''}',
-                          style: TextStyle(
-                            color: ((whenPlaneIntegration.getTimeUntil(nextWan,
-                                                now: nextWan)['distance'] ??
-                                            0)
-                                        .abs()) >
-                                    (vote['time'] ?? 0)
-                                ? Colors.grey
-                                : Colors.white,
-                            decoration: ((whenPlaneIntegration.getTimeUntil(
-                                                nextWan,
-                                                now: nextWan)['distance'] ??
-                                            0)
-                                        .abs()) >
-                                    (vote['time'] ?? 0)
-                                ? TextDecoration.lineThrough
-                                : null,
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: GestureDetector(
+                onTap: () {
+                  if (isExpired) return;
+                  whenPlaneIntegration.sendVote(voteText, generateK());
+                  settings.setKey('votedname', voteText);
+                  setState(() {
+                    selectedVote = voteText;
+                  });
+                },
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isExpired
+                        ? colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.5,
+                          )
+                        : colorScheme.surface,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isExpired
+                          ? colorScheme.outlineVariant
+                          : (isSelected
+                              ? colorScheme.primary
+                              : colorScheme.outlineVariant),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Progress bar
+                      if (totalVotes > 0 || isSelected)
+                        Positioned.fill(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: isExpired
+                                  ? colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.5)
+                                  : colorScheme.primaryContainer
+                                      .withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
                           ),
                         ),
-                        Text(percentageText),
-                      ],
-                    ),
-                    const SizedBox(height: 4.0),
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4.0),
+                      // Content
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            children: [
+                              // Radio button
+                              Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isExpired
+                                        ? colorScheme.outlineVariant
+                                        : (isSelected
+                                            ? colorScheme.primary
+                                            : colorScheme.outline),
+                                    width: 2,
+                                  ),
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : Colors.transparent,
+                                ),
+                                child: isSelected
+                                    ? Icon(Icons.check,
+                                        size: 16, color: colorScheme.onPrimary)
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              // Option text
+                              Expanded(
+                                child: Text(
+                                  voteText,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: isExpired
+                                        ? colorScheme.onSurfaceVariant
+                                        : colorScheme.onSurface,
+                                    decoration: isExpired
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Vote count and percentage
+                              if (totalVotes > 0 || isSelected) ...[
+                                Text(
+                                  '$voteCount Vote${voteCount != 1 ? 's' : ''}',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${percentage.round()}%',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: isExpired
+                                        ? colorScheme.onSurfaceVariant
+                                        : colorScheme.onSurface,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
-                      clipBehavior: Clip.antiAlias,
-                      child: LinearProgressIndicator(
-                        value: percentage > 0 ? percentage / 100 : 0,
-                        backgroundColor: Colors.grey[700],
-                        color: ((whenPlaneIntegration.getTimeUntil(nextWan,
-                                            now: nextWan)['distance'] ??
-                                        0)
-                                    .abs()) >
-                                (vote['time'] ?? 0)
-                            ? Colors.grey[800]
-                            : Theme.of(context).colorScheme.primary,
-                        minHeight: 10,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

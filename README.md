@@ -8,22 +8,25 @@ This repository is the tartar sauce spaghetti code of Floaty.
 ## 📃Feature Matrix
 | **Feature**                | **Windows** | **MacOS** | **Linux** | **Android** | **iOS** | **Info**                  |
 |----------------------------|-------------|-----------|-----------|-------------|---------|---------------------------|
-| **Channel Page**           | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Post Page**              | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Playback**               | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Livestream Page**        | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Livesteam playback**     | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Live Chat**              | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Floatplane Settings**    | ⚠️          | ⚠️        | ⚠️        | ⚠️          | ⚠️      | Some settings are there.  |
-| **Home Page**              | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Whenplane intergration** | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Updater**                | ❌           | ❌         | ❌         | ❌           | ❌       | Awaiting Website          |
-| **PiP**                    | ✅           | ✅         | ✅         | ✅           | ❌       |                           |
-| **Mini Player**            | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Subtitles**              | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Live Chat Polls**        | ⚠️          | ⚠️        | ⚠️        | ⚠️          | ⚠️      | Untested due to timezones & poll availabilty but complete.                           |
-| **Live Chat Emotes**       | ✅           | ✅         | ✅         | ✅           | ✅       |                           |
-| **Notifications**          | ❌           | ❌         | ❌         | ⚠️          | ❌       | Experimental not complete |
+| **Channel Page**           | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Post Page**              | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Playback**               | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Livestream Page**        | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Livesteam playback**     | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Live Chat**              | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Live Chat Polls**        | ⚠️           | ⚠️         | ⚠️         | ⚠️           | ⚠️       | Untested & Only supports 1 poll at once!  |
+| **Live Chat Emotes**       | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Floatplane Settings**    | ⚠️           | ⚠️         | ⚠️         | ⚠️           | ⚠️       | Some settings are there.                  |
+| **Home Page**              | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Whenplane intergration** | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Updater**                | ❌           | ❌         | ❌         | ❌           | ❌       | Awaiting Website                          |
+| **PiP**                    | ✅           | ✅         | ✅         | ✅           | ❌       |                                           |
+| **Mini Player**            | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Subtitles**              | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Download**               | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Login**                  | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **2FA**                    | ✅           | ✅         | ✅         | ✅           | ✅       |                                           |
+| **Notifications**          | ❌           | ❌         | ❌         | ❌           | ❌       | Deciding on how to complete this.         |
 
 
 ## 🛠️ How to Compile and Run

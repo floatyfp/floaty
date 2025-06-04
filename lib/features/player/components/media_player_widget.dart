@@ -86,6 +86,8 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
 
   double speedvar = 1.0;
   Widget _buildMediaContent() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     switch (widget.mediaType) {
       case MediaType.video:
         final videoController = _mediaService.videoController;
@@ -101,7 +103,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
               seekBarThumbColor: Colors.white,
-              seekBarPositionColor: Theme.of(context).colorScheme.primary,
+              seekBarPositionColor: colorScheme.primary,
               topButtonBar: [
                 MaterialDesktopCustomButton(
                   icon: const Icon(Icons.close),
@@ -142,7 +144,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                   },
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.settings, color: Colors.white),
                   itemBuilder: (context) => [
                     if (widget.textTracks?.isNotEmpty == true)
                       PopupMenuItem<String>(
@@ -313,7 +315,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
               seekBarThumbColor: Colors.white,
-              seekBarPositionColor: Theme.of(context).colorScheme.primary,
+              seekBarPositionColor: colorScheme.primary,
               bottomButtonBar: [
                 MaterialDesktopSkipPreviousButton(),
                 MaterialDesktopPlayOrPauseButton(),
@@ -344,7 +346,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                   },
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.settings, color: Colors.white),
                   itemBuilder: (context) => [
                     if (widget.textTracks?.isNotEmpty == true)
                       PopupMenuItem<String>(
@@ -532,7 +534,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
               seekBarThumbColor: Colors.white,
-              seekBarPositionColor: Theme.of(context).colorScheme.primary,
+              seekBarPositionColor: colorScheme.primary,
               seekBarAlignment: Alignment.bottomCenter,
               topButtonBar: [
                 MaterialCustomButton(
@@ -572,7 +574,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                     },
                   ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.settings, color: Colors.white),
                   itemBuilder: (context) => [
                     if (widget.textTracks?.isNotEmpty == true)
                       PopupMenuItem<String>(
@@ -747,7 +749,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
               buttonBarButtonSize: 24.0,
               buttonBarButtonColor: Colors.white,
               seekBarThumbColor: Colors.white,
-              seekBarPositionColor: Theme.of(context).colorScheme.primary,
+              seekBarPositionColor: colorScheme.primary,
               seekBarAlignment: Alignment(0.0, -2.0),
               bottomButtonBar: [
                 MaterialPositionIndicator(),
@@ -777,7 +779,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                     },
                   ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.settings, color: Colors.white),
                   itemBuilder: (context) => [
                     if (widget.textTracks?.isNotEmpty == true)
                       PopupMenuItem<String>(
@@ -967,7 +969,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
           seekBarContainerHeight: 40.0,
           seekBarColor: const Color(0x3DFFFFFF),
           seekBarThumbColor: Colors.white,
-          seekBarPositionColor: Theme.of(context).colorScheme.primary,
+          seekBarPositionColor: colorScheme.primary,
           seekBarBufferColor: const Color(0x3DFFFFFF),
           seekBarThumbSize: 12.0,
           buttonBarHeight: 48.0,

@@ -192,13 +192,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: MediaQuery.of(context).size.width < 600
           ? AppBar(
               elevation: 0,
               toolbarHeight: 40,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
+              backgroundColor: colorScheme.surfaceContainer,
+              surfaceTintColor: colorScheme.surfaceContainer,
               title: const Text('Floatplane Account'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -275,13 +276,14 @@ class _InvoicesSettingsScreenState extends State<InvoicesSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: MediaQuery.of(context).size.width < 600
           ? AppBar(
               elevation: 0,
               toolbarHeight: 40,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
+              backgroundColor: colorScheme.surfaceContainer,
+              surfaceTintColor: colorScheme.surfaceContainer,
               title: const Text('Invoices'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -392,9 +394,7 @@ class _InvoicesSettingsScreenState extends State<InvoicesSettingsScreen> {
                                                             Container(
                                                           decoration:
                                                               BoxDecoration(
-                                                            color: Theme.of(
-                                                                    context)
-                                                                .colorScheme
+                                                            color: colorScheme
                                                                 .surfaceContainer,
                                                             borderRadius:
                                                                 BorderRadius
@@ -503,13 +503,14 @@ class LicensesSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: MediaQuery.of(context).size.width < 600
           ? AppBar(
               elevation: 0,
               toolbarHeight: 40,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
+              backgroundColor: colorScheme.surfaceContainer,
+              surfaceTintColor: colorScheme.surfaceContainer,
               title: const Text('Licenses'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -586,6 +587,7 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     const flavor =
         String.fromEnvironment('FLUTTER_FLAVOR', defaultValue: 'release');
     return Scaffold(
@@ -593,8 +595,8 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
           ? AppBar(
               elevation: 0,
               toolbarHeight: 40,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
+              backgroundColor: colorScheme.surfaceContainer,
+              surfaceTintColor: colorScheme.surfaceContainer,
               title: const Text('About'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -823,8 +825,9 @@ class CustomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
-      color: Theme.of(context).appBarTheme.backgroundColor,
+      color: colorScheme.surfaceContainer,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -841,7 +844,7 @@ class CustomCard extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 22.5,
                     foregroundImage: NetworkImage(avatarUrl!),
-                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    backgroundColor: colorScheme.surface,
                   ),
                 ),
               if (avatarUrl != null) const SizedBox(width: 11),
@@ -887,13 +890,14 @@ class _PlayerSettingsScreenState extends State<PlayerSettingsScreen> {
   bool? pauseOnBackground;
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: MediaQuery.of(context).size.width < 600
           ? AppBar(
               elevation: 0,
               toolbarHeight: 40,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
+              backgroundColor: colorScheme.surfaceContainer,
+              surfaceTintColor: colorScheme.surfaceContainer,
               title: Text('Player'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -933,14 +937,15 @@ class AppearanceSettingsScreen extends StatefulWidget {
 class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final box = Hive.box('settings');
     return Scaffold(
       appBar: MediaQuery.of(context).size.width < 600
           ? AppBar(
               elevation: 0,
               toolbarHeight: 40,
-              backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-              surfaceTintColor: Theme.of(context).colorScheme.surfaceContainer,
+              backgroundColor: colorScheme.surfaceContainer,
+              surfaceTintColor: colorScheme.surfaceContainer,
               title: const Text('Appearance'),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),

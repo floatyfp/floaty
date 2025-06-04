@@ -97,7 +97,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
 
   Future<void> initUserAgent() async {
     packageInfo = await PackageInfo.fromPlatform();
-    userAgent = 'FloatyClient/${packageInfo?.version}, CFNetwork';
+    userAgent =
+        'FloatyClient/${packageInfo?.version}+${packageInfo?.buildNumber}, CFNetwork';
   }
 
   //whenplane intergration
@@ -200,6 +201,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     _mediaService = ref.watch(mediaPlayerServiceProvider.notifier);
     final postState = ref.watch(postProvider(widget.postId));
     menuItems = ref.watch(menuItemsProvider);
@@ -257,7 +260,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                                 children: [
                                   Expanded(
                                     flex: 2,
-                                    child: _buildMainContent(constraints),
+                                    child: _buildMainContent(
+                                        constraints, theme, colorScheme),
                                   ),
                                   const SizedBox(width: 24),
                                   _buildRecommendedSection(constraints,
@@ -267,7 +271,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                             : Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildMainContent(constraints),
+                                  _buildMainContent(
+                                      constraints, theme, colorScheme),
                                   _buildRecommendedSection(
                                     constraints,
                                     layout: isMedium
@@ -623,7 +628,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
   //   return v2Url;
   // }
 
-  List<Widget> _buildInteractionButtons() {
+  List<Widget> _buildInteractionButtons(
+      ThemeData theme, ColorScheme colorScheme) {
     final postState = ref.watch(postProvider(widget.postId));
     final post = postState.post;
     final downloadNotifier = ref.read(downloadOptionsProvider.notifier);
@@ -783,11 +789,11 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
           overlayColor: Colors.grey[800],
         ),
         icon: AnimatedTheme(
-          data: Theme.of(context).copyWith(
+          data: theme.copyWith(
             iconTheme: IconThemeData(
               color: postState.isLiked
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
+                  ? colorScheme.primary
+                  : colorScheme.onSurface,
             ),
           ),
           duration: const Duration(milliseconds: 200),
@@ -796,9 +802,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
         label: AnimatedDefaultTextStyle(
           duration: const Duration(milliseconds: 200),
           style: TextStyle(
-            color: postState.isLiked
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurface,
+            color:
+                postState.isLiked ? colorScheme.primary : colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
           child: Text('${postState.likeCount}'),
@@ -813,11 +818,11 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
           overlayColor: Colors.grey[800],
         ),
         icon: AnimatedTheme(
-          data: Theme.of(context).copyWith(
+          data: theme.copyWith(
             iconTheme: IconThemeData(
               color: postState.isDisliked
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
+                  ? colorScheme.primary
+                  : colorScheme.onSurface,
             ),
           ),
           duration: const Duration(milliseconds: 200),
@@ -827,8 +832,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
           duration: const Duration(milliseconds: 200),
           style: TextStyle(
             color: postState.isDisliked
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurface,
+                ? colorScheme.primary
+                : colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
           child: Text('${postState.dislikeCount}'),
@@ -839,7 +844,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
     ];
   }
 
-  Widget _buildMainContent(BoxConstraints constraints) {
+  Widget _buildMainContent(
+      BoxConstraints constraints, ThemeData theme, ColorScheme colorScheme) {
     final postState = ref.watch(postProvider(widget.postId));
     final post = postState.post;
     if (post == null) return const SizedBox.shrink();
@@ -871,9 +877,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                       children: post.tags
                           .map((tag) => Text(
                                 '#$tag',
-                                style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary),
+                                style: TextStyle(color: colorScheme.primary),
                               ))
                           .toList(),
                     )
@@ -882,7 +886,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: _buildInteractionButtons(),
+                children: _buildInteractionButtons(theme, colorScheme),
               ),
             ],
           )
@@ -908,10 +912,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                         children: post.tags
                             .map((tag) => Text(
                                   '#$tag',
-                                  style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primary),
+                                  style: TextStyle(color: colorScheme.primary),
                                 ))
                             .toList(),
                       ),
@@ -921,7 +922,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                children: _buildInteractionButtons(),
+                children: _buildInteractionButtons(theme, colorScheme),
               ),
             ],
           ),
@@ -962,7 +963,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                           ? 'Posted ${DateFormat('MMMM dd, yyyy').format(post.releaseDate!)}'
                           : '',
                       style: TextStyle(
-                        color: Theme.of(context).textTheme.titleMedium?.color,
+                        color: theme.textTheme.titleMedium?.color,
                         fontSize: 14,
                       ),
                     ),
@@ -1175,10 +1176,8 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Theme.of(context)
-                                  .scaffoldBackgroundColor
-                                  .withAlpha(0),
-                              Theme.of(context).scaffoldBackgroundColor,
+                              theme.scaffoldBackgroundColor.withAlpha(0),
+                              theme.scaffoldBackgroundColor,
                             ],
                           ),
                         ),
@@ -1198,14 +1197,14 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                         Text(
                           postState.isExpanded ? 'Show Less' : 'Show More',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                         Icon(
                           postState.isExpanded
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: theme.colorScheme.primary,
                         ),
                       ],
                     ),
