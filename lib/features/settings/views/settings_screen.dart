@@ -4,6 +4,7 @@ import 'package:floaty/main.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:floaty/features/router/views/root_layout.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http_cache_hive_store/http_cache_hive_store.dart';
@@ -204,7 +205,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
-                  context.pop();
+                  context.canPop() ? context.pop() : SystemNavigator.pop();
                 },
               ),
             )
@@ -288,7 +289,7 @@ class _InvoicesSettingsScreenState extends State<InvoicesSettingsScreen> {
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
-                  context.pop();
+                  context.canPop() ? context.pop() : SystemNavigator.pop();
                 },
               ),
             )
@@ -515,7 +516,7 @@ class LicensesSettingsScreen extends StatelessWidget {
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
-                  context.pop();
+                  context.canPop() ? context.pop() : SystemNavigator.pop();
                 },
               ),
             )
@@ -601,7 +602,7 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
-                  context.pop();
+                  context.canPop() ? context.pop() : SystemNavigator.pop();
                 },
               ),
             )
@@ -1039,7 +1040,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                               actions: [
                                 TextButton(
                                     onPressed: () =>
-                                        Navigator.of(dialogContext).pop(),
+                                        Navigator.of(dialogContext).maybePop(),
                                     child: const Text('Cancel')),
                                 TextButton(
                                   onPressed: () {
@@ -1047,7 +1048,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                       settingsBox.put('material_seed_color',
                                           picker.toARGB32());
                                     }
-                                    Navigator.of(dialogContext).pop();
+                                    Navigator.of(dialogContext).maybePop();
                                   },
                                   child: const Text('OK'),
                                 ),

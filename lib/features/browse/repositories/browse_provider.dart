@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 class BrowseState {
-  final List<CreatorModelV3> creators;
+  final List<CreatorDiscoveryResponse> creators;
   final bool isLoading;
   Timer? debounce;
   TextEditingController searchController = TextEditingController();
@@ -18,7 +18,7 @@ class BrowseState {
       this.debounce});
 
   BrowseState copyWith(
-      {List<CreatorModelV3>? creators,
+      {List<CreatorDiscoveryResponse>? creators,
       bool? isLoading,
       TextEditingController? searchController,
       Timer? debounce}) {
@@ -42,7 +42,7 @@ class BrowseNotifier extends StateNotifier<BrowseState> {
   void fetchCreators() async {
     state = state.copyWith(isLoading: true);
     try {
-      fpApiRequests.getCreators().listen((fetchedCreators) {
+      fpApiRequests.getCreatorDiscovery().listen((fetchedCreators) {
         state = state.copyWith(creators: fetchedCreators, isLoading: false);
       }, onError: (error) {
         state = state.copyWith(creators: [], isLoading: false);
@@ -74,7 +74,7 @@ class BrowseNotifier extends StateNotifier<BrowseState> {
 
   void _performSearch(String query) {
     state = state.copyWith(isLoading: true);
-    fpApiRequests.getCreators(query: query).listen((fetchedCreators) {
+    fpApiRequests.getCreatorDiscovery(query: query).listen((fetchedCreators) {
       state = state.copyWith(
         creators: fetchedCreators,
         isLoading: false,

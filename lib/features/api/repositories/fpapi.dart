@@ -300,6 +300,25 @@ class FPApiRequests {
     }
   }
 
+  Stream<List<CreatorDiscoveryResponse>> getCreatorDiscovery(
+      {String? query}) async* {
+    try {
+      final apiUrl = query != null
+          ? 'v3/creator/discover?searchField=$query&featuredBlogPosts=1&creatorStats=true'
+          : 'v3/creator/discover?featuredBlogPosts=1&creatorStats=true';
+
+      final subres = await fetchData(apiUrl);
+      if (subres != null && subres.isNotEmpty) {
+        List<dynamic> jsonList = jsonDecode(subres)['creators'];
+        yield jsonList
+            .map((json) => CreatorDiscoveryResponse.fromJson(json))
+            .toList();
+      }
+    } catch (e) {
+      yield [];
+    }
+  }
+
   Future<List<HistoryModelV3>> getHistory({int? offset}) async {
     try {
       int offsetInt = offset ?? 0;

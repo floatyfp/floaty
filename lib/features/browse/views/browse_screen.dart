@@ -1,6 +1,5 @@
 import 'package:floaty/features/browse/components/creator_card.dart';
 import 'package:flutter/material.dart';
-
 import 'package:floaty/features/browse/repositories/browse_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,36 +22,51 @@ class BrowseScreenState extends ConsumerState<BrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final browseState = ref.watch(browseProvider);
-    return Scaffold(
-      body: Center(
-        child: Container(
-          width:
-              MediaQuery.of(context).size.width > 1000 ? 1000 : double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: browseState.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : browseState.creators.isEmpty
-                  ? const Center(child: Text("No items found."))
-                  : SingleChildScrollView(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.only(top: 8),
-                        gridDelegate:
-                            const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 300,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                        ),
-                        itemCount: browseState.creators.length,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          return CreatorCard(browseState.creators[index]);
-                        },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final browseState = ref.watch(browseProvider);
+        final creators = browseState.creators;
+        final width = constraints.maxWidth;
+        final crossAxisCount = (width / 300).floor().clamp(1, 3);
+
+        List<Widget> rows = [];
+        for (int i = 0; i < creators.length; i += crossAxisCount) {
+          final rowItems = creators.skip(i).take(crossAxisCount).toList();
+
+          rows.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: rowItems.map((creator) {
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: CreatorCard(creator),
                       ),
-                    ),
-        ),
-      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(12),
+            child: Center(
+              child: Container(
+                width: width > 1500 ? 1500 : double.infinity,
+                child: Column(
+                  children: rows,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:floaty/features/api/repositories/fpapi.dart';
 import 'package:floaty/features/post/components/expandable_description.dart';
 import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CommentItem extends ConsumerStatefulWidget {
@@ -294,9 +295,12 @@ class _CommentItemState extends ConsumerState<CommentItem> {
                                             'Are you sure you want to delete this comment?'),
                                         actions: [
                                           TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(dialogContext)
-                                                    .pop(),
+                                            onPressed: () => Navigator.of(
+                                                        dialogContext)
+                                                    .canPop()
+                                                ? Navigator.of(dialogContext)
+                                                    .pop()
+                                                : SystemNavigator.pop(),
                                             child: const Text('Cancel'),
                                           ),
                                           TextButton(
@@ -326,7 +330,7 @@ class _CommentItemState extends ConsumerState<CommentItem> {
 
                                               if (context.mounted) {
                                                 Navigator.of(dialogContext)
-                                                    .pop();
+                                                    .maybePop();
                                               }
                                             },
                                             child: const Text('Delete',

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:simple_icons/simple_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:math';
 
 class WhenplaneScreen extends StatefulWidget {
   const WhenplaneScreen({super.key, this.v = false, this.h});
@@ -30,12 +31,25 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   String? selectedVote;
   late String k;
 
+  // Generate random votes for testing
+  final votes = [
+    {'name': 'On Time', 'votes': Random().nextInt(100) + 1},
+    {'name': '5 min', 'votes': Random().nextInt(100) + 1},
+    {'name': '10 min', 'votes': Random().nextInt(100) + 1},
+    {'name': '15 min', 'votes': Random().nextInt(100) + 1},
+    {'name': '20+ min', 'votes': Random().nextInt(100) + 1},
+  ];
+  late int totalVotes;
+
   @override
   void initState() {
     super.initState();
     loadSelectedVote();
     websocketStart();
     initFetch();
+
+    // Calculate total votes
+    totalVotes = votes.fold(0, (sum, vote) => sum + (vote['votes'] as int));
   }
 
   void initFetch() async {
@@ -43,6 +57,9 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     latenessData = await whenPlaneIntegration.lateness();
     setState(() {
       isLoading = false;
+      isAfterStartTime = nearestWan['isNext']
+          ? nearestWan['timeUntil'] > Duration.zero
+          : nearestWan['timeUntil'] < Duration.zero;
     });
   }
 
@@ -70,6 +87,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   late dynamic platenessData;
   late dynamic pjsonData;
 
+  Map<String, dynamic> nearestWan = whenPlaneIntegration.getNearestWan();
   bool isMainLate = false;
   String countdownString = '';
   bool isAfterStartTime = false;
@@ -241,7 +259,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                             if (pjsonData['isThereWan']['text'] != null)
                               _buildSpecialAlert(colorScheme),
                             const SizedBox(height: 12.0),
-                            if (!pjsonData['hasDone'] &&
+                            if (pjsonData['isDone'] == false &&
                                 (DateTime.now().toUtc().weekday == 5 ||
                                     DateTime.now().toUtc().weekday == 6))
                               ConstrainedBox(
@@ -414,7 +432,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
 
     bool mainShowStarted = pjsonData['youtube']['started'] != null;
 
-    bool isLate = pjsonData['hasDone'] && !isPreShow && !isMainShow;
+    bool isLate = isAfterStartTime && !isPreShow && !isMainShow;
 
     return Card(
       elevation: 1,
@@ -453,7 +471,8 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                 textAlign: TextAlign.center,
                 maxLines: 2,
               )
-            else if (pjsonData['floatplane']['isLive'] &&
+            else if (pjsonData['floatplane']['isLive'] != null &&
+                pjsonData['floatplane']['isLive'] &&
                 pjsonData['floatplane']['isWAN'] &&
                 !pjsonData['twitch']['isLive'])
               AutoSizeText(
@@ -875,19 +894,15 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
               ),
             ),
             IconButton(
-              icon: votingrevealed
-                  ? Icon(Icons.keyboard_arrow_up)
-                  : Icon(Icons.keyboard_arrow_down),
-              onPressed: () {
-                setState(() {
-                  votingrevealed = !votingrevealed;
-                });
-              },
+              icon: Icon(votingrevealed
+                  ? Icons.keyboard_arrow_up
+                  : Icons.keyboard_arrow_down),
+              onPressed: () => setState(() => votingrevealed = !votingrevealed),
             ),
           ],
         ),
-        if (votingrevealed) const SizedBox(height: 8.0),
-        if (votingrevealed)
+        if (votingrevealed) ...[
+          const SizedBox(height: 8.0),
           const Row(
             children: [
               Text('How late do you think the show will be?'),
@@ -899,117 +914,216 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
               ),
             ],
           ),
-        if (votingrevealed) const SizedBox(height: 16.0),
-        // Voting options
-        if (votingrevealed)
-          ...pjsonData['votes'].map((vote) {
-            // Calculate percentage
-            double percentage =
-                totalVotes > 0 ? (vote['votes'] as int) / totalVotes * 100 : 0;
-            int voteCount = vote['votes'] as int;
-            String voteText = vote['name'] as String;
-            bool isSelected = selectedVote == voteText;
-            bool isExpired = ((whenPlaneIntegration.getTimeUntil(nextWan,
-                            now: nextWan)['distance'] ??
-                        0)
-                    .abs()) >
-                (vote['time'] ?? 0);
+          const SizedBox(height: 16.0),
+          //  color: ((whenPlaneIntegration.getTimeUntil(
+          //                                                   whenPlaneIntegration
+          //                                                           .getNearestWan(
+          //                                                               DateTime.now())[
+          //                                                       'date'] as DateTime,
+          //                                                   now: DateTime
+          //                                                       .now())['distance'] ??
+          //                                               0)
+          //                                           .abs()) >
+          //                                       (vote['time'] as int?) ??
+          //                                   0
+          //                               ? Colors.grey
+          //                               : Colors.white,
+          //                           decoration: ((whenPlaneIntegration.getTimeUntil(
+          //                                                   whenPlaneIntegration
+          //                                                           .getNearestWan(
+          //                                                               DateTime.now())[
+          //                                                       'date'] as DateTime,
+          //                                                   now: DateTime
+          //                                                       .now())['distance'] ??
+          //                                               0)
+          //                                           .abs()) >
+          //                                       (vote['time'] as int?) ??
+          //                                   0
+          //                               ? TextDecoration.lineThrough
+          //                               : null,
+          //                         ),
+          //                       ),
+          //                       Text(percentageText),
+          //                     ],
+          //                   ),
+          //                   const SizedBox(height: 4.0),
+          //                   Container(
+          //                     decoration: BoxDecoration(
+          //                       borderRadius: BorderRadius.circular(4.0),
+          //                     ),
+          //                     clipBehavior: Clip.antiAlias,
+          //                     child: LinearProgressIndicator(
+          //                       value: percentage > 0 ? percentage / 100 : 0,
+          //                       backgroundColor: Colors.grey[700],
+          //                       color: ((whenPlaneIntegration.getTimeUntil(
+          //                                                   whenPlaneIntegration
+          //                                                           .getNearestWan(
+          //                                                               DateTime.now())[
+          //                                                       'date'] as DateTime,
+          //                                                   now: DateTime.now())[
+          //                                               'distance'] ??
+          //                                           0)
+          //                                       .abs()) >
+          //                                   (vote['time'] as int?) ??
+          //                               0
+          //                           ? Colors.grey[800]
+          //                           : Theme.of(context).colorScheme.primary,
+          ...pjsonData['votes'].map<Widget>((vote) {
+            final voteCount = vote['votes'] as int;
+            final voteName = vote['name'] as String;
+            final isSelected = voteName == selectedVote;
+            final percentage = totalVotes > 0
+                ? (voteCount / totalVotes * 100).clamp(0, 100)
+                : 0.0;
 
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              padding: const EdgeInsets.symmetric(vertical: 2.5),
               child: GestureDetector(
-                onTap: () {
-                  if (isExpired) return;
-                  whenPlaneIntegration.sendVote(voteText, generateK());
-                  settings.setKey('votedname', voteText);
-                  setState(() {
-                    selectedVote = voteText;
-                  });
-                },
+                onTap: () => setState(() {
+                  selectedVote = voteName;
+                  whenPlaneIntegration.sendVote(voteName, generateK());
+                  settings.setKey('votedname', voteName);
+                }),
                 child: Container(
-                  height: 44,
+                  height: 33,
                   decoration: BoxDecoration(
-                    color: isExpired
-                        ? colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.5,
-                          )
-                        : colorScheme.surface,
+                    color: colorScheme.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: isExpired
-                          ? colorScheme.outlineVariant
-                          : (isSelected
-                              ? colorScheme.primary
-                              : colorScheme.outlineVariant),
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.outlineVariant,
                       width: isSelected ? 2 : 1,
                     ),
                   ),
-                  child: Stack(
-                    children: [
-                      // Progress bar
-                      if (totalVotes > 0 || isSelected)
-                        Positioned.fill(
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: double.infinity,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => Stack(
+                      children: [
+                        // Progress bar
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: percentage > 0
+                                ? constraints.maxWidth * (percentage / 100)
+                                : 0,
                             decoration: BoxDecoration(
-                              color: isExpired
-                                  ? colorScheme.surfaceContainerHighest
-                                      .withValues(alpha: 0.5)
-                                  : colorScheme.primaryContainer
-                                      .withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(3),
+                              color: ((whenPlaneIntegration.getTimeUntil(
+                                                      whenPlaneIntegration
+                                                              .getNearestWan(
+                                                                  DateTime
+                                                                      .now())[
+                                                          'date'] as DateTime,
+                                                      now: DateTime
+                                                          .now())['distance'] ??
+                                                  0)
+                                              .abs()) >
+                                          (vote['time'] as int?) ??
+                                      0
+                                  ? colorScheme.inversePrimary
+                                  : colorScheme.primaryContainer,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(4),
+                                bottomLeft: Radius.circular(4),
+                              ),
                             ),
                           ),
                         ),
-                      // Content
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            children: [
-                              // Radio button
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: isExpired
-                                        ? colorScheme.outlineVariant
-                                        : (isSelected
-                                            ? colorScheme.primary
-                                            : colorScheme.outline),
-                                    width: 2,
+                        // Option content
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Row(
+                              children: [
+                                // Radio button/checkmark
+                                Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? colorScheme.primary
+                                          : colorScheme.outline,
+                                      width: 2,
+                                    ),
+                                    color: isSelected
+                                        ? colorScheme.primary
+                                        : Colors.transparent,
                                   ),
-                                  color: isSelected
-                                      ? colorScheme.primary
-                                      : Colors.transparent,
+                                  child: isSelected
+                                      ? Icon(
+                                          Icons.check,
+                                          color: colorScheme.onPrimary,
+                                          size: 12,
+                                        )
+                                      : null,
                                 ),
-                                child: isSelected
-                                    ? Icon(Icons.check,
-                                        size: 16, color: colorScheme.onPrimary)
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              // Option text
-                              Expanded(
-                                child: Text(
-                                  voteText,
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: isExpired
-                                        ? colorScheme.onSurfaceVariant
-                                        : colorScheme.onSurface,
-                                    decoration: isExpired
-                                        ? TextDecoration.lineThrough
-                                        : null,
+                                const SizedBox(width: 12),
+                                // Option name
+                                // color: ((whenPlaneIntegration.getTimeUntil(
+                                //                                                   whenPlaneIntegration
+                                //                                                           .getNearestWan(
+                                //                                                               DateTime.now())[
+                                //                                                       'date'] as DateTime,
+                                //                                                   now: DateTime
+                                //                                                       .now())['distance'] ??
+                                //                                               0)
+                                //                                           .abs()) >
+                                //                                       (vote['time'] as int?) ??
+                                //                                   0
+                                //                               ? Colors.grey
+                                //                               : Colors.white,
+                                //                           decoration: ((whenPlaneIntegration.getTimeUntil(
+                                //                                                   whenPlaneIntegration
+                                //                                                           .getNearestWan(
+                                //                                                               DateTime.now())[
+                                //                                                       'date'] as DateTime,
+                                //                                                   now: DateTime
+                                //                                                       .now())['distance'] ??
+                                //                                               0)
+                                //                                           .abs()) >
+                                //                                       (vote['time'] as int?) ??
+                                //                                   0
+                                //                               ? TextDecoration.lineThrough
+                                //                               : null,
+                                Expanded(
+                                  child: Text(
+                                    voteName,
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: ((whenPlaneIntegration.getTimeUntil(
+                                                              whenPlaneIntegration
+                                                                      .getNearestWan(
+                                                                          DateTime
+                                                                              .now())['date']
+                                                                  as DateTime,
+                                                              now: DateTime
+                                                                  .now())['distance'] ??
+                                                          0)
+                                                      .abs()) >
+                                                  (vote['time'] as int?) ??
+                                              0
+                                          ? colorScheme.onSurfaceVariant
+                                          : colorScheme.onSurface,
+                                      decoration: ((whenPlaneIntegration.getTimeUntil(
+                                                              whenPlaneIntegration
+                                                                      .getNearestWan(
+                                                                          DateTime
+                                                                              .now())['date']
+                                                                  as DateTime,
+                                                              now: DateTime
+                                                                  .now())['distance'] ??
+                                                          0)
+                                                      .abs()) >
+                                                  (vote['time'] as int?) ??
+                                              0
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                    ),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                              // Vote count and percentage
-                              if (totalVotes > 0 || isSelected) ...[
+                                // Vote count
                                 Text(
                                   '$voteCount Vote${voteCount != 1 ? 's' : ''}',
                                   style: textTheme.bodySmall?.copyWith(
@@ -1017,26 +1131,26 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
+                                // Percentage
                                 Text(
                                   '${percentage.round()}%',
                                   style: textTheme.bodySmall?.copyWith(
-                                    color: isExpired
-                                        ? colorScheme.onSurfaceVariant
-                                        : colorScheme.onSurface,
+                                    color: colorScheme.onSurface,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             );
           }).toList(),
+        ],
       ],
     );
   }

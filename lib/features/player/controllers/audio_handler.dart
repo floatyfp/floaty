@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:floaty/settings.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:logging/logging.dart';
 import 'dart:async';
@@ -7,6 +8,7 @@ import 'package:audio_session/audio_session.dart';
 class FloatyAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
   final Player _player;
+
   AudioSession? session;
   MediaItem? _currentMedia;
   final _log = Logger('FloatyAudioHandler');
@@ -112,10 +114,11 @@ class FloatyAudioHandler extends BaseAudioHandler
       ),
     );
 
-    session?.interruptionEventStream.listen((event) {
+    session?.interruptionEventStream.listen((event) async {
       if (event.begin) {
         switch (event.type) {
           case AudioInterruptionType.duck:
+            settings.setDynamic('audio_volume', _player.state.volume);
             _player.setVolume(30);
             break;
           case AudioInterruptionType.pause:
@@ -128,9 +131,14 @@ class FloatyAudioHandler extends BaseAudioHandler
       } else {
         switch (event.type) {
           case AudioInterruptionType.duck:
-            _player.setVolume(100);
+            _player.setVolume(
+                (await settings.getDynamic('audio_volume')) as double? ?? 100);
             break;
-          default:
+          case AudioInterruptionType.pause:
+            play();
+            break;
+          case AudioInterruptionType.unknown:
+            play();
             break;
         }
       }
@@ -171,8 +179,7 @@ class FloatyAudioHandler extends BaseAudioHandler
     try {
       _log.info('Stopping audio: ${_currentMedia?.title}');
       await _player.stop();
-      _updatePlaybackState(false, processingState: AudioProcessingState.idle);
-      await session?.setActive(false);
+      await super.stop();
     } catch (e, stack) {
       _log.severe('Error stopping audio', e, stack);
       rethrow;
@@ -227,10 +234,15 @@ class FloatyAudioHandler extends BaseAudioHandler
 
       // Start with a temporary duration, will be updated by stream
       mediaItem = mediaItem.copyWith(
+        id: mediaItem.id,
+        title: mediaItem.title,
+        artist: mediaItem.artist,
+        artUri: mediaItem.artUri,
         playable: true,
         displayTitle: mediaItem.title,
         displaySubtitle: mediaItem.artist,
-        duration: const Duration(minutes: 5), // Temporary duration
+        duration: mediaItem.duration,
+        extras: mediaItem.extras,
       );
       _currentMedia = mediaItem;
 

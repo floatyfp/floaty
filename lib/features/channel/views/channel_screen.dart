@@ -170,7 +170,9 @@ class ChannelScreenStateWrapperState
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _pagingController.dispose();
+    if (mounted) {
+      _pagingController.dispose();
+    }
     super.dispose();
   }
 

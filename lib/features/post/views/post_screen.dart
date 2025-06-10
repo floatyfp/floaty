@@ -711,7 +711,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
                         dense: true,
                         title: Text(option.label),
                         onTap: () async {
-                          Navigator.of(context).pop();
+                          Navigator.of(context).maybePop();
 
                           // Check permissions before starting download
                           final hasPermissions = await DownloadManager()

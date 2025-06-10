@@ -266,6 +266,71 @@ class PostMetadataModel {
 }
 
 @JsonSerializable()
+class CreatorDiscoveryResponse {
+  final String id;
+  final String title;
+  final String urlname;
+  final String description;
+  final String? about;
+  final ImageModel icon;
+  final List<String> channels;
+  final List<BlogPostModelV3>? featuredBlogPosts;
+  final Map<String, dynamic>?
+      stats; // Making this nullable as it's not in the response
+
+  CreatorDiscoveryResponse({
+    required this.id,
+    required this.title,
+    required this.urlname,
+    required this.description,
+    this.about,
+    required this.icon,
+    required this.channels,
+    this.featuredBlogPosts,
+    this.stats,
+  });
+
+  factory CreatorDiscoveryResponse.fromJson(Map<String, dynamic> json) =>
+      _$CreatorDiscoveryResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CreatorDiscoveryResponseToJson(this);
+}
+
+@JsonSerializable()
+class CreatorStats {
+  final int posts;
+  final int subscribers;
+  final List<ChannelStats> channels;
+
+  CreatorStats({
+    required this.posts,
+    required this.subscribers,
+    required this.channels,
+  });
+
+  factory CreatorStats.fromJson(Map<String, dynamic> json) =>
+      _$CreatorStatsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CreatorStatsToJson(this);
+}
+
+@JsonSerializable()
+class ChannelStats {
+  final String id;
+  final int posts;
+
+  ChannelStats({
+    required this.id,
+    required this.posts,
+  });
+
+  factory ChannelStats.fromJson(Map<String, dynamic> json) =>
+      _$ChannelStatsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ChannelStatsToJson(this);
+}
+
+@JsonSerializable()
 class BlogPostModelV3 {
   final String? id;
   final String? guid;

@@ -1,7 +1,5 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-// ignore_for_file: unused_element
-
 part of 'definitions.dart';
 
 // **************************************************************************
@@ -232,6 +230,63 @@ Map<String, dynamic> _$PostMetadataModelToJson(PostMetadataModel instance) =>
       'hasGallery': instance.hasGallery,
       'galleryCount': instance.galleryCount,
       'isFeatured': instance.isFeatured,
+    };
+
+CreatorDiscoveryResponse _$CreatorDiscoveryResponseFromJson(
+        Map<String, dynamic> json) =>
+    CreatorDiscoveryResponse(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      urlname: json['urlname'] as String,
+      description: json['description'] as String,
+      about: json['about'] as String?,
+      icon: ImageModel.fromJson(json['icon'] as Map<String, dynamic>),
+      channels:
+          (json['channels'] as List<dynamic>).map((e) => e as String).toList(),
+      featuredBlogPosts: (json['featuredBlogPosts'] as List<dynamic>?)
+          ?.map((e) => BlogPostModelV3.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      stats: json['stats'] as Map<String, dynamic>?,
+    );
+
+Map<String, dynamic> _$CreatorDiscoveryResponseToJson(
+        CreatorDiscoveryResponse instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'title': instance.title,
+      'urlname': instance.urlname,
+      'description': instance.description,
+      'about': instance.about,
+      'icon': instance.icon,
+      'channels': instance.channels,
+      'featuredBlogPosts': instance.featuredBlogPosts,
+      'stats': instance.stats,
+    };
+
+CreatorStats _$CreatorStatsFromJson(Map<String, dynamic> json) => CreatorStats(
+      posts: (json['posts'] as num).toInt(),
+      subscribers: (json['subscribers'] as num).toInt(),
+      channels: (json['channels'] as List<dynamic>)
+          .map((e) => ChannelStats.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$CreatorStatsToJson(CreatorStats instance) =>
+    <String, dynamic>{
+      'posts': instance.posts,
+      'subscribers': instance.subscribers,
+      'channels': instance.channels,
+    };
+
+ChannelStats _$ChannelStatsFromJson(Map<String, dynamic> json) => ChannelStats(
+      id: json['id'] as String,
+      posts: (json['posts'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$ChannelStatsToJson(ChannelStats instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'posts': instance.posts,
     };
 
 BlogPostModelV3 _$BlogPostModelV3FromJson(Map<String, dynamic> json) =>

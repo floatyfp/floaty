@@ -91,7 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _pagingController.dispose();
+    if (mounted) {
+      _pagingController.dispose();
+    }
     super.dispose();
   }
 

@@ -2,6 +2,7 @@ import 'package:floaty/features/authentication/repositories/login_api.dart';
 import 'package:floaty/features/updater/respositories/updater_controllers.dart';
 import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
 import 'package:floaty/features/router/controllers/router.dart';
+import 'package:floaty/features/deeplinks/controllers/deeplinks.dart';
 import 'package:flutter/material.dart';
 // import 'package:floaty/features/logs/repositories/log_service.dart';
 import 'package:go_router/go_router.dart';
@@ -41,6 +42,11 @@ void main() async {
 
   // Initialize download manager
   await DownloadManager().initialize();
+
+  // Initialize deep link service
+  final deepLinkService = DeepLinkService();
+  deepLinkService.setRouter(routerController);
+  deepLinkService.initDeepLinks();
 
   final packageInfo = await PackageInfo.fromPlatform();
   final userAgent =

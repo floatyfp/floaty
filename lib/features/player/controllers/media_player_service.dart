@@ -110,18 +110,22 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
 
   void _setupPlayerListeners() {
     _simplePip = SimplePip(
-      onPipExited: () => _live
-          ? rootLayoutKey.currentContext?.go('/live/${_currentPostId}')
-          : rootLayoutKey.currentContext?.go('/post/${_currentPostId}'),
+      onPipExited: () {
+        if (_live) {
+          rootLayoutKey.currentContext?.go('/live/$currentPostId');
+        } else {
+          rootLayoutKey.currentContext?.go('/post/$currentPostId');
+        }
+      },
     );
     if (globalPlayer == null) return;
-
-    (globalPlayer!.platform as NativePlayer)
-        .setProperty('ao', 'pulse,alsa,jack,null');
 
     if (_live == true) {
       (globalPlayer!.platform as NativePlayer)
           .setProperty('profile', 'low-latency');
+    } else {
+      (globalPlayer!.platform as NativePlayer)
+          .setProperty('profile', 'default');
     }
 
     player.stream.position.listen((position) {
@@ -208,7 +212,6 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
         config: const AudioServiceConfig(
           androidNotificationChannelId: 'uk.bw86.floaty.channel.audio',
           androidNotificationChannelName: 'Audio playback',
-          androidNotificationOngoing: true,
           androidNotificationIcon: 'mipmap/ic_notification',
         ),
       );
@@ -362,6 +365,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
         displayTitle: title ?? 'Unknown Title',
         displaySubtitle: artist,
         duration: _duration,
+        extras: {
+          'postId': _currentPostId,
+        },
       ));
 
       // Update playback state after setting media
@@ -594,6 +600,8 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     await player.stop();
     if (!Platform.isWindows) {
       await audioHandler?.stop();
+      // await audioHandler?;
+      await audioHandler?.session?.setActive(false);
     }
     await windowsControls?.stop();
   }

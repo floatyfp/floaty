@@ -107,6 +107,7 @@ class _LiveChatState extends ConsumerState<LiveChat> {
           toolbarHeight: 40,
           backgroundColor: colorScheme.surfaceContainer,
           surfaceTintColor: colorScheme.surfaceContainer,
+          automaticallyImplyLeading: false,
           leading: widget.exit
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
@@ -729,107 +730,108 @@ class _PollWidgetState extends State<PollWidget> with WidgetsBindingObserver {
                       if (hasVoted) return;
                       selectedOptionIndex = index;
                     }),
-                    child: Container(
-                      width: double.infinity,
-                      height: 33,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: isSelected
-                              ? colorScheme.primary
-                              : colorScheme.outlineVariant,
-                          width: isSelected ? 2 : 1,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => Container(
+                        width: double.infinity,
+                        height: 33,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: isSelected
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant,
+                            width: isSelected ? 2 : 1,
+                          ),
                         ),
-                      ),
-                      child: Stack(
-                        children: [
-                          // Progress bar (only shown after voting)
-                          if (hasVoted || showResults)
-                            Positioned(
-                              left: 0,
-                              top: 0,
-                              bottom: 0,
-                              child: Container(
-                                width: MediaQuery.of(context).size.width *
-                                    (percentage / 100) *
-                                    0.8,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primaryContainer,
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(4),
-                                    bottomLeft: Radius.circular(4),
+                        child: Stack(
+                          children: [
+                            // Progress bar (only shown after voting)
+                            if (hasVoted || showResults)
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width:
+                                      constraints.maxWidth * (percentage / 100),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer,
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(4),
+                                      bottomLeft: Radius.circular(4),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
 
-                          // Option content
-                          Center(
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
-                              child: Row(
-                                children: [
-                                  // Radio button or checkmark
-                                  Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
+                            // Option content
+                            Center(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(
+                                  children: [
+                                    // Radio button or checkmark
+                                    Container(
+                                      width: 16,
+                                      height: 16,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? colorScheme.primary
+                                              : colorScheme.outline,
+                                          width: 2,
+                                        ),
                                         color: isSelected
                                             ? colorScheme.primary
-                                            : colorScheme.outline,
-                                        width: 2,
+                                            : Colors.transparent,
                                       ),
-                                      color: isSelected
-                                          ? colorScheme.primary
-                                          : Colors.transparent,
+                                      child: isSelected
+                                          ? Icon(
+                                              Icons.check,
+                                              color: colorScheme.onPrimary,
+                                              size: 12,
+                                            )
+                                          : null,
                                     ),
-                                    child: isSelected
-                                        ? Icon(
-                                            Icons.check,
-                                            color: colorScheme.onPrimary,
-                                            size: 12,
-                                          )
-                                        : null,
-                                  ),
 
-                                  const SizedBox(width: 12),
+                                    const SizedBox(width: 12),
 
-                                  // Option text
-                                  Expanded(
-                                    child: Text(
-                                      option,
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onSurface,
+                                    // Option text
+                                    Expanded(
+                                      child: Text(
+                                        option,
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: colorScheme.onSurface,
+                                        ),
                                       ),
                                     ),
-                                  ),
 
-                                  // Vote count and percentage (only shown after voting)
-                                  if (hasVoted || showResults) ...[
-                                    Text(
-                                      '$voteCount Vote${voteCount != 1 ? 's' : ''}',
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
+                                    // Vote count and percentage (only shown after voting)
+                                    if (hasVoted || showResults) ...[
+                                      Text(
+                                        '$voteCount Vote${voteCount != 1 ? 's' : ''}',
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${percentage.round()}%',
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontWeight: FontWeight.w500,
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${percentage.round()}%',
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: colorScheme.onSurface,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1189,7 +1191,7 @@ Future<Widget> _buildChatPreview() async {
   ));
 
   // Message text
-  spans.add(const TextSpan(text: 'hello '));
+  spans.add(TextSpan(text: 'hello ', style: TextStyle(fontSize: fontSize)));
 
   // Mention button
   spans.add(WidgetSpan(

@@ -304,9 +304,32 @@ class WhenPlaneIntegration {
     DateTime previous = getPreviousWAN(now);
 
     int distanceToNext = next.difference(now).inMilliseconds.abs();
-    int distanceToPrevious = previous.difference(now).inMilliseconds.abs();
+    int distanceToPrevious = now.difference(previous).inMilliseconds.abs();
 
-    return distanceToNext > distanceToPrevious ? previous : next;
+    return distanceToNext < distanceToPrevious ? next : previous;
+  }
+
+  Map<String, dynamic> getNearestWan([DateTime? now]) {
+    now ??= DateTime.now();
+    DateTime next = getNextWAN(now, buffer: false);
+    DateTime previous = getPreviousWAN(now);
+
+    Duration toNext = next.difference(now);
+    Duration sincePrevious = now.difference(previous);
+
+    if (toNext < sincePrevious) {
+      return {
+        'date': next,
+        'isNext': true,
+        'timeUntil': toNext,
+      };
+    } else {
+      return {
+        'date': previous,
+        'isNext': false,
+        'timeUntil': -sincePrevious, // Negative to indicate it's in the past
+      };
+    }
   }
 
   bool isNearWan(DateTime? now) {
