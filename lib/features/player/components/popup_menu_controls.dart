@@ -7,29 +7,63 @@ PopupMenuItem<String> subtitlePopupMenuItem({
   required MediaPlayerService mediaService,
   required List<Map<String, dynamic>> textTracks,
 }) {
+  // Local state to track selected subtitles
+  int selectedSubtitles = mediaService.subtitlesEnabled
+      ? (mediaService.currentSubtitleTrackIndex ?? -1)
+      : -1;
+
   return PopupMenuItem<String>(
     value: 'subtitles',
-    child: PopupMenuButton<int>(
-      child: const Text('Subtitles'),
-      itemBuilder: (context) => textTracks.asMap().entries.map((entry) {
-        final index = entry.key;
-        final track = entry.value;
-        return PopupMenuItem<int>(
-          value: index,
-          child: Row(
-            children: [
-              Text(track['language'] ?? 'Unknown'),
-              if (index == mediaService.currentSubtitleTrackIndex)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Icon(Icons.check, size: 16),
+    child: StatefulBuilder(
+      builder: (context, setState) {
+        String selectedSubtitlesLabel = 'off';
+        if (selectedSubtitles >= 0 &&
+            textTracks[selectedSubtitles]['language'] != null) {
+          selectedSubtitlesLabel =
+              '${textTracks[selectedSubtitles]['language']}';
+        }
+
+        return PopupMenuButton<int>(
+          child: Text('Subtitles ($selectedSubtitlesLabel)'),
+          itemBuilder: (context) => [
+            PopupMenuItem<int>(
+              value: -1,
+              child: Row(
+                children: [
+                  const Text('off'),
+                  if (selectedSubtitles == -1)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(Icons.check, size: 16),
+                    ),
+                ],
+              ),
+            ),
+            ...textTracks.asMap().entries.map((entry) {
+              final index = entry.key;
+              final track = entry.value;
+              return PopupMenuItem<int>(
+                value: index,
+                child: Row(
+                  children: [
+                    Text(track['language'] ?? 'Unknown'),
+                    if (selectedSubtitles == index)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.check, size: 16),
+                      ),
+                  ],
                 ),
-            ],
-          ),
+              );
+            }),
+          ],
+          onSelected: (index) {
+            setState(() {
+              selectedSubtitles = index;
+            });
+            mediaService.setSubtitleTrack(index);
+          },
         );
-      }).toList(),
-      onSelected: (index) {
-        mediaService.setSubtitleTrack(index);
       },
     ),
   );
@@ -41,25 +75,39 @@ PopupMenuItem<String> qualityPopupMenuItem({
 }) {
   return PopupMenuItem<String>(
     value: 'quality',
-    child: PopupMenuButton<VideoQuality>(
-      child: Text('Quality'),
-      itemBuilder: (context) => qualities.map((quality) {
-        return PopupMenuItem<VideoQuality>(
-          value: quality,
-          child: Row(
-            children: [
-              Text(quality.label),
-              if (quality == mediaService.currentQuality)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Icon(Icons.check, size: 16),
-                ),
-            ],
-          ),
+    child: StatefulBuilder(
+      builder: (context, setState) {
+        // Local state to track selected quality
+        VideoQuality? selectedQuality = mediaService.currentQuality;
+        String selectedQualityLabel = '';
+        if (selectedQuality?.label != null) {
+          selectedQualityLabel = ' (${selectedQuality?.label})';
+        }
+
+        return PopupMenuButton<VideoQuality>(
+          child: Text('Quality$selectedQualityLabel'),
+          itemBuilder: (context) => qualities.map((quality) {
+            return PopupMenuItem<VideoQuality>(
+              value: quality,
+              child: Row(
+                children: [
+                  Text(quality.label),
+                  if (selectedQuality == quality)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(Icons.check, size: 16),
+                    ),
+                ],
+              ),
+            );
+          }).toList(),
+          onSelected: (quality) {
+            setState(() {
+              selectedQuality = quality;
+            });
+            mediaService.changeQuality(quality);
+          },
         );
-      }).toList(),
-      onSelected: (quality) {
-        mediaService.changeQuality(quality);
       },
     ),
   );
@@ -69,42 +117,53 @@ PopupMenuItem<String> playbackSpeedPopupMenuItem({
   required MediaPlayerService mediaService,
 }) {
   List<double> playbackSpeeds = [0.5, 1.0, 1.25, 1.5, 1.75, 2.0];
+
   return PopupMenuItem<String>(
     value: 'playback_speed',
-    child: PopupMenuButton<double>(
-      child: Text('Playback Speed'),
-      itemBuilder: (context) => [
-        ...playbackSpeeds.map((speed) {
-          return PopupMenuItem(
-              value: speed,
+    child: StatefulBuilder(
+      builder: (context, setState) {
+        // Local state to track selected speed
+        double selectedSpeed = mediaService.player.state.rate;
+
+        return PopupMenuButton<double>(
+          child: Text('Playback Speed (${selectedSpeed}x)'),
+          itemBuilder: (context) => [
+            ...playbackSpeeds.map((speed) {
+              return PopupMenuItem(
+                  value: speed,
+                  child: Row(
+                    children: [
+                      Text('${speed}x'),
+                      if (selectedSpeed == speed)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8.0),
+                          child: Icon(Icons.check, size: 16),
+                        ),
+                    ],
+                  ));
+            }),
+            PopupMenuItem(
+              value: selectedSpeed,
               child: Row(
                 children: [
-                  Text('${speed}x'),
-                  if (mediaService.player.state.rate == speed)
+                  Text('Custom'),
+                  if (!playbackSpeeds.contains(selectedSpeed))
                     const Padding(
                       padding: EdgeInsets.only(left: 8.0),
                       child: Icon(Icons.check, size: 16),
                     ),
                 ],
-              ));
-        }),
-        PopupMenuItem(
-          value: mediaService.player.state.rate,
-          child: Row(
-            children: [
-              Text('Custom'),
-              if (!playbackSpeeds.contains(mediaService.player.state.rate))
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Icon(Icons.check, size: 16),
-                ),
-            ],
-          ),
-          onTap: () => _showCustomSpeedDialog(context, mediaService),
-        ),
-      ],
-      onSelected: (speed) {
-        mediaService.setSpeed(speed);
+              ),
+              onTap: () => _showCustomSpeedDialog(context, mediaService),
+            ),
+          ],
+          onSelected: (speed) {
+            setState(() {
+              selectedSpeed = speed;
+            });
+            mediaService.setSpeed(speed);
+          },
+        );
       },
     ),
   );
