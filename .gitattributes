@@ -1,2 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Ignore EOL-only differences in generated plugin registrant files
+**/generated_plugin_registrant.* -text
+**/generated_plugins.cmake -text
+**/GeneratedPluginRegistrant.swift -text

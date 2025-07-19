@@ -657,7 +657,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     player.setRate(speed);
   }
 
-  Future<void> toggleSubtitles() async {
+  Future<bool> toggleSubtitles() async {
     _subtitlesEnabled = !_subtitlesEnabled;
     await settings.setBool('subtitles_enabled', _subtitlesEnabled);
     _log.info('Toggling subtitles: ${_subtitlesEnabled ? 'on' : 'off'}');
@@ -677,9 +677,19 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       );
     }
     state = state;
+    return _subtitlesEnabled;
   }
 
   Future<void> setSubtitleTrack(int index) async {
+    if (index == -1) {
+      _subtitlesEnabled = false;
+      settings.setBool('subtitles_enabled', false);
+      _log.info('Turning subtitles off');
+      await player.setSubtitleTrack(SubtitleTrack.no());
+      state = state;
+      return;
+    }
+
     if (_currentTextTracks == null || index >= _currentTextTracks!.length) {
       _log.warning('Invalid subtitle track index: $index');
       return;
@@ -689,6 +699,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     _currentSubtitleTrackIndex = index;
     final track = _currentTextTracks![index];
 
+    _subtitlesEnabled = true;
     settings.setBool('subtitles_enabled', true);
 
     await player.setSubtitleTrack(
