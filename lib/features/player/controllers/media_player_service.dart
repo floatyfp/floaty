@@ -657,7 +657,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     player.setRate(speed);
   }
 
-  Future<void> toggleSubtitles() async {
+  Future<bool> toggleSubtitles() async {
     _subtitlesEnabled = !_subtitlesEnabled;
     await settings.setBool('subtitles_enabled', _subtitlesEnabled);
     _log.info('Toggling subtitles: ${_subtitlesEnabled ? 'on' : 'off'}');
@@ -677,6 +677,7 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       );
     }
     state = state;
+    return _subtitlesEnabled;
   }
 
   Future<void> setSubtitleTrack(int index) async {

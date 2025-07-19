@@ -54,6 +54,7 @@ class MediaPlayerWidget extends ConsumerStatefulWidget {
 }
 
 class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
+  bool subtitlesEnabled = false;
   late MediaPlayerService _mediaService;
   bool _isInitialized = false;
   late bool _pipAvailable;
@@ -65,6 +66,8 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
   }
 
   Future<void> _initializePlayer() async {
+    subtitlesEnabled =
+        ref.read(mediaPlayerServiceProvider.notifier).subtitlesEnabled;
     if (Platform.isAndroid) _pipAvailable = await SimplePip.isPipAvailable;
     _mediaService = ref.read(mediaPlayerServiceProvider.notifier);
     await _mediaService.setSource(
@@ -131,13 +134,23 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialDesktopPositionIndicator(),
                 const Spacer(),
                 if (widget.textTracks?.isNotEmpty == true)
-                  MaterialDesktopCustomButton(
-                    icon: Icon(
-                      Icons.closed_caption,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      _mediaService.toggleSubtitles();
+                  StatefulBuilder(
+                    builder: (context, setState) {
+                      return MaterialDesktopCustomButton(
+                        icon: Icon(
+                          subtitlesEnabled
+                              ? Icons.closed_caption
+                              : Icons.closed_caption_off,
+                          color: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final subtitles =
+                              await _mediaService.toggleSubtitles();
+                          setState(() {
+                            subtitlesEnabled = subtitles;
+                          });
+                        },
+                      );
                     },
                   ),
                 MaterialDesktopCustomButton(
@@ -188,13 +201,23 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialDesktopPositionIndicator(),
                 const Spacer(),
                 if (widget.textTracks?.isNotEmpty == true)
-                  MaterialDesktopCustomButton(
-                    icon: Icon(
-                      Icons.closed_caption,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      _mediaService.toggleSubtitles();
+                  StatefulBuilder(
+                    builder: (context, setState) {
+                      return MaterialDesktopCustomButton(
+                        icon: Icon(
+                          subtitlesEnabled
+                              ? Icons.closed_caption
+                              : Icons.closed_caption_off,
+                          color: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final subtitles =
+                              await _mediaService.toggleSubtitles();
+                          setState(() {
+                            subtitlesEnabled = subtitles;
+                          });
+                        },
+                      );
                     },
                   ),
                 MaterialDesktopCustomButton(
@@ -269,13 +292,23 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialPositionIndicator(),
                 const Spacer(),
                 if (widget.textTracks?.isNotEmpty == true)
-                  MaterialCustomButton(
-                    icon: Icon(
-                      Icons.closed_caption,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      _mediaService.toggleSubtitles();
+                  StatefulBuilder(
+                    builder: (context, setState) {
+                      return MaterialCustomButton(
+                        icon: Icon(
+                          subtitlesEnabled
+                              ? Icons.closed_caption
+                              : Icons.closed_caption_off,
+                          color: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final subtitles =
+                              await _mediaService.toggleSubtitles();
+                          setState(() {
+                            subtitlesEnabled = subtitles;
+                          });
+                        },
+                      );
                     },
                   ),
                 if (!Platform.isIOS && _pipAvailable)
@@ -330,13 +363,23 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
                 MaterialPositionIndicator(),
                 const Spacer(),
                 if (widget.textTracks?.isNotEmpty == true)
-                  MaterialCustomButton(
-                    icon: Icon(
-                      Icons.closed_caption,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      _mediaService.toggleSubtitles();
+                  StatefulBuilder(
+                    builder: (context, setState) {
+                      return MaterialCustomButton(
+                        icon: Icon(
+                          subtitlesEnabled
+                              ? Icons.closed_caption
+                              : Icons.closed_caption_off,
+                          color: Colors.white,
+                        ),
+                        onPressed: () async {
+                          final subtitles =
+                              await _mediaService.toggleSubtitles();
+                          setState(() {
+                            subtitlesEnabled = subtitles;
+                          });
+                        },
+                      );
                     },
                   ),
                 if (!Platform.isIOS && _pipAvailable)
