@@ -1,12 +1,12 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:audioplayers/audioplayers.dart';
+import 'package:floaty/whitelabels.dart';
 import 'package:floaty/features/api/repositories/fpapi.dart';
+import 'package:media_kit/media_kit.dart';
 
 import 'dart:async';
 import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:floaty/shared/views/error_screen.dart';
-import 'package:floaty/whitelabels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -979,12 +979,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool highlightMentions = true; // Default true
   bool revealPollResultsBeforeVoting = false; // Default false
   bool timestampMessages = false; // Default false
-  final player = AudioPlayer();
+  bool _isPlayerInitialized = false;
   bool _isLoading = true;
+  final Player player = Player();
 
   @override
   void initState() {
     super.initState();
+    _isPlayerInitialized = true;
     _loadSettings();
   }
 
@@ -1014,8 +1016,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    player.dispose();
+    if (_isPlayerInitialized) {
+      _isPlayerInitialized = false;
+    }
     super.dispose();
+    player.dispose();
   }
 
   @override
@@ -1056,7 +1061,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   });
                   settings.setBool('play_sound_when_mentioned', value);
                   if (value) {
-                    await player.play(AssetSource('livechat/pop.wav'));
+                    final player = Player();
+                    await player
+                        .open(Media('asset:///assets/livechat/pop.wav'));
+                    Future.delayed(const Duration(seconds: 5), () {
+                      player.dispose();
+                    });
                   }
                 },
                 title: Text('Play sound when mentioned'),

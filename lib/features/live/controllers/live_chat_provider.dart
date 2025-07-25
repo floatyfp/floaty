@@ -2,7 +2,6 @@
 
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:floaty/features/api/repositories/fpwebsockets.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +9,7 @@ import 'package:floaty/features/api/utils/chat_utils.dart';
 import 'package:floaty/features/router/views/root_layout.dart';
 import 'package:floaty/features/api/models/ws_definitions.dart';
 import 'package:floaty/settings.dart';
+import 'package:media_kit/media_kit.dart';
 
 final webSocketEventHandlerProvider = Provider<WebSocketEventHandler>((ref) {
   return WebSocketEventHandler(ref);
@@ -267,9 +267,9 @@ class ChatManager extends StateNotifier<List<ParsedChatMessage>> {
         if (pingText.substring(1) ==
                 rootLayoutKey.currentState?.user!.username &&
             pingSound) {
-          final player = AudioPlayer();
-          await player.play(AssetSource('livechat/pop.wav'));
-          player.onPlayerComplete.listen((event) {
+          final player = Player();
+          await player.open(Media('asset:///assets/livechat/pop.wav'));
+          Future.delayed(const Duration(seconds: 5), () {
             player.dispose();
           });
         }

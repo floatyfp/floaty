@@ -52,6 +52,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
   String sortBy = 'createdAt';
   String sortOrder = 'DESC';
   String? _selectedAttachmentId;
+  dynamic selectedAttachment;
   bool text = false;
   bool isWan = false;
   String letsBeHonestItsLateTime = '';
@@ -336,9 +337,6 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
 
       // If no attachment found, default to first
       _selectedAttachmentId ??= post.attachmentOrder.first;
-
-      // Find the selected attachment
-      dynamic selectedAttachment;
 
       // Search through video attachments
       for (final video
@@ -945,6 +943,26 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
+        if (selectedAttachment != null &&
+            selectedAttachment.isProcessing is bool &&
+            selectedAttachment.isProcessing)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: double.infinity,
+                color: colorScheme.surfaceContainerHigh,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text('This content is still processing',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      )),
+                ),
+              ),
+            ),
+          ),
         if (isSmall)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

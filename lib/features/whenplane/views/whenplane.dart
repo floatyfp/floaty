@@ -26,7 +26,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   Timer? _phraseTimer;
   String phrase = whenPlaneIntegration.newPhrase();
   late String jsonData;
-  String? latenessData;
+  late String latenessData;
   bool isLoading = true;
 
   bool votingrevealed = true;
@@ -58,10 +58,12 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   void initFetch() async {
     jsonData = await whenPlaneIntegration.aggregate();
     latenessData = await whenPlaneIntegration.lateness();
+    platenessData = jsonDecode(latenessData);
+    pjsonData = jsonDecode(jsonData);
     if (jsonData is Map ||
         latenessData is Map ||
         jsonDecode(jsonData)['error'] != null ||
-        jsonDecode(latenessData ?? '')['error'] != null) {
+        jsonDecode(latenessData)['error'] != null) {
       if (mounted) {
         setState(() {
           error = true;
@@ -80,18 +82,25 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   }
 
   void websocketStart() async {
-    final stream = whenPlaneIntegration.streamWebsocket();
-    stream.listen((message) {
-      if (message != 'pong') {
-        if (mounted) {
-          setState(() {
-            error = false;
-            isLoading = false;
-            jsonData = message;
-            pjsonData = jsonDecode(message);
-          });
-        }
-      }
+    // final stream = whenPlaneIntegration.streamWebsocket();
+    // stream.listen((message) {
+    //   if (message != 'pong') {
+    //     if (mounted) {
+    //       setState(() {
+    //         error = false;
+    //         isLoading = false;
+    //         jsonData = message;
+    //         pjsonData = jsonDecode(message);
+    //       });
+    //     }
+    //   }
+    // });
+    final aggregate = await whenPlaneIntegration.aggregate();
+    setState(() {
+      error = false;
+      isLoading = false;
+      jsonData = aggregate;
+      pjsonData = jsonDecode(aggregate);
     });
   }
 
@@ -116,7 +125,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     }
   }
 
-  late dynamic platenessData;
+  dynamic platenessData;
   dynamic pjsonData;
 
   Map<String, dynamic> nearestWan = whenPlaneIntegration.getNearestWan();
@@ -207,7 +216,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
               hasDone: pjsonData['hasDone']);
         }
 
-        final timeUntil = whenPlaneIntegration.getTimeUntil(nextWan);
+        final timeUntil = whenPlaneIntegration.getTimeUntil(nearestWan['date']);
         isAfterStartTime = timeUntil['late'];
 
         if (mounted) {
@@ -239,14 +248,6 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (!isLoading) {
-      pjsonData = jsonDecode(jsonData);
-      if (latenessData != null) {
-        if (latenessData!.isNotEmpty) {
-          platenessData = jsonDecode(latenessData!);
-        }
-      }
-    }
     k = generateK();
     final day = DateTime.now().toUtc().weekday;
     final dayIsCloseEnough = day == 5 || day == 6;
@@ -299,23 +300,8 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                                 if (pjsonData['specialStream'] != false)
                                   _buildSpecialStreamCard(),
                                 const SizedBox(height: 12.0),
-                                if (pjsonData['floatplane'] != null &&
-                                    pjsonData['floatplane']['isLive'] != null &&
-                                    !pjsonData['floatplane']['isLive'] &&
-                                    pjsonData['floatplane']['isWAN'] != null &&
-                                    pjsonData['floatplane']['isWAN'] &&
-                                    ((dayIsCloseEnough &&
-                                            (pjsonData['floatplane']
-                                                        ['isThumbnailNew'] ==
-                                                    true ||
-                                                (pjsonData['floatplane']
-                                                            ['thumbnailAge'] !=
-                                                        null &&
-                                                    pjsonData['floatplane']
-                                                            ['thumbnailAge'] <
-                                                        ageCutoff))) &&
-                                        !pjsonData['hasDone']))
-                                  _buildShowMightStartSoonAlert(colorScheme),
+                                _buildShowMightStartSoonAlert(
+                                    colorScheme, textTheme),
                                 const SizedBox(height: 12.0),
                                 _buildCountdownCard(colorScheme, textTheme),
                                 const SizedBox(height: 12.0),
@@ -566,9 +552,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
               )
             else if (pjsonData['floatplane']['isLive'] != null &&
                 pjsonData['floatplane']['isLive'] &&
-                pjsonData['floatplane']['isWAN'] != null &&
-                pjsonData['floatplane']['isWAN'] &&
-                !pjsonData['twitch']['isLive'])
+                !(pjsonData['twitch']['isLive'] ?? false))
               Text(
                 'The pre-pre-show has been live for',
                 style: textTheme.bodyLarge,
@@ -836,98 +820,129 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     );
   }
 
-  Widget _buildShowMightStartSoonAlert(ColorScheme colorScheme) {
+  Widget _buildShowMightStartSoonAlert(
+      ColorScheme colorScheme, TextTheme textTheme) {
+    final isThumbnailNew = pjsonData['floatplane']?['isThumbnailNew'] ?? false;
+    final thumbnailUrl = pjsonData['floatplane']?['thumbnail'] ?? '';
+    final title = pjsonData['floatplane']?['title']?.split(' - ')[0] ?? '';
+    final thumbnailAge = pjsonData['floatplane']?['thumbnailAge'] as int?;
+
+    // Calculate the exact date and time when the thumbnail was updated
+    final DateTime thumbnailUpdateTime = thumbnailAge != null
+        ? DateTime.now()
+            .subtract(Duration(milliseconds: thumbnailAge))
+            .toLocal()
+        : DateTime.now().toLocal();
+    final String formattedTime =
+        DateFormat('h:mm a').format(thumbnailUpdateTime);
+    final String formattedDate =
+        DateFormat('MMM d, y').format(thumbnailUpdateTime);
+
     return Card(
-      elevation: 1,
-      color: colorScheme.surfaceContainerHighest,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        side: BorderSide(color: colorScheme.primaryContainer),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Wrap(
-          spacing: 8.0,
-          direction: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Thumbnail
+            Container(
+              width: 154.5,
+              height: 86.52,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8.0),
+                color: colorScheme.surfaceContainerHighest,
+                image: thumbnailUrl.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(thumbnailUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: thumbnailUrl.isEmpty
+                  ? const Icon(Icons.image_not_supported_outlined,
+                      size: 32, color: Colors.grey)
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            // Content
             Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 175,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.0),
-                    image: DecorationImage(
-                      image: NetworkImage(
-                        pjsonData['floatplane']['thumbnail'],
-                      ),
-                      fit: BoxFit.contain,
+                if (isThumbnailNew)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.notifications_active_outlined,
+                          size: 16,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'The show might start soon!',
+                          style: textTheme.labelLarge?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                Text(
+                  title.isNotEmpty ? '"$title"' : 'Untitled Stream',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isThumbnailNew
+                          ? 'The thumbnail was updated'
+                          : 'The thumbnail was updated, but they haven\'t gone live yet.',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    if (thumbnailAge != null)
+                      Text(
+                        'at $formattedTime on $formattedDate',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.7,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (pjsonData['floatplane']?['isThumbnailNew'])
-                  AutoSizeText(
-                    maxLines: 1,
-                    'The show might start soon!',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                AutoSizeText(
-                  '"${pjsonData['floatplane']['title'].split(' - ')[0]}"',
-                  maxLines: 2,
-                  style: TextStyle(fontSize: 20),
-                  overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 12),
+            // Info button
+            Align(
+              alignment: Alignment.centerRight,
+              child: Tooltip(
+                message:
+                    'Generally when a thumbnail is uploaded, all hosts are in their seats ready to start the show.\nUsually the show starts within 10 minutes of a thumbnail being uploaded.',
+                child: IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () {},
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 20,
+                  splashRadius: 20,
                 ),
-                AutoSizeText.rich(
-                  maxLines: 2,
-                  TextSpan(
-                    text: 'The thumbnail was updated',
-                    children: [
-                      TextSpan(
-                        text: pjsonData['floatplane']?['isThumbnailNew']
-                            ? ""
-                            : ",",
-                      ),
-                      TextSpan(
-                        text: pjsonData['floatplane']?['isThumbnailNew']
-                            ? ""
-                            : " but they haven't gone live yet.",
-                      ),
-                    ],
-                  ),
-                ),
-                AutoSizeText.rich(
-                  maxLines: 2,
-                  TextSpan(
-                    text: pjsonData['floatplane']?['isThumbnailNew']
-                        ? ""
-                        : "It was updated",
-                    children: [
-                      TextSpan(
-                        text:
-                            ' ${whenPlaneIntegration.timeString(pjsonData['floatplane']?['thumbnailAge'], long: true, showSeconds: false)}ago',
-                      ),
-                    ],
-                  ),
-                ),
-                Tooltip(
-                  message:
-                      'Generally when a thumbnail is uploaded, all hosts are in their seats ready to start the show.\nUsually the show starts within 10 minutes of a thumbnail being uploaded.',
-                  child: Icon(Icons.info_outline, size: 16),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -1022,7 +1037,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                 ? (voteCount / totalVotes * 100).clamp(0, 100)
                 : 0.0;
 
-            final isExpired = DateTime.now().isAfter(
+            final isExpired = DateTime.now().toUtc().isAfter(
                 ((nearestWan['date'] as DateTime)
                     .toUtc()
                     .add(Duration(milliseconds: vote['time']))));

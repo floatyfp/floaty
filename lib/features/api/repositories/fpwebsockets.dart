@@ -51,6 +51,7 @@ class FPWebsockets {
       Function(Map<String, dynamic>) messagesHandler,
       Function(Map<String, dynamic>) connectionHandler) {
     io.socket.connect();
+
     joinLiveChatRoom(liveId, messagesHandler);
 
     unifiedConnectionListener(connectionHandler, io.socket);

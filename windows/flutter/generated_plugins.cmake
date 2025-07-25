@@ -4,7 +4,6 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
-  audioplayers_windows
   dynamic_color
   flutter_inappwebview_windows
   media_kit_libs_windows_video

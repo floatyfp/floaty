@@ -191,7 +191,7 @@ final GoRouter routerController = GoRouter(
                     key: ValueKey(DateTime.now().millisecondsSinceEpoch),
                   );
                 } else {
-                  return const SettingsListScreen(); // List of categories
+                  return SettingsListScreen(); // List of categories
                 }
               },
               routes: [

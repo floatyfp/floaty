@@ -54,7 +54,7 @@ class SettingsScreenState extends State<SettingsScreen> {
             constraints: BoxConstraints(
               maxWidth: 200,
             ),
-            child: const SettingsListScreen(),
+            child: SettingsListScreen(),
           ),
           const Divider(),
           Expanded(child: widget.child),
@@ -66,6 +66,7 @@ class SettingsScreenState extends State<SettingsScreen> {
 
 class SettingsListScreen extends StatelessWidget {
   const SettingsListScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -164,19 +165,145 @@ class SettingsListScreen extends StatelessWidget {
               style: TextStyle(color: Colors.red),
             ),
             onTap: () async {
-              final dir = await getApplicationSupportDirectory();
-              final cookieJar = PersistCookieJar(
-                storage: FileStorage('${dir.path}/.cookies/'),
-              );
-              await cookieJar.deleteAll();
-              final hiveStore = HiveCacheStore('${dir.path}/.dio_cache');
-              await hiveStore.clean();
-              await fpApiRequests.logout(
-                  (await whitelabels.getSelectedWhitelabel()).friendlyName);
-              await whitelabels.removeLoggedInLabel(
-                  (await whitelabels.getSelectedWhitelabel()).friendlyName);
-              if (context.mounted) {
-                context.go('/login');
+              if (await whitelabels.getLoggedInLabelsLength() > 1) {
+                final loggedLabels = await whitelabels.getLoggedInLabels();
+                var selectedWhitelabel = 'all';
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return StatefulBuilder(
+                      builder: (context, setState) {
+                        return AlertDialog(
+                          title: const Text('Log out'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                  'Select which account(s) you want to log out of.'),
+                              ...loggedLabels.map((whitelabel) => RadioListTile(
+                                    value: whitelabel.split('-')[0],
+                                    groupValue: selectedWhitelabel,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedWhitelabel = value.toString();
+                                      });
+                                    },
+                                    title: Text(whitelabels
+                                        .getWhitelabel(whitelabel.split('-')[0])
+                                        .name),
+                                  )),
+                              RadioListTile(
+                                value: 'all',
+                                groupValue: selectedWhitelabel,
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedWhitelabel = value.toString();
+                                  });
+                                },
+                                title: const Text('Log out of all accounts'),
+                              ),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              child: const Text('Cancel'),
+                              onPressed: () {
+                                context.pop();
+                              },
+                            ),
+                            TextButton(
+                              child: const Text('Log out'),
+                              onPressed: () async {
+                                context.pop();
+                                if (selectedWhitelabel == 'all') {
+                                  final loggedLabels =
+                                      await whitelabels.getLoggedInLabels();
+                                  final dir =
+                                      await getApplicationSupportDirectory();
+                                  final cookieJar = PersistCookieJar(
+                                    storage:
+                                        FileStorage('${dir.path}/.cookies/'),
+                                  );
+                                  final hiveStore =
+                                      HiveCacheStore('${dir.path}/.dio_cache');
+                                  for (var label in loggedLabels) {
+                                    final whitelabel =
+                                        whitelabels.getWhitelabel(label);
+                                    await cookieJar.delete(Uri.parse(
+                                        'https://www.${whitelabel.domain}'));
+                                    await hiveStore.deleteFromPath(RegExp(
+                                        'https://www.${whitelabel.domain}'));
+                                    await fpApiRequests
+                                        .logout(whitelabel.friendlyName);
+                                    await whitelabels.removeLoggedInLabel(
+                                        whitelabel.friendlyName);
+                                  }
+                                  if (context.mounted) {
+                                    context.go('/login');
+                                  }
+                                } else {
+                                  final whitelabel = whitelabels
+                                      .getWhitelabel(selectedWhitelabel);
+                                  final dir =
+                                      await getApplicationSupportDirectory();
+                                  final cookieJar = PersistCookieJar(
+                                    storage:
+                                        FileStorage('${dir.path}/.cookies/'),
+                                  );
+                                  await cookieJar.delete(Uri.parse(
+                                    'https://www.${whitelabel.domain}',
+                                  ));
+                                  final hiveStore =
+                                      HiveCacheStore('${dir.path}/.dio_cache ');
+                                  await hiveStore.deleteFromPath(RegExp(
+                                      'https://www.${whitelabel.domain}'));
+                                  await fpApiRequests
+                                      .logout(whitelabel.friendlyName);
+                                  await whitelabels.removeLoggedInLabel(
+                                      whitelabel.friendlyName);
+                                  if ((await whitelabels
+                                              .getFirstLoggedInLabelOrDefault())
+                                          .friendlyName ==
+                                      (await settings.getKey('whitelabel'))) {
+                                    rootLayoutKey.currentState!.ref
+                                        .read(
+                                            mediaPlayerServiceProvider.notifier)
+                                        .changeState(MediaPlayerState.none);
+                                  }
+                                  await settings.setKey(
+                                      'whitelabel',
+                                      (await whitelabels
+                                              .getFirstLoggedInLabelOrDefault())
+                                          .friendlyName);
+                                  rootLayoutKey.currentState!.ref
+                                      .read(rootProvider.notifier)
+                                      .loadsidebar();
+                                }
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+                return;
+              } else {
+                final whitelabel = await whitelabels.getSelectedWhitelabel();
+                final dir = await getApplicationSupportDirectory();
+                final cookieJar = PersistCookieJar(
+                  storage: FileStorage('${dir.path}/.cookies/'),
+                );
+                await cookieJar.deleteAll();
+                final hiveStore = HiveCacheStore('${dir.path}/.dio_cache');
+                await hiveStore
+                    .deleteFromPath(RegExp('https://www.${whitelabel.domain}'));
+                await fpApiRequests.logout(whitelabel.friendlyName);
+                await whitelabels.clearLoggedInLabels();
+                if (context.mounted) {
+                  context.go('/login');
+                }
+                return;
               }
             },
           )

@@ -30,7 +30,7 @@ class Middleware {
       }
 
       if (authCookie.name.isEmpty || authCookie.value.isEmpty) {
-        return false;
+        continue;
       }
 
       if (authCookie.expires != null &&

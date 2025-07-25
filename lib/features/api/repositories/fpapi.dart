@@ -19,7 +19,7 @@ final FPApiRequests fpApiRequests = GetIt.I<FPApiRequests>();
 class FPApiRequests {
   String userAgent = 'FloatyClient/error, CFNetwork';
   late final PersistCookieJar cookieJar;
-  late final Dio _dio;
+  late final Dio dio;
   late final CacheOptions _cacheOptions;
   PackageInfo? packageInfo;
 
@@ -47,7 +47,7 @@ class FPApiRequests {
       maxStale: const Duration(days: 7),
     );
 
-    _dio = Dio(BaseOptions(
+    dio = Dio(BaseOptions(
       responseType: ResponseType.plain,
       headers: {
         'User-Agent': userAgent,
@@ -55,8 +55,8 @@ class FPApiRequests {
       validateStatus: (_) => true,
     ));
 
-    _dio.interceptors.add(CookieManager(cookieJar));
-    _dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions));
+    dio.interceptors.add(CookieManager(cookieJar));
+    dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions));
   }
 
   Future<String> postData(
@@ -67,7 +67,7 @@ class FPApiRequests {
   ]) async {
     try {
       final whiteLabel = whitelabels.getWhitelabel(whitelabel);
-      final response = await _dio.post(
+      final response = await dio.post(
         '${whiteLabel.apiUrl}/$apiUrl',
         data: body,
         queryParameters: queryParams,
@@ -85,7 +85,7 @@ class FPApiRequests {
   ]) async {
     try {
       final whiteLabel = whitelabels.getWhitelabel(whitelabel);
-      final response = await _dio.get(
+      final response = await dio.get(
         '${whiteLabel.apiUrl}/$apiUrl',
         queryParameters: queryParams,
       );
@@ -697,7 +697,7 @@ class FPApiRequests {
   Future<Map<String, dynamic>> captcha(String whitelabel) async {
     final whiteLabel = whitelabels.getWhitelabel(whitelabel);
     final url = '${whiteLabel.apiUrl}/v3/auth/captcha/info';
-    final response = await _dio.get(
+    final response = await dio.get(
       url,
     );
 
@@ -716,7 +716,7 @@ class FPApiRequests {
     final whiteLabel = whitelabels.getWhitelabel(whitelabel);
     final url = '${whiteLabel.apiUrl}/v2/auth/login';
 
-    final response = await _dio.post(
+    final response = await dio.post(
       url,
       data: jsonEncode({
         'username': username,
@@ -748,7 +748,7 @@ class FPApiRequests {
       {bool optionalTwoFA = false}) async {
     final whiteLabel = whitelabels.getWhitelabel(whitelabel);
     final url = '${whiteLabel.apiUrl}/v2/auth/checkFor2faLogin';
-    final response = await _dio.post(
+    final response = await dio.post(
       url,
       data: jsonEncode({
         'token': code,
@@ -773,7 +773,7 @@ class FPApiRequests {
   Future<String> logout(String whitelabel) async {
     final whiteLabel = whitelabels.getWhitelabel(whitelabel);
     final url = '${whiteLabel.apiUrl}/v2/auth/logout';
-    final response = await _dio.post(
+    final response = await dio.post(
       url,
     );
     return response.data;
@@ -783,7 +783,7 @@ class FPApiRequests {
       String whitelabel, String creatorId) async {
     final whiteLabel = whitelabels.getWhitelabel(whitelabel);
     final url = '${whiteLabel.apiUrl}/v3/creator/subscribe?id=$creatorId';
-    final response = await _dio.post(
+    final response = await dio.post(
       url,
     );
     return jsonDecode(response.data);
@@ -792,7 +792,7 @@ class FPApiRequests {
   Future<String> unsubscribe(String whitelabel, String creatorId) async {
     final whiteLabel = whitelabels.getWhitelabel(whitelabel);
     final url = '${whiteLabel.apiUrl}/v3/creator/unsubscribe?id=$creatorId';
-    final response = await _dio.post(
+    final response = await dio.post(
       url,
     );
     return response.data;

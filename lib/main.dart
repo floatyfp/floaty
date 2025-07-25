@@ -1,5 +1,5 @@
 import 'package:floaty/features/deeplinks/controllers/deeplinks.dart';
-import 'package:floaty/features/discordrpc/discord_rpc_controller.dart';
+import 'package:floaty/features/discordrpc/controllers/discord_rpc_controller.dart';
 import 'package:floaty/features/updater/respositories/updater_controllers.dart';
 import 'package:floaty/features/whenplane/repositories/whenplaneintergration.dart';
 import 'package:floaty/features/router/controllers/router.dart';
@@ -104,9 +104,11 @@ void main() async {
     UpdaterController(),
   );
 
-  getIt.registerSingleton<DiscordRPCController>(
-    DiscordRPCController(),
-  );
+  if (!Platform.isMacOS) {
+    getIt.registerSingleton<DiscordRPCController>(
+      DiscordRPCController(),
+    );
+  }
 
   // if (Platform.isAndroid) {
   //   //init notifications

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:floaty/features/api/repositories/fpapi.dart';
 import 'package:floaty/features/router/views/root_layout.dart';
-import 'package:floaty/features/discordrpc/discord_rpc_controller.dart';
+import 'package:floaty/features/discordrpc/controllers/discord_rpc_controller.dart';
 import 'package:floaty/whitelabels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_discord_rpc/flutter_discord_rpc.dart';
@@ -175,9 +175,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       });
     }
 
-    if (_currentArtist?.toLowerCase() != 'ecc squad' ||
-        _currentArtist?.toLowerCase() != 'eccsquad' ||
-        _currentDiscoverable) {
+    if (_currentArtist?.toLowerCase() != 'ecc squad' && !Platform.isMacOS ||
+        _currentArtist?.toLowerCase() != 'eccsquad' && !Platform.isMacOS ||
+        !_currentDiscoverable && !Platform.isMacOS) {
       player.stream.duration.listen((duration) {
         if (duration == Duration.zero) {
           discordRPCController.updateRPC(
@@ -489,11 +489,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
     const flavor =
         String.fromEnvironment('FLUTTER_FLAVOR', defaultValue: 'release');
 
-    if (_currentArtist?.toLowerCase() != 'ecc squad' ||
-        _currentArtist?.toLowerCase() != 'eccsquad' ||
-        _currentDiscoverable ||
-        !Platform.isAndroid ||
-        !Platform.isIOS) {
+    if (_currentArtist?.toLowerCase() != 'ecc squad' && !Platform.isMacOS ||
+        _currentArtist?.toLowerCase() != 'eccsquad' && !Platform.isMacOS ||
+        !_currentDiscoverable && !Platform.isMacOS) {
       discordRPCController.updateRPC(
           _whitelabelName,
           title ?? 'Unknown Title',
@@ -648,7 +646,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
         break;
       case MediaPlayerState.none:
         await stop();
-        discordRPCController.clearRPC();
+        if (!Platform.isMacOS) {
+          discordRPCController.clearRPC();
+        }
         break;
     }
   }
@@ -722,7 +722,9 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       await audioHandler?.dispose();
     }
     await windowsControls?.dispose();
-    discordRPCController.clearRPC();
+    if (!Platform.isMacOS) {
+      discordRPCController.clearRPC();
+    }
     super.dispose();
   }
 
@@ -734,6 +736,8 @@ class MediaPlayerService extends StateNotifier<MediaPlayerState> {
       await audioHandler?.session?.setActive(false);
     }
     await windowsControls?.stop();
-    discordRPCController.clearRPC();
+    if (!Platform.isMacOS) {
+      discordRPCController.clearRPC();
+    }
   }
 }
