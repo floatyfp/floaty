@@ -99,8 +99,8 @@ dependencies:
 dependency_overrides:
   socket_io_client:
     git:
-      url: https://github.com/bw8686/socket.io-client-dart/
-      ref: pubupdateplz
+      url: https://github.com/floatyfp/socket.io-client-dart/
+      ref: pubwork
 
 dev_dependencies:
   flutter_test:
