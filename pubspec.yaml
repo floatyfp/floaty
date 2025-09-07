@@ -69,7 +69,7 @@ dependencies:
   timelines_plus: ^1.0.6
 
   #post page
-  flutter_widget_from_html_core: ^0.16.0
+  flutter_widget_from_html_core: ^0.15.2
 
   #channel page
   markdown_widget: ^2.3.2+6
@@ -86,7 +86,9 @@ dependencies:
   simple_pip_mode: ^1.1.0
   background_downloader: ^9.1.1
   logging: ^1.2.0
-  permission_handler: ^12.0.0+1
+  permission_handler: ^11.3.1
+  better_player_plus: ^1.0.8
+  ivs_broadcaster: ^1.0.1
    
   #desktop stuff
   windows_single_instance: ^1.0.1
@@ -122,6 +124,10 @@ dependency_overrides:
     git:
       url: https://github.com/floatyfp/socket.io-client-dart/
       ref: pubwork
+  better_player_plus:
+    git:
+      url: https://github.com/bw8686/better_player_plus/
+      ref: master
 
 dev_dependencies:
   flutter_test:
@@ -172,6 +178,7 @@ flutter:
     - assets/livechat/sample.png
     - assets/whitelabels_logos/sauceplus.png
     - assets/whitelabels_logos/floatplane.png
+    - assets/test.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

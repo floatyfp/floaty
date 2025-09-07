@@ -7,7 +7,6 @@ import 'package:floaty/features/player/theme/audio_controls_theme.dart';
 import 'package:floaty/features/player/components/audio_control_buttons.dart';
 import 'package:floaty/features/player/controllers/media_player_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:media_kit/media_kit.dart';
 
 class AudioControls extends ConsumerStatefulWidget {
   final AudioControlsThemeData theme;
@@ -22,7 +21,6 @@ class AudioControls extends ConsumerStatefulWidget {
 }
 
 class _AudioControlsState extends ConsumerState<AudioControls> {
-  late Player _player;
   Timer? _timer;
   bool visible = true;
   bool mount = true;
@@ -37,28 +35,27 @@ class _AudioControlsState extends ConsumerState<AudioControls> {
   void initState() {
     super.initState();
     final mediaService = ref.read(mediaPlayerServiceProvider.notifier);
-    _player = mediaService.player;
 
     // Listen to player state changes
-    _player.stream.position.listen((position) {
+    mediaService.positionStream.listen((position) {
       if (mounted) {
         setState(() => _position = position);
       }
     });
 
-    _player.stream.duration.listen((duration) {
+    mediaService.durationStream.listen((duration) {
       if (mounted) {
         setState(() => _duration = duration);
       }
     });
 
-    _player.stream.volume.listen((volume) {
+    mediaService.volumeStream.listen((volume) {
       if (mounted) {
         setState(() => _volume = volume / 100);
       }
     });
 
-    _player.stream.playing.listen((playing) {
+    mediaService.playingStream.listen((playing) {
       if (mounted) {
         setState(() => _isPlaying = playing);
       }

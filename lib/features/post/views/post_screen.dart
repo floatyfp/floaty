@@ -706,7 +706,7 @@ class _VideoDetailPageState extends ConsumerState<VideoDetailPage> {
   //   String? expires = uri.queryParameters['expires'];
   //   String basePath =
   //       uri.pathSegments.take(uri.pathSegments.length - 1).join('/');
-  //   String fileName = uri.pathSegments[uri.pathSegments.length - 2];
+  //   String fileName = uri.pathSegments[uri.pathSegments.length - 2];`
   //   String v2Url =
   //       '${uri.scheme}://${uri.host}/$basePath/$fileName.mp4?token=$token&expires=$expires';
   //   return v2Url;

@@ -11,7 +11,7 @@ import 'package:text_scroll/text_scroll.dart';
 // Provider for play state
 final playingStateProvider = StreamProvider.autoDispose<bool>((ref) {
   final mediaService = ref.watch(mediaPlayerServiceProvider.notifier);
-  return mediaService.player.stream.playing;
+  return mediaService.playingStream;
 });
 
 class MiniPlayerWidget extends ConsumerWidget {

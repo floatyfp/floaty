@@ -1,3 +1,4 @@
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:floaty/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +59,7 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
   late MediaPlayerService _mediaService;
   bool _isInitialized = false;
   late bool _pipAvailable;
+  bool _mediakit = true;
 
   @override
   void initState() {
@@ -66,11 +68,12 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
   }
 
   Future<void> _initializePlayer() async {
+    bool mediakit = true;
     subtitlesEnabled =
         ref.read(mediaPlayerServiceProvider.notifier).subtitlesEnabled;
     if (Platform.isAndroid) _pipAvailable = await SimplePip.isPipAvailable;
     _mediaService = ref.read(mediaPlayerServiceProvider.notifier);
-    await _mediaService.setSource(
+    final controller = await _mediaService.setSource(
       widget.whitelabelName,
       widget.mediaUrl,
       widget.mediaType,
@@ -86,10 +89,16 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
       discoverable: widget.discoverable,
       textTracks: widget.textTracks,
     );
+    // if (controller is BetterPlayerController) {
+    //   mediakit = false;
+    // } else if (controller is VideoController) {
+    //   mediakit = true;
+    // }
     await _mediaService.changeState(widget.initialState);
     if (mounted) {
       setState(() {
         _isInitialized = true;
+        _mediakit = mediakit;
       });
       if (widget.mediaType != MediaType.image) {
         _mediaService.play();
@@ -102,332 +111,345 @@ class _MediaPlayerWidgetState extends ConsumerState<MediaPlayerWidget> {
     final colorScheme = theme.colorScheme;
     switch (widget.mediaType) {
       case MediaType.video:
-        final videoController = _mediaService.videoController;
-        if (videoController == null) {
-          return const Center(
-              child: CircularProgressIndicator(
-            color: Colors.white,
-          ));
-        }
-        if (!Platform.isAndroid && !Platform.isIOS) {
-          return MaterialDesktopVideoControlsTheme(
-            normal: MaterialDesktopVideoControlsThemeData(
-              buttonBarButtonSize: 24.0,
-              buttonBarButtonColor: Colors.white,
-              seekBarThumbColor: Colors.white,
-              seekBarPositionColor: colorScheme.primary,
-              topButtonBar: [
-                MaterialDesktopCustomButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _mediaService.changeState(MediaPlayerState.none);
-                    _mediaService.stop();
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-              bottomButtonBar: [
-                MaterialDesktopSkipPreviousButton(),
-                MaterialDesktopPlayOrPauseButton(),
-                MaterialDesktopSkipNextButton(),
-                MaterialDesktopVolumeButton(),
-                MaterialDesktopPositionIndicator(),
-                const Spacer(),
-                if (widget.textTracks?.isNotEmpty == true)
-                  StatefulBuilder(
-                    builder: (context, setState) {
-                      return MaterialDesktopCustomButton(
-                        icon: Icon(
-                          subtitlesEnabled
-                              ? Icons.closed_caption
-                              : Icons.closed_caption_off,
-                          color: Colors.white,
-                        ),
-                        onPressed: () async {
-                          final subtitles =
-                              await _mediaService.toggleSubtitles();
-                          setState(() {
-                            subtitlesEnabled = subtitles;
-                          });
-                        },
-                      );
+        if (_mediakit) {
+          final videoController = _mediaService.videoController;
+          if (videoController == null) {
+            return const Center(
+                child: CircularProgressIndicator(
+              color: Colors.white,
+            ));
+          }
+          if (!Platform.isAndroid && !Platform.isIOS) {
+            return MaterialDesktopVideoControlsTheme(
+              normal: MaterialDesktopVideoControlsThemeData(
+                buttonBarButtonSize: 24.0,
+                buttonBarButtonColor: Colors.white,
+                seekBarThumbColor: Colors.white,
+                seekBarPositionColor: colorScheme.primary,
+                topButtonBar: [
+                  MaterialDesktopCustomButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      _mediaService.changeState(MediaPlayerState.none);
+                      _mediaService.stop();
+                      Navigator.pop(context);
                     },
                   ),
-                MaterialDesktopCustomButton(
-                  icon: const Icon(Icons.picture_in_picture),
-                  onPressed: () {
-                    _mediaService.changeState(MediaPlayerState.pip);
-                    if (!mounted) return;
-                    widget.contextBuild.go('/pip', extra: {
-                      'controller': _mediaService.videoController,
-                      'postId': widget.postId,
-                      'live': _mediaService.currentLive,
-                    });
-                  },
-                ),
-                if (mounted)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    itemBuilder: (context) => [
-                      if (widget.textTracks?.isNotEmpty == true)
-                        subtitlePopupMenuItem(
-                          mediaService: _mediaService,
-                          textTracks: widget.textTracks!,
-                        ),
-                      if (widget.qualities?.isNotEmpty == true)
-                        qualityPopupMenuItem(
-                          mediaService: _mediaService,
-                          qualities: widget.qualities!,
-                        ),
-                      playbackSpeedPopupMenuItem(
-                        mediaService: _mediaService,
-                      ),
-                    ],
-                    onSelected: (value) {},
-                  ),
-                MaterialDesktopFullscreenButton(),
-              ],
-            ),
-            fullscreen: MaterialDesktopVideoControlsThemeData(
-              buttonBarButtonSize: 24.0,
-              buttonBarButtonColor: Colors.white,
-              seekBarThumbColor: Colors.white,
-              seekBarPositionColor: colorScheme.primary,
-              bottomButtonBar: [
-                MaterialDesktopSkipPreviousButton(),
-                MaterialDesktopPlayOrPauseButton(),
-                MaterialDesktopSkipNextButton(),
-                MaterialDesktopVolumeButton(),
-                MaterialDesktopPositionIndicator(),
-                const Spacer(),
-                if (widget.textTracks?.isNotEmpty == true)
-                  StatefulBuilder(
-                    builder: (context, setState) {
-                      return MaterialDesktopCustomButton(
-                        icon: Icon(
-                          subtitlesEnabled
-                              ? Icons.closed_caption
-                              : Icons.closed_caption_off,
-                          color: Colors.white,
-                        ),
-                        onPressed: () async {
-                          final subtitles =
-                              await _mediaService.toggleSubtitles();
-                          setState(() {
-                            subtitlesEnabled = subtitles;
-                          });
-                        },
-                      );
+                ],
+                bottomButtonBar: [
+                  MaterialDesktopSkipPreviousButton(),
+                  MaterialDesktopPlayOrPauseButton(),
+                  MaterialDesktopSkipNextButton(),
+                  MaterialDesktopVolumeButton(),
+                  MaterialDesktopPositionIndicator(),
+                  const Spacer(),
+                  if (widget.textTracks?.isNotEmpty == true)
+                    StatefulBuilder(
+                      builder: (context, setState) {
+                        return MaterialDesktopCustomButton(
+                          icon: Icon(
+                            subtitlesEnabled
+                                ? Icons.closed_caption
+                                : Icons.closed_caption_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () async {
+                            final subtitles =
+                                await _mediaService.toggleSubtitles();
+                            setState(() {
+                              subtitlesEnabled = subtitles;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  MaterialDesktopCustomButton(
+                    icon: const Icon(Icons.picture_in_picture),
+                    onPressed: () {
+                      _mediaService.changeState(MediaPlayerState.pip);
+                      if (!mounted) return;
+                      widget.contextBuild.go('/pip', extra: {
+                        'controller': _mediaService.videoController,
+                        'postId': widget.postId,
+                        'live': _mediaService.currentLive,
+                      });
                     },
                   ),
-                MaterialDesktopCustomButton(
-                  icon: const Icon(Icons.picture_in_picture),
-                  onPressed: () {
-                    _mediaService.changeState(MediaPlayerState.pip);
-                    if (!mounted) return;
-                    widget.contextBuild.go('/pip', extra: {
-                      'controller': _mediaService.videoController,
-                      'postId': widget.postId,
-                      'live': _mediaService.currentLive,
-                    });
-                  },
-                ),
-                if (mounted)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    itemBuilder: (context) => [
-                      if (widget.textTracks?.isNotEmpty == true)
-                        subtitlePopupMenuItem(
+                  if (mounted)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      itemBuilder: (context) => [
+                        if (widget.textTracks?.isNotEmpty == true)
+                          subtitlePopupMenuItem(
+                            mediaService: _mediaService,
+                            textTracks: widget.textTracks!,
+                          ),
+                        if (widget.qualities?.isNotEmpty == true)
+                          qualityPopupMenuItem(
+                            mediaService: _mediaService,
+                            qualities: widget.qualities!,
+                          ),
+                        playbackSpeedPopupMenuItem(
                           mediaService: _mediaService,
-                          textTracks: widget.textTracks!,
                         ),
-                      if (widget.qualities?.isNotEmpty == true)
-                        qualityPopupMenuItem(
-                          mediaService: _mediaService,
-                          qualities: widget.qualities!,
-                        ),
-                      playbackSpeedPopupMenuItem(
-                        mediaService: _mediaService,
-                      ),
-                    ],
-                    onSelected: (value) {},
+                      ],
+                      onSelected: (value) {},
+                    ),
+                  MaterialDesktopFullscreenButton(),
+                ],
+              ),
+              fullscreen: MaterialDesktopVideoControlsThemeData(
+                buttonBarButtonSize: 24.0,
+                buttonBarButtonColor: Colors.white,
+                seekBarThumbColor: Colors.white,
+                seekBarPositionColor: colorScheme.primary,
+                bottomButtonBar: [
+                  MaterialDesktopSkipPreviousButton(),
+                  MaterialDesktopPlayOrPauseButton(),
+                  MaterialDesktopSkipNextButton(),
+                  MaterialDesktopVolumeButton(),
+                  MaterialDesktopPositionIndicator(),
+                  const Spacer(),
+                  if (widget.textTracks?.isNotEmpty == true)
+                    StatefulBuilder(
+                      builder: (context, setState) {
+                        return MaterialDesktopCustomButton(
+                          icon: Icon(
+                            subtitlesEnabled
+                                ? Icons.closed_caption
+                                : Icons.closed_caption_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () async {
+                            final subtitles =
+                                await _mediaService.toggleSubtitles();
+                            setState(() {
+                              subtitlesEnabled = subtitles;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  MaterialDesktopCustomButton(
+                    icon: const Icon(Icons.picture_in_picture),
+                    onPressed: () {
+                      _mediaService.changeState(MediaPlayerState.pip);
+                      if (!mounted) return;
+                      widget.contextBuild.go('/pip', extra: {
+                        'controller': _mediaService.videoController,
+                        'postId': widget.postId,
+                        'live': _mediaService.currentLive,
+                      });
+                    },
                   ),
-                MaterialDesktopFullscreenButton(),
-              ],
-            ),
-            child: FutureBuilder(
-              future: settings.getBool('pause_on_background'),
-              builder: (context, snapshot) {
-                return Video(
-                  controller: videoController,
-                  pauseUponEnteringBackgroundMode: snapshot.data ?? true,
-                );
-              },
-            ),
-          );
+                  if (mounted)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      itemBuilder: (context) => [
+                        if (widget.textTracks?.isNotEmpty == true)
+                          subtitlePopupMenuItem(
+                            mediaService: _mediaService,
+                            textTracks: widget.textTracks!,
+                          ),
+                        if (widget.qualities?.isNotEmpty == true)
+                          qualityPopupMenuItem(
+                            mediaService: _mediaService,
+                            qualities: widget.qualities!,
+                          ),
+                        playbackSpeedPopupMenuItem(
+                          mediaService: _mediaService,
+                        ),
+                      ],
+                      onSelected: (value) {},
+                    ),
+                  MaterialDesktopFullscreenButton(),
+                ],
+              ),
+              child: FutureBuilder(
+                future: settings.getBool('pause_on_background'),
+                builder: (context, snapshot) {
+                  return Video(
+                    controller: videoController,
+                    pauseUponEnteringBackgroundMode: snapshot.data ?? true,
+                  );
+                },
+              ),
+            );
+          } else {
+            return MaterialVideoControlsTheme(
+              normal: MaterialVideoControlsThemeData(
+                volumeGesture: true,
+                brightnessGesture: true,
+                seekGesture: true,
+                gesturesEnabledWhileControlsVisible: true,
+                seekOnDoubleTap: true,
+                buttonBarButtonSize: 24.0,
+                buttonBarButtonColor: Colors.white,
+                seekBarThumbColor: Colors.white,
+                seekBarPositionColor: colorScheme.primary,
+                seekBarAlignment: Alignment.bottomCenter,
+                topButtonBar: [
+                  MaterialCustomButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      _mediaService.changeState(MediaPlayerState.none);
+                      _mediaService.stop();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+                bottomButtonBar: [
+                  MaterialPositionIndicator(),
+                  const Spacer(),
+                  if (widget.textTracks?.isNotEmpty == true)
+                    StatefulBuilder(
+                      builder: (context, setState) {
+                        return MaterialCustomButton(
+                          icon: Icon(
+                            subtitlesEnabled
+                                ? Icons.closed_caption
+                                : Icons.closed_caption_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () async {
+                            final subtitles =
+                                await _mediaService.toggleSubtitles();
+                            setState(() {
+                              subtitlesEnabled = subtitles;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  if (!Platform.isIOS && _pipAvailable)
+                    MaterialCustomButton(
+                      icon: const Icon(Icons.picture_in_picture),
+                      onPressed: () {
+                        _mediaService.enterpip();
+                        _mediaService.changeState(MediaPlayerState.pip);
+                        if (!mounted) return;
+                        widget.contextBuild.go('/pip', extra: {
+                          'controller': _mediaService.videoController,
+                          'postId': widget.postId,
+                          'live': _mediaService.currentLive,
+                        });
+                      },
+                    ),
+                  if (mounted)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      itemBuilder: (context) => [
+                        if (widget.textTracks?.isNotEmpty == true)
+                          subtitlePopupMenuItem(
+                            mediaService: _mediaService,
+                            textTracks: widget.textTracks!,
+                          ),
+                        if (widget.qualities?.isNotEmpty == true)
+                          qualityPopupMenuItem(
+                            mediaService: _mediaService,
+                            qualities: widget.qualities!,
+                          ),
+                        playbackSpeedPopupMenuItem(
+                          mediaService: _mediaService,
+                        ),
+                      ],
+                      onSelected: (value) {},
+                    ),
+                  MaterialFullscreenButton(),
+                ],
+              ),
+              fullscreen: MaterialVideoControlsThemeData(
+                volumeGesture: true,
+                brightnessGesture: true,
+                seekGesture: true,
+                gesturesEnabledWhileControlsVisible: true,
+                seekOnDoubleTap: true,
+                buttonBarButtonSize: 24.0,
+                buttonBarButtonColor: Colors.white,
+                seekBarThumbColor: Colors.white,
+                seekBarPositionColor: colorScheme.primary,
+                seekBarAlignment: Alignment(0.0, -2.0),
+                bottomButtonBar: [
+                  MaterialPositionIndicator(),
+                  const Spacer(),
+                  if (widget.textTracks?.isNotEmpty == true)
+                    StatefulBuilder(
+                      builder: (context, setState) {
+                        return MaterialCustomButton(
+                          icon: Icon(
+                            subtitlesEnabled
+                                ? Icons.closed_caption
+                                : Icons.closed_caption_off,
+                            color: Colors.white,
+                          ),
+                          onPressed: () async {
+                            final subtitles =
+                                await _mediaService.toggleSubtitles();
+                            setState(() {
+                              subtitlesEnabled = subtitles;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  if (!Platform.isIOS && _pipAvailable)
+                    MaterialCustomButton(
+                      icon: const Icon(Icons.picture_in_picture),
+                      onPressed: () {
+                        _mediaService.enterpip();
+                        _mediaService.changeState(MediaPlayerState.pip);
+                        if (!mounted) return;
+                        widget.contextBuild.go('/pip', extra: {
+                          'controller': _mediaService.videoController,
+                          'postId': widget.postId,
+                          'live': _mediaService.currentLive,
+                        });
+                      },
+                    ),
+                  if (mounted)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.settings, color: Colors.white),
+                      itemBuilder: (context) => [
+                        if (widget.textTracks?.isNotEmpty == true)
+                          subtitlePopupMenuItem(
+                            mediaService: _mediaService,
+                            textTracks: widget.textTracks!,
+                          ),
+                        if (widget.qualities?.isNotEmpty == true)
+                          qualityPopupMenuItem(
+                            mediaService: _mediaService,
+                            qualities: widget.qualities!,
+                          ),
+                        playbackSpeedPopupMenuItem(
+                          mediaService: _mediaService,
+                        ),
+                      ],
+                      onSelected: (value) {},
+                    ),
+                  MaterialFullscreenButton(),
+                ],
+              ),
+              child: FutureBuilder(
+                future: settings.getBool('pause_on_background'),
+                builder: (context, snapshot) {
+                  return Video(
+                    controller: videoController,
+                    pauseUponEnteringBackgroundMode: snapshot.data ?? true,
+                  );
+                },
+              ),
+            );
+          }
         } else {
-          return MaterialVideoControlsTheme(
-            normal: MaterialVideoControlsThemeData(
-              volumeGesture: true,
-              brightnessGesture: true,
-              seekGesture: true,
-              gesturesEnabledWhileControlsVisible: true,
-              seekOnDoubleTap: true,
-              buttonBarButtonSize: 24.0,
-              buttonBarButtonColor: Colors.white,
-              seekBarThumbColor: Colors.white,
-              seekBarPositionColor: colorScheme.primary,
-              seekBarAlignment: Alignment.bottomCenter,
-              topButtonBar: [
-                MaterialCustomButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    _mediaService.changeState(MediaPlayerState.none);
-                    _mediaService.stop();
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-              bottomButtonBar: [
-                MaterialPositionIndicator(),
-                const Spacer(),
-                if (widget.textTracks?.isNotEmpty == true)
-                  StatefulBuilder(
-                    builder: (context, setState) {
-                      return MaterialCustomButton(
-                        icon: Icon(
-                          subtitlesEnabled
-                              ? Icons.closed_caption
-                              : Icons.closed_caption_off,
-                          color: Colors.white,
-                        ),
-                        onPressed: () async {
-                          final subtitles =
-                              await _mediaService.toggleSubtitles();
-                          setState(() {
-                            subtitlesEnabled = subtitles;
-                          });
-                        },
-                      );
-                    },
-                  ),
-                if (!Platform.isIOS && _pipAvailable)
-                  MaterialCustomButton(
-                    icon: const Icon(Icons.picture_in_picture),
-                    onPressed: () {
-                      _mediaService.enterpip();
-                      _mediaService.changeState(MediaPlayerState.pip);
-                      if (!mounted) return;
-                      widget.contextBuild.go('/pip', extra: {
-                        'controller': _mediaService.videoController,
-                        'postId': widget.postId,
-                        'live': _mediaService.currentLive,
-                      });
-                    },
-                  ),
-                if (mounted)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    itemBuilder: (context) => [
-                      if (widget.textTracks?.isNotEmpty == true)
-                        subtitlePopupMenuItem(
-                          mediaService: _mediaService,
-                          textTracks: widget.textTracks!,
-                        ),
-                      if (widget.qualities?.isNotEmpty == true)
-                        qualityPopupMenuItem(
-                          mediaService: _mediaService,
-                          qualities: widget.qualities!,
-                        ),
-                      playbackSpeedPopupMenuItem(
-                        mediaService: _mediaService,
-                      ),
-                    ],
-                    onSelected: (value) {},
-                  ),
-                MaterialFullscreenButton(),
-              ],
-            ),
-            fullscreen: MaterialVideoControlsThemeData(
-              volumeGesture: true,
-              brightnessGesture: true,
-              seekGesture: true,
-              gesturesEnabledWhileControlsVisible: true,
-              seekOnDoubleTap: true,
-              buttonBarButtonSize: 24.0,
-              buttonBarButtonColor: Colors.white,
-              seekBarThumbColor: Colors.white,
-              seekBarPositionColor: colorScheme.primary,
-              seekBarAlignment: Alignment(0.0, -2.0),
-              bottomButtonBar: [
-                MaterialPositionIndicator(),
-                const Spacer(),
-                if (widget.textTracks?.isNotEmpty == true)
-                  StatefulBuilder(
-                    builder: (context, setState) {
-                      return MaterialCustomButton(
-                        icon: Icon(
-                          subtitlesEnabled
-                              ? Icons.closed_caption
-                              : Icons.closed_caption_off,
-                          color: Colors.white,
-                        ),
-                        onPressed: () async {
-                          final subtitles =
-                              await _mediaService.toggleSubtitles();
-                          setState(() {
-                            subtitlesEnabled = subtitles;
-                          });
-                        },
-                      );
-                    },
-                  ),
-                if (!Platform.isIOS && _pipAvailable)
-                  MaterialCustomButton(
-                    icon: const Icon(Icons.picture_in_picture),
-                    onPressed: () {
-                      _mediaService.enterpip();
-                      _mediaService.changeState(MediaPlayerState.pip);
-                      if (!mounted) return;
-                      widget.contextBuild.go('/pip', extra: {
-                        'controller': _mediaService.videoController,
-                        'postId': widget.postId,
-                        'live': _mediaService.currentLive,
-                      });
-                    },
-                  ),
-                if (mounted)
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    itemBuilder: (context) => [
-                      if (widget.textTracks?.isNotEmpty == true)
-                        subtitlePopupMenuItem(
-                          mediaService: _mediaService,
-                          textTracks: widget.textTracks!,
-                        ),
-                      if (widget.qualities?.isNotEmpty == true)
-                        qualityPopupMenuItem(
-                          mediaService: _mediaService,
-                          qualities: widget.qualities!,
-                        ),
-                      playbackSpeedPopupMenuItem(
-                        mediaService: _mediaService,
-                      ),
-                    ],
-                    onSelected: (value) {},
-                  ),
-                MaterialFullscreenButton(),
-              ],
-            ),
-            child: FutureBuilder(
-              future: settings.getBool('pause_on_background'),
-              builder: (context, snapshot) {
-                return Video(
-                  controller: videoController,
-                  pauseUponEnteringBackgroundMode: snapshot.data ?? true,
-                );
-              },
-            ),
+          final videoController = _mediaService.betterPlayerController;
+          if (videoController == null) {
+            return const Center(
+                child: CircularProgressIndicator(
+              color: Colors.white,
+            ));
+          }
+          return BetterPlayer(
+            controller: videoController,
           );
         }
       case MediaType.audio:

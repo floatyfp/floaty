@@ -6,6 +6,7 @@ import 'package:floaty/features/history/views/history_screen.dart';
 import 'package:floaty/features/home/views/home_screen.dart';
 import 'package:floaty/features/live/views/live_screen.dart';
 import 'package:floaty/features/logs/views/log_screen.dart';
+import 'package:floaty/features/player/components/custom_player/custom_player.dart';
 import 'package:floaty/features/post/views/ecc_warning.dart';
 import 'package:floaty/features/post/views/post_screen.dart';
 import 'package:floaty/features/profile/views/profile_screen.dart';
@@ -17,6 +18,7 @@ import 'package:floaty/main.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 
 final Middleware middleware = Middleware();
 
@@ -85,6 +87,12 @@ final GoRouter routerController = GoRouter(
           builder: (context, state) => HistoryScreen(
             key: ValueKey(DateTime.now().millisecondsSinceEpoch),
           ),
+        ),
+        GoRoute(
+          path: '/test',
+          builder: (BuildContext context, GoRouterState state) {
+            return MyHomePage();
+          },
         ),
         GoRoute(
           path: '/channel/:ChannelName/:SubName',
@@ -287,3 +295,84 @@ final GoRouter routerController = GoRouter(
     return null;
   },
 );
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
+  @override
+  MyHomePageState createState() => MyHomePageState();
+}
+
+class MyHomePageState extends State<MyHomePage> {
+  late BetterPlayerController _betterPlayerController;
+
+  @override
+  void initState() {
+    BetterPlayerConfiguration betterPlayerConfiguration =
+        BetterPlayerConfiguration(aspectRatio: 16 / 9, fit: BoxFit.contain);
+    BetterPlayerDataSource dataSource = BetterPlayerDataSource(
+      BetterPlayerDataSourceType.network,
+      "https://mtoczko.github.io/hls-test-streams/test-group/playlist.m3u8",
+      useAsmsSubtitles: true,
+      videoFormat: BetterPlayerVideoFormat.hls,
+    );
+    _betterPlayerController = BetterPlayerController(betterPlayerConfiguration);
+    _betterPlayerController.setupDataSource(dataSource);
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("HLS tracks")),
+      body: Column(
+        children: [
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              "Player with HLS stream which loads tracks from HLS."
+              " You can choose tracks by using overflow menu (3 dots in right corner).",
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile =
+                    constraints.maxWidth < 600; // Simple mobile detection
+
+                return CustomPlayer(
+                  isFullscreen: false,
+                  isDesktop: !isMobile,
+                  betterPlayerController: BetterPlayerController(
+                    BetterPlayerConfiguration(
+                      aspectRatio: 16 / 9,
+                      fit: BoxFit.contain,
+                      autoPlay: true,
+                      controlsConfiguration:
+                          const BetterPlayerControlsConfiguration(
+                        enableFullscreen:
+                            false, // We handle fullscreen ourselves
+                        enableMute: false,
+                        enablePlayPause: false,
+                        enablePlaybackSpeed: false,
+                        enableProgressBar: false,
+                        enableProgressBarDrag: false,
+                        enableProgressText: false,
+                        enableQualities: false,
+                        enableSkips: false,
+                        enableSubtitles: false,
+                        showControls: false, // Hide default controls
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

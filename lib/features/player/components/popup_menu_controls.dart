@@ -123,7 +123,7 @@ PopupMenuItem<String> playbackSpeedPopupMenuItem({
     child: StatefulBuilder(
       builder: (context, setState) {
         // Local state to track selected speed
-        double selectedSpeed = mediaService.player.state.rate;
+        double selectedSpeed = mediaService.playbackSpeed;
 
         return PopupMenuButton<double>(
           child: Text('Playback Speed (${selectedSpeed}x)'),
@@ -173,7 +173,7 @@ void _showCustomSpeedDialog(
   BuildContext context,
   MediaPlayerService mediaService,
 ) {
-  double customSpeed = mediaService.player.state.rate;
+  double customSpeed = mediaService.playbackSpeed;
   showDialog(
     context: context,
     builder: (BuildContext context) {

@@ -1,13 +1,13 @@
 import 'dart:io';
+import 'package:floaty/features/player/controllers/media_player_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
-import 'package:media_kit/media_kit.dart';
 
 class WindowsMediaControls {
-  final Player _player;
+  final MediaPlayerService mediaService;
   late SMTCWindows _smtc;
   bool _isInitialized = false;
 
-  WindowsMediaControls(this._player);
+  WindowsMediaControls(this.mediaService);
 
   Future<void> initialize() async {
     if (!Platform.isWindows || _isInitialized) return;
@@ -21,10 +21,10 @@ class WindowsMediaControls {
       ),
       timeline: PlaybackTimeline(
         startTimeMs: 0,
-        endTimeMs: _player.state.duration.inMilliseconds,
-        positionMs: _player.state.position.inMilliseconds,
+        endTimeMs: mediaService.audioDuration.inMilliseconds,
+        positionMs: mediaService.currentPosition.inMilliseconds,
         minSeekTimeMs: 0,
-        maxSeekTimeMs: _player.state.duration.inMilliseconds,
+        maxSeekTimeMs: mediaService.audioDuration.inMilliseconds,
       ),
       config: const SMTCConfig(
         playEnabled: true,
@@ -41,19 +41,19 @@ class WindowsMediaControls {
     _smtc.buttonPressStream.listen((button) {
       switch (button) {
         case PressedButton.play:
-          _player.play();
+          mediaService.play();
           _smtc.setPlaybackStatus(PlaybackStatus.playing);
           break;
         case PressedButton.pause:
-          _player.pause();
+          mediaService.pause();
           _smtc.setPlaybackStatus(PlaybackStatus.paused);
           break;
         case PressedButton.next:
-          _player.seek(_player.state.position +
+          mediaService.seek(mediaService.currentPosition +
               Duration(seconds: 10)); // Skip forward 10 seconds
           break;
         case PressedButton.previous:
-          _player.seek(_player.state.position -
+          mediaService.seek(mediaService.currentPosition -
               Duration(seconds: 10)); // Rewind 10 seconds
           break;
         default:
@@ -62,20 +62,20 @@ class WindowsMediaControls {
     });
 
     // Update SMTC state based on player state
-    _player.stream.playing.listen((playing) {
+    mediaService.playingStream.listen((playing) {
       _smtc.setPlaybackStatus(
         playing ? PlaybackStatus.playing : PlaybackStatus.paused,
       );
     });
 
-    _player.stream.position.listen((position) {
+    mediaService.positionStream.listen((position) {
       _smtc.updateTimeline(
         PlaybackTimeline(
           startTimeMs: 0,
-          endTimeMs: _player.state.duration.inMilliseconds,
+          endTimeMs: mediaService.audioDuration.inMilliseconds,
           positionMs: position.inMilliseconds,
           minSeekTimeMs: 0,
-          maxSeekTimeMs: _player.state.duration.inMilliseconds,
+          maxSeekTimeMs: mediaService.audioDuration.inMilliseconds,
         ),
       );
     });

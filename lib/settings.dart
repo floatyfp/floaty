@@ -23,6 +23,16 @@ class Settings {
     return box.get(key, defaultValue: '');
   }
 
+  Future<T> getEnum<T>(String key, {T? defaultValue}) async {
+    final box = await _getBox();
+    return box.get(key, defaultValue: defaultValue);
+  }
+
+  Future<void> setEnum<T>(String key, T value) async {
+    final box = await _getBox();
+    await box.put(key, value);
+  }
+
   Future<void> removeKey(String key) async {
     final box = await _getBox();
     await box.delete(key);

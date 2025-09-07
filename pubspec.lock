@@ -129,6 +129,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.2.2"
+  better_player_plus:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: master
+      resolved-ref: "548b20197dc2bdda07e85e7f961dd4fd3acd1a1c"
+      url: "https://github.com/bw8686/better_player_plus/"
+    source: git
+    version: "1.0.6"
   boolean_selector:
     dependency: transitive
     description:
@@ -527,6 +536,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
+  flutter_localizations:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_riverpod:
     dependency: "direct main"
     description:
@@ -565,10 +579,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_widget_from_html_core
-      sha256: f77ea1aa1ba29a38fcce04483f44f12382f541b9e8c2150df37166c23bbbd30f
+      sha256: b1048fd119a14762e2361bd057da608148a895477846d6149109b2151d2f7abf
       url: "https://pub.dev"
     source: hosted
-    version: "0.16.0"
+    version: "0.15.2"
   font_awesome_flutter:
     dependency: "direct main"
     description:
@@ -745,6 +759,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.2+1"
+  ivs_broadcaster:
+    dependency: "direct main"
+    description:
+      name: ivs_broadcaster
+      sha256: "9c92ad8fa74dce93c706ed5f0d6c93c1dbf72a81aba8c6caf9bf1dc8d864da99"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   js:
     dependency: transitive
     description:
@@ -1029,18 +1051,18 @@ packages:
     dependency: "direct main"
     description:
       name: permission_handler
-      sha256: "2d070d8684b68efb580a5997eb62f675e8a885ef0be6e754fb9ef489c177470f"
+      sha256: "59adad729136f01ea9e35a48f5d1395e25cba6cea552249ddbe9cf950f5d7849"
       url: "https://pub.dev"
     source: hosted
-    version: "12.0.0+1"
+    version: "11.4.0"
   permission_handler_android:
     dependency: transitive
     description:
       name: permission_handler_android
-      sha256: "1e3bc410ca1bf84662104b100eb126e066cb55791b7451307f9708d4007350e6"
+      sha256: d3971dcdd76182a0c198c096b5db2f0884b0d4196723d21a866fc4cdea057ebc
       url: "https://pub.dev"
     source: hosted
-    version: "13.0.1"
+    version: "12.1.0"
   permission_handler_apple:
     dependency: transitive
     description:

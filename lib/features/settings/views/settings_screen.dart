@@ -884,9 +884,7 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
                         ),
                       ),
                       onPressed: () {
-                        //TODO: actual invite
-                        launchUrl(
-                            Uri.parse('https://discord.com/invite/floaty'));
+                        launchUrl(Uri.parse('https://floaty.fyi/discord'));
                       },
                     ),
                   ],

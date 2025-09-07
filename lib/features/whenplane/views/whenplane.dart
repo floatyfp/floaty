@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:simple_icons/simple_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:math';
 
 class WhenplaneScreen extends StatefulWidget {
   const WhenplaneScreen({super.key, this.v = false, this.h});
@@ -32,15 +31,6 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   bool votingrevealed = true;
   String? selectedVote;
   late String k;
-
-  // Generate random votes for testing
-  final votes = [
-    {'name': 'On Time', 'votes': Random().nextInt(100) + 1},
-    {'name': '5 min', 'votes': Random().nextInt(100) + 1},
-    {'name': '10 min', 'votes': Random().nextInt(100) + 1},
-    {'name': '15 min', 'votes': Random().nextInt(100) + 1},
-    {'name': '20+ min', 'votes': Random().nextInt(100) + 1},
-  ];
   late int totalVotes;
 
   @override
@@ -50,9 +40,6 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     websocketStart();
     initFetch();
     _startTimer();
-
-    // Calculate total votes
-    totalVotes = votes.fold(0, (sum, vote) => sum + (vote['votes'] as int));
   }
 
   void initFetch() async {
@@ -82,26 +69,26 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
   }
 
   void websocketStart() async {
-    // final stream = whenPlaneIntegration.streamWebsocket();
-    // stream.listen((message) {
-    //   if (message != 'pong') {
-    //     if (mounted) {
-    //       setState(() {
-    //         error = false;
-    //         isLoading = false;
-    //         jsonData = message;
-    //         pjsonData = jsonDecode(message);
-    //       });
-    //     }
-    //   }
-    // });
-    final aggregate = await whenPlaneIntegration.aggregate();
-    setState(() {
-      error = false;
-      isLoading = false;
-      jsonData = aggregate;
-      pjsonData = jsonDecode(aggregate);
+    final stream = whenPlaneIntegration.streamWebsocket();
+    stream.listen((message) {
+      if (message != 'pong') {
+        if (mounted) {
+          setState(() {
+            error = false;
+            isLoading = false;
+            jsonData = message;
+            pjsonData = jsonDecode(message);
+          });
+        }
+      }
     });
+    // final aggregate = await whenPlaneIntegration.aggregate();
+    // setState(() {
+    //   error = false;
+    //   isLoading = false;
+    //   jsonData = aggregate;
+    //   pjsonData = jsonDecode(aggregate);
+    // });
   }
 
   Future<void> loadSelectedVote() async {
@@ -170,61 +157,43 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
           (pjsonData['youtube']?['isLive'] ?? false);
 
       if (isMainShow || isPreShow) {
-        if (!isMainShow &&
-            isPreShow &&
-            pjsonData['twitch']?['isLive'] == true) {
-          final mainScheduledStart =
+        if (!isMainShow && isPreShow && pjsonData['twitch']?['isLive']) {
+          DateTime mainScheduledStart =
               whenPlaneIntegration.getClosestWan(DateTime.now());
-          if (mounted) {
-            setState(() {
-              isMainLate = true;
-              final timeUntil =
-                  whenPlaneIntegration.getTimeUntil(mainScheduledStart);
-              countdownString = timeUntil['string'];
-            });
-          }
-        } else if (mounted) {
+
+          setState(() {
+            isMainLate = true;
+            countdownString =
+                whenPlaneIntegration.getTimeUntil(mainScheduledStart)['string'];
+          });
+        } else {
           setState(() {
             isMainLate = false;
           });
         }
-
-        // Use the first available started time from youtube, twitch, or floatplane
-        final started = pjsonData['youtube']?['started'] ??
-            pjsonData['twitch']?['started'] ??
-            pjsonData['floatplane']?['started'];
-
-        if (started != null) {
-          try {
-            final startedTime = DateTime.parse(started.toString());
-            isAfterStartTime = true;
-            showPlayed = true;
-            final timeUntil = whenPlaneIntegration.getTimeUntil(startedTime);
-            if (mounted) {
-              setState(() {
-                countdownString = timeUntil['string'];
-              });
-            }
-          } catch (e) {
-            debugPrint('Error parsing started time: $e');
-          }
-        }
+        DateTime started = DateTime.parse(pjsonData['mainShowStarted'] ??
+            pjsonData['preShowStarted'] ??
+            pjsonData['liveStatus']['floatplane']['started']);
+        setState(() {
+          isAfterStartTime = true;
+          showPlayed = true;
+          countdownString =
+              whenPlaneIntegration.getTimeUntil(started)['string'];
+        });
       } else {
         if (showPlayed) {
           showPlayed = false;
           nextWan = whenPlaneIntegration.getNextWAN(DateTime.now(),
               hasDone: pjsonData['hasDone']);
         }
-
-        final timeUntil = whenPlaneIntegration.getTimeUntil(nearestWan['date']);
-        isAfterStartTime = timeUntil['late'];
-
-        if (mounted) {
+        final timeUntil = whenPlaneIntegration.getTimeUntil(nextWan);
+        setState(() {
+          countdownString = timeUntil['string'];
+          isAfterStartTime = timeUntil['late'];
+        });
+        if (timeUntil['late']) {
           setState(() {
-            countdownString = timeUntil['string'];
-            if (timeUntil['late']) {
-              isMainLate = true;
-            }
+            isMainLate = true;
           });
         }
       }
@@ -254,6 +223,21 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final ageCutoff = 24 * 60 * 60e3;
+
+    var floatplanenull = pjsonData != null && pjsonData['floatplane'] != null;
+    var islivetrue = floatplanenull &&
+        pjsonData['floatplane']['isLive'] != null &&
+        pjsonData['floatplane']['isLive'];
+    var iswantrue = floatplanenull &&
+        pjsonData['floatplane']['isWAN'] != null &&
+        pjsonData['floatplane']['isWAN'];
+    var agecheck = floatplanenull &&
+        ((dayIsCloseEnough &&
+            (pjsonData['floatplane']['isThumbnailNew'] ??
+                false ||
+                    pjsonData['floatplane']['thumbnailAge'] < ageCutoff))) &&
+        !pjsonData['hasDone'];
+
     return error
         ? ErrorScreen(
             subtext: 'Floaty recieved an unexpected response.',
@@ -299,10 +283,53 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                               children: [
                                 if (pjsonData['specialStream'] != false)
                                   _buildSpecialStreamCard(),
-                                const SizedBox(height: 12.0),
-                                _buildShowMightStartSoonAlert(
-                                    colorScheme, textTheme),
-                                const SizedBox(height: 12.0),
+                                if (pjsonData['specialStream'] != false)
+                                  const SizedBox(height: 12.0),
+                                if (floatplanenull &&
+                                    islivetrue &&
+                                    iswantrue &&
+                                    agecheck)
+                                  _buildShowMightStartSoonAlert(
+                                      colorScheme, textTheme),
+                                if (floatplanenull &&
+                                    islivetrue &&
+                                    iswantrue &&
+                                    agecheck)
+                                  const SizedBox(height: 12.0),
+                                if (whenPlaneIntegration
+                                        .isNearWan(DateTime.now()) &&
+                                    (((pjsonData['floatplane']?['title']
+                                                as String?)
+                                            ?.contains(
+                                          DateFormat.yMMMMd().format(
+                                            whenPlaneIntegration
+                                                .getClosestWan(DateTime.now())
+                                                .toLocal(),
+                                          ),
+                                        ) ??
+                                        false)) &&
+                                    !(((pjsonData['floatplane']?['title']
+                                                as String?)
+                                            ?.contains('Hello Floatplane')) ??
+                                        false))
+                                  _buildNewShowTitle(colorScheme, textTheme),
+                                if (whenPlaneIntegration
+                                        .isNearWan(DateTime.now()) &&
+                                    (((pjsonData['floatplane']?['title']
+                                                as String?)
+                                            ?.contains(
+                                          DateFormat.yMMMMd().format(
+                                            whenPlaneIntegration
+                                                .getClosestWan(DateTime.now())
+                                                .toLocal(),
+                                          ),
+                                        ) ??
+                                        false)) &&
+                                    !(((pjsonData['floatplane']?['title']
+                                                as String?)
+                                            ?.contains('Hello Floatplane')) ??
+                                        false))
+                                  const SizedBox(height: 12.0),
                                 _buildCountdownCard(colorScheme, textTheme),
                                 const SizedBox(height: 12.0),
                                 _buildPlatformStatusContainer(),
@@ -824,7 +851,6 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
       ColorScheme colorScheme, TextTheme textTheme) {
     final isThumbnailNew = pjsonData['floatplane']?['isThumbnailNew'] ?? false;
     final thumbnailUrl = pjsonData['floatplane']?['thumbnail'] ?? '';
-    final title = pjsonData['floatplane']?['title']?.split(' - ')[0] ?? '';
     final thumbnailAge = pjsonData['floatplane']?['thumbnailAge'] as int?;
 
     // Calculate the exact date and time when the thumbnail was updated
@@ -846,7 +872,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Thumbnail
             Container(
@@ -894,14 +920,6 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                       ],
                     ),
                   ),
-                Text(
-                  title.isNotEmpty ? '"$title"' : 'Untitled Stream',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
                 const SizedBox(height: 4),
                 Column(
                   mainAxisSize: MainAxisSize.min,
@@ -928,6 +946,7 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
             // Info button
             Align(
@@ -942,6 +961,37 @@ class _WhenplaneScreenState extends State<WhenplaneScreen> {
                   iconSize: 20,
                   splashRadius: 20,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNewShowTitle(ColorScheme colorScheme, TextTheme textTheme) {
+    final title = pjsonData['floatplane']?['title']?.split(' - ')[0] ?? '';
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current Show Title',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+            ),
+            Text(
+              title,
+              style: textTheme.titleSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],

@@ -118,6 +118,14 @@ class RootLayoutState extends ConsumerState<RootLayout>
                     isSmallScreen: isSmallScreen,
                     showText: rootState.showText,
                   ),
+                  SidebarItem(
+                    icon: Icons.bug_report,
+                    title: 'test',
+                    route: '/test',
+                    isSidebarCollapsed: isSidebarCollapsed,
+                    isSmallScreen: isSmallScreen,
+                    showText: rootState.showText,
+                  ),
                   SidebarText(
                     title: 'Your Subscriptions',
                     isSidebarCollapsed: isSidebarCollapsed,
