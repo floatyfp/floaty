@@ -86,6 +86,18 @@ You can build the app in either release or debug mode. If you're building it in 
   flutter build ios --<INSERT MODE>
   ```
 
+## iOS install via SideStore / AltStore
+
+CI builds an IPA on each deploy, packages it for SideStore (correct `Payload/` zip layout + ad-hoc `codesign` on macOS), and regenerates an [AltStore source](https://faq.altstore.io/developers/make-a-source) at `docs/altstore-source.json` from **all** GitHub Releases, including pre-releases.
+
+**Source URL** (add once in SideStore or AltStore):
+
+`https://github.com/floatyfp/floaty/blob/release/docs/altstore-source.json?raw=true`
+
+(or the equivalent raw URL for your fork/branch)
+
+Edit static metadata in `docs/altstore-source.meta.json`; version entries are filled automatically from release assets (`floaty-*-ios.ipa`).
+
 - **Windows**
   ```bash
   flutter build windows --<INSERT MODE>

@@ -1,0 +1,131 @@
+{
+  "name": "Floaty",
+  "subtitle": "Open-source Floatplane client for iOS",
+  "description": "Floaty builds for iOS from GitHub Releases. Includes pre-releases from nightly, beta, and development branches. IPAs are packaged for SideStore and AltStore.",
+  "iconURL": "https://floaty.fyi/assets/floaty.png",
+  "website": "https://floaty.fyi",
+  "tintColor": "#3b82f6",
+  "featuredApps": [
+    "uk.bw86.floaty"
+  ],
+  "news": [],
+  "apps": [
+    {
+      "name": "Floaty",
+      "bundleIdentifier": "uk.bw86.floaty",
+      "developerName": "Floaty",
+      "subtitle": "Floatplane client for iOS",
+      "localizedDescription": "An open-source Floatplane client. Install via SideStore or AltStore; pick a build matching your branch (release, beta, nightly, or development).",
+      "iconURL": "https://floaty.fyi/assets/floaty.png",
+      "tintColor": "#3b82f6",
+      "category": "entertainment",
+      "screenshots": [],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      },
+      "patreon": {},
+      "versions": [
+        {
+          "version": "0.0.22",
+          "buildVersion": "22",
+          "marketingVersion": "0.0.22 (22)",
+          "date": "2026-06-03T08:00:24Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/main-v0.0.22-build22/floaty-0.0.22-ios.ipa",
+          "size": 24517758,
+          "localizedDescription": "[main] ## main iOS build"
+        },
+        {
+          "version": "0.0.21",
+          "buildVersion": "21",
+          "marketingVersion": "0.0.21 (21)",
+          "date": "2026-06-03T05:45:36Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/main-v0.0.21-build21/floaty-0.0.21-ios.ipa",
+          "size": 24517762,
+          "localizedDescription": "[main] ## main iOS build"
+        },
+        {
+          "version": "0.0.20",
+          "buildVersion": "20",
+          "marketingVersion": "0.0.20 (20)",
+          "date": "2026-06-01T13:37:19Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/main-v0.0.20-build20/floaty-0.0.20-ios.ipa",
+          "size": 24544867,
+          "localizedDescription": "[main] ## main iOS build"
+        },
+        {
+          "version": "0.0.19",
+          "buildVersion": "19",
+          "marketingVersion": "0.0.19 (19)",
+          "date": "2026-06-01T13:30:22Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/main-v0.0.19-build19/floaty-0.0.19-ios.ipa",
+          "size": 24946293,
+          "localizedDescription": "[main] ## main iOS build"
+        },
+        {
+          "version": "0.0.17",
+          "buildVersion": "17",
+          "marketingVersion": "0.0.17 (17)",
+          "date": "2026-06-01T12:21:56Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/cursor/fix-altstore-duplicate-versions-81e9-v0.0.17-build17/floaty-0.0.17-ios.ipa",
+          "size": 24940996,
+          "localizedDescription": "[cursor/fix-altstore-duplicate-versions-81e9] ## cursor/fix-altstore-duplicate-versions-81e9 iOS build"
+        },
+        {
+          "version": "0.0.16",
+          "buildVersion": "16",
+          "marketingVersion": "0.0.16 (16)",
+          "date": "2026-06-01T11:31:59Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/cursor/fix-altstore-duplicate-versions-81e9-v0.0.16-build16/floaty-0.0.16-ios.ipa",
+          "size": 24941003,
+          "localizedDescription": "[cursor/fix-altstore-duplicate-versions-81e9] ## cursor/fix-altstore-duplicate-versions-81e9 iOS build"
+        },
+        {
+          "version": "0.0.15",
+          "buildVersion": "15",
+          "marketingVersion": "0.0.15 (15)",
+          "date": "2026-06-01T10:36:43Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/cursor/altstore-source-github-pages-81e9-v0.0.15-build15/floaty-0.0.15-ios.ipa",
+          "size": 24941018,
+          "localizedDescription": "[cursor/altstore-source-github-pages-81e9] ## cursor/altstore-source-github-pages-81e9 iOS build"
+        },
+        {
+          "version": "0.0.14",
+          "buildVersion": "14",
+          "marketingVersion": "0.0.14 (14)",
+          "date": "2026-06-01T09:25:03Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/cursor/fix-ios-ipa-sidestore-packaging-81e9-v0.0.14-build14/floaty-0.0.14-ios.ipa",
+          "size": 24464495,
+          "localizedDescription": "[cursor/fix-ios-ipa-sidestore-packaging-81e9] ## cursor/fix-ios-ipa-sidestore-packaging-81e9 iOS build\r"
+        },
+        {
+          "version": "0.0.13",
+          "buildVersion": "13",
+          "marketingVersion": "0.0.13 (13)",
+          "date": "2026-05-17T18:23:04Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/cursor/fix-ota-manifest-plist-367d-v0.0.13-build13/floaty-0.0.13-ios.ipa",
+          "size": 24469024,
+          "localizedDescription": "[cursor/fix-ota-manifest-plist-367d] ## cursor/fix-ota-manifest-plist-367d iOS build\r"
+        },
+        {
+          "version": "0.0.12",
+          "buildVersion": "12",
+          "marketingVersion": "0.0.12 (12)",
+          "date": "2026-05-17T17:26:18Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/cursor/fix-ota-manifest-plist-367d-v0.0.12-build12/floaty-0.0.12-ios.ipa",
+          "size": 24469026,
+          "localizedDescription": "[cursor/fix-ota-manifest-plist-367d] ## cursor/fix-ota-manifest-plist-367d iOS build"
+        },
+        {
+          "version": "0.0.11",
+          "buildVersion": "11",
+          "marketingVersion": "0.0.11 (11)",
+          "date": "2026-05-17T17:10:22Z",
+          "downloadURL": "https://github.com/tojemoc/floaty/releases/download/cursor/fix-ios-versioning-ota-6e6e-v0.0.11-build11/floaty-0.0.11-ios.ipa",
+          "size": 24468788,
+          "localizedDescription": "[cursor/fix-ios-versioning-ota-6e6e] ## cursor/fix-ios-versioning-ota-6e6e iOS build"
+        }
+      ]
+    }
+  ]
+}

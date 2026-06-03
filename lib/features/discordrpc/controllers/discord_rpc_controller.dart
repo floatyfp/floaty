@@ -5,7 +5,11 @@ import 'package:flutter_discord_rpc/flutter_discord_rpc.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:get_it/get_it.dart';
 
+import 'platform_check_stub.dart' if (dart.library.io) 'platform_check_io.dart'
+    as platform_check;
+
 final discordRPCController = GetIt.I<DiscordRPCController>();
+bool get isDiscordRPCSupported => platform_check.isDiscordRPCSupported;
 
 class DiscordRPCController {
   bool initialized = false;

@@ -13,6 +13,7 @@ class LogScreen extends StatefulWidget {
 class _LogScreenState extends State<LogScreen> {
   List<String> logs = [];
   bool loading = true;
+  bool uploading = false;
   LogType selectedLogType = LogType.app;
 
   @override
@@ -40,6 +41,19 @@ class _LogScreenState extends State<LogScreen> {
     await _loadLogs();
   }
 
+  Future<void> _uploadLogs() async {
+    setState(() => uploading = true);
+    final result = await LogService.uploadLogSnapshot(
+      source: selectedLogType.name,
+      logs: logs,
+    );
+    if (!mounted) return;
+    setState(() => uploading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.message)),
+    );
+  }
+
   void _switchLogType(LogType? type) {
     if (type != null && type != selectedLogType) {
       setState(() {
@@ -55,6 +69,16 @@ class _LogScreenState extends State<LogScreen> {
       appBar: AppBar(
         title: const Text('App Logs'),
         actions: [
+          IconButton(
+            icon: uploading
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.cloud_upload),
+            onPressed: uploading ? null : _uploadLogs,
+            tooltip: 'Upload selected logs',
+          ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: logs.isEmpty ? null : _clearLogs,
@@ -89,6 +113,28 @@ class _LogScreenState extends State<LogScreen> {
               onSelectionChanged: (Set<LogType> selection) {
                 _switchLogType(selection.first);
               },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                Icon(
+                  LogService.remoteLoggingConfigured
+                      ? Icons.cloud_done
+                      : Icons.cloud_off,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    LogService.remoteLoggingConfigured
+                        ? 'Remote debug logging is configured. Use the upload button to send these logs.'
+                        : 'Remote debug logging is off. Set FLOATY_REMOTE_LOG_ENDPOINT to send logs externally.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
             ),
           ),
           // Logs display

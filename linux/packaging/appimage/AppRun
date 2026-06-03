@@ -24,10 +24,6 @@ for libdir in "${SYSTEM_LIBDIRS[@]}"; do
     fi
 done
 
-# Preserve any existing LD_LIBRARY_PATH from the user's environment
-if [ -n "${LD_LIBRARY_PATH:-}" ]; then
-    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}"
-fi
 
 if [ -x "$FLOATY_BIN" ]; then
     # check if AOT library exists and is readable

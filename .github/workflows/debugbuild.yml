@@ -7,8 +7,8 @@ on:
 
 # Add explicit permissions for the workflow
 permissions:
-  contents: write  # Required for creating releases
-  actions: read    # Required for downloading artifacts
+  contents: write # Required for creating releases
+  actions: read # Required for downloading artifacts
 
 env:
   DEPLOYMENT_API_KEY: ${{ secrets.DEPLOYMENT_API_KEY }}
@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Check if version bump should be skipped
         id: check_skip
         run: |
@@ -34,23 +34,23 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
             echo "Proceeding with version bump"
           fi
-      
+
       - name: Bump version
         if: steps.check_skip.outputs.skip != 'true'
         run: |
           CURRENT_VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1 | tr -d '\r')
           echo "Current version: $CURRENT_VERSION"
-          
+
           IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
           NEW_PATCH=$((patch + 1))
           NEW_VERSION="$major.$minor.$NEW_PATCH"
           echo "New version: $NEW_VERSION"
-          
+
           sed -i "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
-          
+
           echo "Updated pubspec.yaml:"
           grep '^version:' pubspec.yaml
-      
+
       - name: Commit version bump
         if: steps.check_skip.outputs.skip != 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
@@ -68,26 +68,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
-      
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.38.4"
           cache: true
-      
+
       - name: Fix Git ownership for Flutter
         run: |
           git config --global --add safe.directory '*'
-      
+
       - name: Install Flutter dependencies
         run: flutter pub get
-      
+
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
@@ -99,14 +99,14 @@ jobs:
             ninja-build \
             clang \
             pkg-config
-      
+
       - name: Set glibc compatibility
         run: |
           # Build with maximum glibc compatibility
           export GLIBC_COMPATIBILITY=1
           export CFLAGS="-march=x86-64 -mtune=generic"
           export CXXFLAGS="-march=x86-64 -mtune=generic"
-      
+
       - name: Install dependencies for AppImage
         run: |
           wget -O appimagetool "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
@@ -121,10 +121,10 @@ jobs:
             cp "$config_file" "${target_dir}/make_config.yaml"
             echo "Copied $config_file → ${target_dir}/make_config.yaml"
           done
-      
+
       - name: Install Fastforge
         run: dart pub global activate fastforge
-        
+
       - name: Build and release
         run: fastforge release --name ${{ github.ref_name }}linux
 
@@ -136,26 +136,26 @@ jobs:
             echo "No AppImage found, skipping AppRun replacement"
             exit 0
           fi
-          
+
           # Convert to absolute path
           APPIMAGE_FILE="$(cd "$(dirname "$APPIMAGE_FILE")" && pwd)/$(basename "$APPIMAGE_FILE")"
           echo "Found AppImage: $APPIMAGE_FILE"
-          
+
           # Make AppImage executable
           chmod +x "$APPIMAGE_FILE"
-          
+
           # Extract the AppImage
           APPIMAGE_DIR=$(mktemp -d)
           echo "Extracting to: $APPIMAGE_DIR"
           cd "$APPIMAGE_DIR"
           "$APPIMAGE_FILE" --appimage-extract
-          
+
           # Check if extraction was successful
           if [ ! -d squashfs-root ]; then
             echo "Error: AppImage extraction failed"
             exit 1
           fi
-          
+
           # Replace the AppRun script with our distro-agnostic version
           if [ -f squashfs-root/AppRun ]; then
             cp "$GITHUB_WORKSPACE/linux/packaging/appimage/AppRun" squashfs-root/AppRun
@@ -164,7 +164,7 @@ jobs:
           else
             echo "Warning: AppRun not found in extracted AppImage"
           fi
-          
+
           # Rebuild the AppImage
           cd "$GITHUB_WORKSPACE"
           appimagetool -n "$APPIMAGE_DIR/squashfs-root" "$APPIMAGE_FILE"
@@ -186,7 +186,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -201,10 +201,10 @@ jobs:
           echo "${{ secrets.uploadkeystore }}" | base64 -d > android/app/upload-keystore.jks
           echo "Created files:"
           ls -la lib/ lib/utils android/ android/app/
-      
+
       - name: Install Flutter dependencies
         run: flutter pub get
-      
+
       - name: Verify signing configuration
         run: |
           echo "Checking signing files:"
@@ -220,10 +220,10 @@ jobs:
             echo "✗ Keystore missing"
             exit 1
           fi
-      
+
       - name: Clean before build
         run: flutter clean
-      
+
       - name: Build signed Android APK
         run: |
           set -e
@@ -265,19 +265,19 @@ jobs:
           ls -la build/app/outputs/flutter-apk/ || true
           echo "All APK files in build tree:"
           find . -path "*/build/*" -type f -name "*.apk" || true
-      
+
       - name: Get version from pubspec.yaml
         id: get_version
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1 | tr -d '\r')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
-      
+
       - name: Prepare APK for release
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           VERSION="$(echo -n "$VERSION" | tr -d '\r')"
-          
+
           # Map 'release' branch to 'stable' flavor
           BRANCH="${{ github.ref_name }}"
           if [[ "$BRANCH" == "release" ]]; then
@@ -285,9 +285,9 @@ jobs:
           else
             FLAVOR="$BRANCH"
           fi
-          
+
           mkdir -p "dist/$VERSION"
-          
+
           APK_FLAVORED="build/app/outputs/flutter-apk/app-${FLAVOR}-release.apk"
           APK_DEFAULT="build/app/outputs/flutter-apk/app-release.apk"
 
@@ -305,7 +305,7 @@ jobs:
 
           echo "APK prepared:"
           ls -la "dist/$VERSION/"
-      
+
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
@@ -345,7 +345,7 @@ jobs:
 
       - name: Install Fastforge
         run: dart pub global activate fastforge
-        
+
       - name: Build and release
         run: fastforge release --name ${{ github.ref_name }}macos
 
@@ -367,8 +367,28 @@ jobs:
           echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
           echo "Building iOS with flavor: $FLAVOR"
 
+      - name: Parse version from pubspec.yaml
+        id: ios_version
+        run: |
+          set -euo pipefail
+          RAW=$(grep '^version:' pubspec.yaml | sed 's/version: //' | tr -d ' \r')
+          VERSION_NAME="${RAW%%+*}"
+          if [[ "$RAW" == *"+"* ]]; then
+            BUILD_NUMBER="${RAW#*+}"
+          else
+            BUILD_NUMBER="${VERSION_NAME##*.}"
+          fi
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "Version name: $VERSION_NAME, build: $BUILD_NUMBER"
+
       - name: Build iOS app
-        run: flutter build ios --release --no-codesign --flavor ${{ steps.ios_flavor.outputs.flavor }} --dart-define FLUTTER_FLAVOR=${{ github.ref_name }}
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name="${{ steps.ios_version.outputs.name }}" \
+            --build-number="${{ steps.ios_version.outputs.build }}" \
+            --flavor ${{ steps.ios_flavor.outputs.flavor }} \
+            --dart-define FLUTTER_FLAVOR=${{ github.ref_name }}
 
       - name: Get version from pubspec.yaml
         id: get_version
@@ -377,19 +397,30 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: Package iOS IPA
+      - name: Package iOS IPA for SideStore
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           VERSION="$(echo -n "$VERSION" | tr -d '\r')"
           mkdir -p "dist/$VERSION"
-          mkdir -p Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
-          cd dist/$VERSION
-          zip -r "floaty-${VERSION}-ios.ipa" ../../Payload
-          cd ../..
-          rm -rf Payload
-          echo "Packaged IPA:"
+          chmod +x scripts/package-ios-ipa-for-sidestore.sh
+          scripts/package-ios-ipa-for-sidestore.sh \
+            build/ios/iphoneos/Runner.app \
+            "dist/$VERSION/floaty-${VERSION}-ios.ipa"
           ls -la "dist/$VERSION/"
+
+      - name: Verify IPA archive layout
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          IPA="dist/$VERSION/floaty-${VERSION}-ios.ipa"
+          if unzip -l "$IPA" | awk 'NR>3 {print $4}' | grep -q '\.\./'; then
+            echo "::error::IPA zip entries must not contain parent-directory paths (../)"
+            exit 1
+          fi
+          if ! unzip -l "$IPA" | awk 'NR>3 && $4 != "" {print $4; exit}' | grep -q '^Payload/'; then
+            echo "::error::IPA must contain Payload/ at archive root"
+            unzip -l "$IPA" | head -10
+            exit 1
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -417,7 +448,7 @@ jobs:
         run: flutter pub get
 
       - name: Prepare make_config.yaml
-        shell: bash  #i hate powershell it can burn in hell
+        shell: bash #i hate powershell it can burn in hell
         run: |
           OS=windows
           for config_file in $(find "$OS/packaging" -type f -name "make_config_${GITHUB_REF_NAME}.yaml"); do
@@ -428,7 +459,7 @@ jobs:
 
       - name: Install Fastforge
         run: dart pub global activate fastforge
-        
+
       - name: Build and release
         run: fastforge release --name ${{ github.ref_name }}windows
 
@@ -459,22 +490,22 @@ jobs:
       - name: Organize build files
         run: |
           mkdir -p release/{windows,linux,android,macos,ios}
-          
+
           if [ -d "./artifacts/dist-linux" ]; then
             find ./artifacts/dist-linux -name "*.rpm" -exec cp {} release/linux/ \;
             find ./artifacts/dist-linux -name "*.deb" -exec cp {} release/linux/ \;
             find ./artifacts/dist-linux -name "*.AppImage" -exec cp {} release/linux/ \;
           fi
-          
+
           if [ -d "./artifacts/dist-android" ]; then
             find ./artifacts/dist-android -name "*.apk" -exec cp {} release/android/ \;
           fi
-          
+
           if [ -d "./artifacts/dist-windows" ]; then
             find ./artifacts/dist-windows -name "*.exe" -exec cp {} release/windows/ \;
             find ./artifacts/dist-windows -name "*.msi" -exec cp {} release/windows/ \;
           fi
-          
+
           if [ -d "./artifacts/dist-macos-ios" ]; then
             find ./artifacts/dist-macos-ios -name "*.dmg" -exec cp {} release/macos/ \;
             find ./artifacts/dist-macos-ios -name "*.pkg" -exec cp {} release/macos/ \;
@@ -485,126 +516,126 @@ jobs:
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | tr -d ' ' || echo "1.0.0")
           FLAVOR="${{ github.ref_name }}"
-          
+
           cat > release/manifest.json << EOF
           {
             "version": "$VERSION",
             "flavor": "$FLAVOR",
             "platforms": [
           EOF
-          
+
           if ls release/windows/*.exe >/dev/null 2>&1 || ls release/windows/*.msi >/dev/null 2>&1; then
-            echo '      {' >> release/manifest.json
-            echo '        "platform": "windows",' >> release/manifest.json
-            echo '        "files": [' >> release/manifest.json
-            
+            echo '    {' >> release/manifest.json
+            echo '      "platform": "windows",' >> release/manifest.json
+            echo '      "files": [' >> release/manifest.json
+
             FIRST=true
             for file in release/windows/*; do
               if [ -f "$file" ]; then
                 [ "$FIRST" = false ] && echo ',' >> release/manifest.json
                 filename=$(basename "$file")
                 if [[ "$filename" == *.exe ]]; then
-                  echo -n "          {\"type\": \".exe Installer\", \"path\": \"windows/$filename\"}" >> release/manifest.json
+                  echo -n "        {\"type\": \".exe Installer\", \"path\": \"windows/$filename\"}" >> release/manifest.json
                 elif [[ "$filename" == *.msi ]]; then
-                  echo -n "          {\"type\": \".msi Installer\", \"path\": \"windows/$filename\"}" >> release/manifest.json
+                  echo -n "        {\"type\": \".msi Installer\", \"path\": \"windows/$filename\"}" >> release/manifest.json
                 fi
                 FIRST=false
               fi
             done
             echo '' >> release/manifest.json
-            echo '        ]' >> release/manifest.json
-            echo '      },' >> release/manifest.json
+            echo '      ]' >> release/manifest.json
+            echo '    },' >> release/manifest.json
           fi
-          
+
           if ls release/linux/*.rpm >/dev/null 2>&1 || ls release/linux/*.deb >/dev/null 2>&1 || ls release/linux/*.AppImage >/dev/null 2>&1; then
-            echo '      {' >> release/manifest.json
-            echo '        "platform": "linux",' >> release/manifest.json
-            echo '        "files": [' >> release/manifest.json
-            
+            echo '    {' >> release/manifest.json
+            echo '      "platform": "linux",' >> release/manifest.json
+            echo '      "files": [' >> release/manifest.json
+
             FIRST=true
             for file in release/linux/*; do
               if [ -f "$file" ]; then
                 [ "$FIRST" = false ] && echo ',' >> release/manifest.json
                 filename=$(basename "$file")
                 if [[ "$filename" == *.rpm ]]; then
-                  echo -n "          {\"type\": \"RPM\", \"path\": \"linux/$filename\"}" >> release/manifest.json
+                  echo -n "        {\"type\": \"RPM\", \"path\": \"linux/$filename\"}" >> release/manifest.json
                 elif [[ "$filename" == *.deb ]]; then
-                  echo -n "          {\"type\": \"DEB\", \"path\": \"linux/$filename\"}" >> release/manifest.json
+                  echo -n "        {\"type\": \"DEB\", \"path\": \"linux/$filename\"}" >> release/manifest.json
                 elif [[ "$filename" == *.AppImage ]]; then
-                  echo -n "          {\"type\": \"AppImage\", \"path\": \"linux/$filename\"}" >> release/manifest.json
+                  echo -n "        {\"type\": \"AppImage\", \"path\": \"linux/$filename\"}" >> release/manifest.json
                 fi
                 FIRST=false
               fi
             done
             echo '' >> release/manifest.json
-            echo '        ]' >> release/manifest.json
-            echo '      },' >> release/manifest.json
+            echo '      ]' >> release/manifest.json
+            echo '    },' >> release/manifest.json
           fi
-          
+
           if ls release/android/*.apk >/dev/null 2>&1; then
-            echo '      {' >> release/manifest.json
-            echo '        "platform": "android",' >> release/manifest.json
-            echo '        "files": [' >> release/manifest.json
-            
+            echo '    {' >> release/manifest.json
+            echo '      "platform": "android",' >> release/manifest.json
+            echo '      "files": [' >> release/manifest.json
+
             FIRST=true
             for file in release/android/*; do
               if [ -f "$file" ]; then
                 [ "$FIRST" = false ] && echo ',' >> release/manifest.json
                 filename=$(basename "$file")
-                echo -n "          {\"type\": \"APK\", \"path\": \"android/$filename\"}" >> release/manifest.json
+                echo -n "        {\"type\": \"APK\", \"path\": \"android/$filename\"}" >> release/manifest.json
                 FIRST=false
               fi
             done
             echo '' >> release/manifest.json
-            echo '        ]' >> release/manifest.json
-            echo '      },' >> release/manifest.json
+            echo '      ]' >> release/manifest.json
+            echo '    },' >> release/manifest.json
           fi
-          
+
           if ls release/macos/*.dmg >/dev/null 2>&1 || ls release/macos/*.pkg >/dev/null 2>&1; then
-            echo '      {' >> release/manifest.json
-            echo '        "platform": "macos",' >> release/manifest.json
-            echo '        "files": [' >> release/manifest.json
-            
+            echo '    {' >> release/manifest.json
+            echo '      "platform": "macos",' >> release/manifest.json
+            echo '      "files": [' >> release/manifest.json
+
             FIRST=true
             for file in release/macos/*; do
               if [ -f "$file" ]; then
                 [ "$FIRST" = false ] && echo ',' >> release/manifest.json
                 filename=$(basename "$file")
                 if [[ "$filename" == *.dmg ]]; then
-                  echo -n "          {\"type\": \"DMG\", \"path\": \"macos/$filename\"}" >> release/manifest.json
+                  echo -n "        {\"type\": \"DMG\", \"path\": \"macos/$filename\"}" >> release/manifest.json
                 elif [[ "$filename" == *.pkg ]]; then
-                  echo -n "          {\"type\": \"PKG\", \"path\": \"macos/$filename\"}" >> release/manifest.json
+                  echo -n "        {\"type\": \"PKG\", \"path\": \"macos/$filename\"}" >> release/manifest.json
                 fi
                 FIRST=false
               fi
             done
             echo '' >> release/manifest.json
-            echo '        ]' >> release/manifest.json
-            echo '      },' >> release/manifest.json
+            echo '      ]' >> release/manifest.json
+            echo '    },' >> release/manifest.json
           fi
-          
+
           if ls release/ios/*.ipa >/dev/null 2>&1; then
-            echo '      {' >> release/manifest.json
-            echo '        "platform": "ios",' >> release/manifest.json
-            echo '        "files": [' >> release/manifest.json
-            
+            echo '    {' >> release/manifest.json
+            echo '      "platform": "ios",' >> release/manifest.json
+            echo '      "files": [' >> release/manifest.json
+
             FIRST=true
             for file in release/ios/*; do
               if [ -f "$file" ]; then
                 [ "$FIRST" = false ] && echo ',' >> release/manifest.json
                 filename=$(basename "$file")
-                echo -n "          {\"type\": \"IPA\", \"path\": \"ios/$filename\"}" >> release/manifest.json
+                echo -n "        {\"type\": \"IPA\", \"path\": \"ios/$filename\"}" >> release/manifest.json
                 FIRST=false
               fi
             done
             echo '' >> release/manifest.json
-            echo '        ]' >> release/manifest.json
-            echo '      },' >> release/manifest.json
+            echo '      ]' >> release/manifest.json
+            echo '    },' >> release/manifest.json
           fi
-          
+
           sed -i '$ s/,$//' release/manifest.json
-          echo '    ]' >> release/manifest.json
-          echo '  }' >> release/manifest.json
+          echo '  ]' >> release/manifest.json
+          echo '}' >> release/manifest.json
 
       - name: Create deployment package
         run: |
@@ -613,7 +644,7 @@ jobs:
           cd release
           zip -r "../$PACKAGE_NAME" .
           cd ..
-          
+
       - name: Display manifest content
         run: cat release/manifest.json
 
@@ -621,40 +652,40 @@ jobs:
         id: deploy
         run: |
           echo "Deploying package: $PACKAGE_NAME"
-          
+
           if [ ! -f "$PACKAGE_NAME" ]; then
             echo "Error: Package file $PACKAGE_NAME not found!"
             ls -la
             exit 1
           fi
-          
+
           RESPONSE=$(curl -X POST \
             -H "x-api-key: ${{ env.DEPLOYMENT_API_KEY }}" \
             -F "artifact=@${PACKAGE_NAME}" \
             -w "\n%{http_code}" \
             "https://floaty.fyi/api/deploy" \
             2>/dev/null)
-          
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
-          
+
           echo "HTTP Response Code: $HTTP_CODE"
           echo "Response Body: $RESPONSE_BODY"
-          
+
           if [ "$HTTP_CODE" -eq 200 ]; then
             echo "Successfully deployed $PACKAGE_NAME"
             echo "Response: $RESPONSE_BODY"
-            
+
             echo "deployment_response=$RESPONSE_BODY" >> $GITHUB_OUTPUT
-            
+
             DEPLOYMENT_ID=$(echo "$RESPONSE_BODY" | jq -r '.deploymentId // empty')
             VERSION=$(echo "$RESPONSE_BODY" | jq -r '.version // empty')
             FLAVOR=$(echo "$RESPONSE_BODY" | jq -r '.flavor // empty')
-            
+
             echo "deployment_id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
             echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "flavor=$FLAVOR" >> $GITHUB_OUTPUT
-            
+
             echo "Deployment ID: $DEPLOYMENT_ID"
             echo "Version: $VERSION"
             echo "Flavor: $FLAVOR"
@@ -666,22 +697,25 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.deploy.outputs.deployment_id != ''
+        id: release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.deploy.outputs.flavor }}-v${{ steps.deploy.outputs.version }}-${{ steps.deploy.outputs.deployment_id }}"
           name: "${{ steps.deploy.outputs.flavor }} v${{ steps.deploy.outputs.version }}"
           body: |
             ## ${{ steps.deploy.outputs.flavor }} Release v${{ steps.deploy.outputs.version }}
-            
+
             🔗 **[View Changelogs](https://floaty.fyi/changelogs#${{ steps.deploy.outputs.deployment_id }})**
-            
+
             This release includes builds for:
             ${{ needs.LINUX.result == 'success' && '- 🐧 Linux (RPM, DEB, AppImage)' || '' }}
             ${{ needs.ANDROID.result == 'success' && '- 🤖 Android (APK - signed)' || '' }}
             ${{ needs.WINDOWS.result == 'success' && '- 🪟 Windows (EXE Installer)' || '' }}
             ${{ needs.MACOSIOS.result == 'success' && '- 🍎 macOS (DMG, PKG)' || '' }}
-            ${{ needs.MACOSIOS.result == 'success' && '- 📱 iOS (IPA)' || '' }}
-            
+            ${{ needs.MACOSIOS.result == 'success' && '- 📱 iOS (IPA - SideStore/AltStore)' || '' }}
+
+            **SideStore / AltStore:** Add source URL from [docs/altstore-source.json](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/docs/altstore-source.json) on this branch (updated after each iOS release).
+
             **Deployment ID:** `${{ steps.deploy.outputs.deployment_id }}`
             **Branch:** `${{ github.ref_name }}`
             **Commit:** `${{ github.sha }}`
@@ -694,6 +728,26 @@ jobs:
             release/macos/*
             release/ios/*
             release/manifest.json
+
+      - name: Generate AltStore source from GitHub Releases
+        if: steps.deploy.outputs.deployment_id != '' && needs.MACOSIOS.result == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ALTSTORE_WAIT_RELEASE_TAG: ${{ steps.deploy.outputs.flavor }}-v${{ steps.deploy.outputs.version }}-${{ steps.deploy.outputs.deployment_id }}
+        run: python3 scripts/generate-altstore-source.py
+
+      - name: Commit AltStore source
+        if: steps.deploy.outputs.deployment_id != '' && needs.MACOSIOS.result == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/altstore-source.json
+          if git diff --staged --quiet; then
+            echo "AltStore source already up to date"
+          else
+            git commit -m "chore: update AltStore source for ${{ steps.deploy.outputs.flavor }}-v${{ steps.deploy.outputs.version }}-${{ steps.deploy.outputs.deployment_id }} --no-bump"
+            git push
+          fi
 
       - name: Upload final package as artifact
         uses: actions/upload-artifact@v4

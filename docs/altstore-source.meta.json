@@ -1,0 +1,26 @@
+{
+  "name": "Floaty",
+  "subtitle": "Open-source Floatplane client for iOS",
+  "description": "Floaty builds for iOS from GitHub Releases. Includes pre-releases from nightly, beta, and development branches. IPAs are packaged for SideStore and AltStore.",
+  "iconURL": "https://floaty.fyi/assets/floaty.png",
+  "website": "https://floaty.fyi",
+  "tintColor": "#3b82f6",
+  "featuredApps": ["uk.bw86.floaty"],
+  "news": [],
+  "app": {
+    "name": "Floaty",
+    "bundleIdentifier": "uk.bw86.floaty",
+    "developerName": "Floaty",
+    "subtitle": "Floatplane client for iOS",
+    "localizedDescription": "An open-source Floatplane client. Install via SideStore or AltStore; pick a build matching your branch (release, beta, nightly, or development).",
+    "iconURL": "https://floaty.fyi/assets/floaty.png",
+    "tintColor": "#3b82f6",
+    "category": "entertainment",
+    "screenshots": [],
+    "appPermissions": {
+      "entitlements": [],
+      "privacy": {}
+    },
+    "patreon": {}
+  }
+}

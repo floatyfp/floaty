@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:floaty/features/authentication/services/oauth2_service.dart';
 import 'package:floaty/features/player/controllers/media_player_service.dart';
-import 'package:floaty/main.dart';
+import 'package:floaty/app/flavor_theme.dart';
 import 'package:floaty/shared/controllers/root_provider.dart';
 import 'package:floaty/shared/utils/exceptions.dart';
 import 'package:floaty/shared/views/error_screen.dart';

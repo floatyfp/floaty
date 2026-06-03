@@ -15,6 +15,17 @@ import 'package:floaty/features/download/controllers/download_log.dart';
 import 'package:floaty/features/download/controllers/fp_download_url_helper.dart';
 import 'package:floaty/features/api/models/definitions.dart';
 
+Directory selectOfflineStorageDirectory({
+  required Directory applicationSupportDirectory,
+  required bool useExternalStorage,
+  Directory? externalStorageDirectory,
+}) {
+  if (useExternalStorage && externalStorageDirectory != null) {
+    return externalStorageDirectory;
+  }
+  return applicationSupportDirectory;
+}
+
 /// Floatplane Download Service - UI client for the FP download isolate
 class FPDownloadService {
   static final FPDownloadService _instance = FPDownloadService._internal();
@@ -57,13 +68,15 @@ class FPDownloadService {
 
     // Setup offline directory - ALWAYS use app's internal storage for offline library
     // The custom download_path is only for external downloads (useExternalPath=true)
-    Directory? directory;
-    if (Platform.isAndroid || Platform.isIOS) {
-      directory = await getExternalStorageDirectory();
-    } else {
-      directory = await getApplicationSupportDirectory();
-    }
-    _offlinePath = p.join(directory?.path ?? '', 'floatplane_offline');
+    final appSupportDirectory = await getApplicationSupportDirectory();
+    final externalStorageDirectory =
+        Platform.isAndroid ? await getExternalStorageDirectory() : null;
+    final directory = selectOfflineStorageDirectory(
+      applicationSupportDirectory: appSupportDirectory,
+      externalStorageDirectory: externalStorageDirectory,
+      useExternalStorage: Platform.isAndroid,
+    );
+    _offlinePath = p.join(directory.path, 'floatplane_offline');
     await Directory(_offlinePath!).create(recursive: true);
     _logger!.log(
         '[FPDownloadService] Offline library path (internal): $_offlinePath');
@@ -104,6 +117,16 @@ class FPDownloadService {
 
   Future<void> _initNotifications() async {
     try {
+      final dbusSessionBusAddress =
+          Platform.environment['DBUS_SESSION_BUS_ADDRESS'];
+      if (Platform.isLinux &&
+          (dbusSessionBusAddress == null || dbusSessionBusAddress.isEmpty)) {
+        _logger?.log(
+            '[FPDownloadService] Skipping notifications; D-Bus session bus is unavailable');
+        _notificationsInitialized = false;
+        return;
+      }
+
       const androidSettings =
           AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosSettings = DarwinInitializationSettings(

@@ -401,9 +401,10 @@ class MediaPlayerService extends Notifier<MediaPlayerState> {
             _currentMediaType == MediaType.video ? 'video' : 'audio');
       });
     }
-    if (_currentArtist?.toLowerCase() != 'ecc squad' && !Platform.isMacOS ||
-        _currentArtist?.toLowerCase() != 'eccsquad' && !Platform.isMacOS ||
-        !_currentDiscoverable && !Platform.isMacOS) {
+    if (isDiscordRPCSupported &&
+        _currentArtist?.toLowerCase() != 'ecc squad' &&
+        _currentArtist?.toLowerCase() != 'eccsquad' &&
+        _currentDiscoverable) {
       durationStream.listen((duration) {
         if (duration == Duration.zero) {
           discordRPCController.updateRPC(
@@ -760,9 +761,10 @@ class MediaPlayerService extends Notifier<MediaPlayerState> {
     }
     const flavor =
         String.fromEnvironment('FLUTTER_FLAVOR', defaultValue: 'release');
-    if (_currentArtist?.toLowerCase() != 'ecc squad' && !Platform.isMacOS ||
-        _currentArtist?.toLowerCase() != 'eccsquad' && !Platform.isMacOS ||
-        !_currentDiscoverable && !Platform.isMacOS) {
+    if (isDiscordRPCSupported &&
+        _currentArtist?.toLowerCase() != 'ecc squad' &&
+        _currentArtist?.toLowerCase() != 'eccsquad' &&
+        _currentDiscoverable) {
       discordRPCController.updateRPC(
           _whitelabelName ?? 'Unknown Whitelabel',
           title ?? 'Unknown Title',
@@ -993,7 +995,7 @@ class MediaPlayerService extends Notifier<MediaPlayerState> {
         } else {
           await windowsControls?.stop();
         }
-        if (!Platform.isMacOS) {
+        if (isDiscordRPCSupported) {
           discordRPCController.clearRPC();
         }
         break;
@@ -1112,7 +1114,7 @@ class MediaPlayerService extends Notifier<MediaPlayerState> {
     } else {
       await windowsControls?.dispose();
     }
-    if (!Platform.isMacOS) {
+    if (isDiscordRPCSupported) {
       discordRPCController.clearRPC();
     }
     await _subtitleTextController.close();
